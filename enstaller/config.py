@@ -8,7 +8,7 @@ import platform
 from os.path import isfile, join
 
 from enstaller import __version__
-from utils import PY_VER, abs_expanduser
+from utils import PY_VER, abs_expanduser, fill_url
 import plat
 
 try:
@@ -70,12 +70,8 @@ If you are not subscribed to EPD, just hit Return.
     username = raw_input('Username: ').strip()
     if not username:
         return None, None
-    for dummy in xrange(3):
-        password = getpass('Password: ')
-        password2 = getpass('Confirm password: ')
-        if password == password2:
-            return username, password
-    return None, None
+    return username, getpass('Password: ')
+
 
 RC_TMPL = """\
 # enstaller configuration file
@@ -189,7 +185,11 @@ def get_auth():
             change_auth(username, password)
     username = get('EPD_username')
     if username and keyring:
-        password = keyring.get_password(KEYRING_SERVICE_NAME, username)
+        if hasattr(get_auth, 'password'):
+            password = get_auth.password
+        else:
+            password = keyring.get_password(KEYRING_SERVICE_NAME, username)
+            get_auth.password = password
     if username and password:
         return username, password
     else:
@@ -253,13 +253,6 @@ def prepend_url(url):
     f.close()
 
 
-def filled_url(url):
-    from indexed_repo.dist_naming import cleanup_reponame
-
-    return cleanup_reponame(url.replace('{ARCH}', plat.arch)
-                               .replace('{SUBDIR}', plat.subdir))
-
-
 def clear_cache():
     if hasattr(read, 'cache'):
         del read.cache
@@ -282,14 +275,14 @@ def read():
     for k in read.cache:
         v = read.cache[k]
         if k == 'IndexedRepos':
-            read.cache[k] = [filled_url(url) for url in v]
+            read.cache[k] = [fill_url(url) for url in v]
         elif k in ('prefix', 'local'):
             read.cache[k] = abs_expanduser(v)
     return read.cache
 
 
-def get(key, default_val=None):
-    return read().get(key) or default_val or default.get(key)
+def get(key, default=None):
+    return read().get(key, default)
 
 
 def print_config():
