@@ -49,6 +49,11 @@ def create_proxy(src, bin_dir):
     if verbose:
         print "Creating proxy executable to: %r" % src
     assert src.endswith('.exe')
+    
+    # The Executable can actually be pythonw.exe in order to avoid popping up
+    # a cmd shell during install.  If that is the case the console scripts 
+    # ought to be using python.exe instead.
+    python = re.sub('pythonw\.exe$', 'python.exe', executable)
 
     dst_name = basename(src)
     if dst_name.startswith('epd-'):
@@ -70,7 +75,7 @@ import subprocess
 src = %(src)r
 
 sys.exit(subprocess.call([src] + sys.argv[1:]))
-''' % dict(python=executable, src=src))
+''' % dict(python=python, src=src))
     fo.close()
     return dst, dst_script
 
@@ -112,7 +117,7 @@ def write_script(path, entry_pt, egg_name):
     """
     if verbose:
         print 'Creating script: %s' % path
-
+        
     assert entry_pt.count(':') == 1
     module, func = entry_pt.strip().split(':')
     python = executable
@@ -120,6 +125,12 @@ def write_script(path, entry_pt, egg_name):
         if path.endswith('pyw'):
             p = re.compile('python\.exe$', re.I)
             python = p.sub('pythonw.exe', python)
+        elif path.endswith('py'):
+            # The Executable can actually be pythonw.exe in order to avoid
+            # popping up a cmd shell during install.  If that is the case
+            # the console scripts ought to be using python.exe instead.
+            p = re.compile('pythonw\.exe$', re.I)
+            python = p.sub('python.exe', python)
         python = '"%s"' % python
 
     rm_rf(path)
