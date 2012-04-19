@@ -129,10 +129,7 @@ class Resolve(object):
         """
         return the set of requirement objects listed by the given egg
         """
-        # 'packages' is required but missing from some of the indices.  This is a
-        # temporary patch to get enpkg working.
-        metadata = self.repo.get_metadata(egg)
-        return set(Req(s) for s in (metadata['packages'] if "packages" in metadata else []))
+        return set(Req(s) for s in self.repo.get_metadata(egg)['packages'])
 
     def name_egg(self, egg):
         """
