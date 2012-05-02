@@ -9,12 +9,12 @@ from os.path import isfile, join
 
 from enstaller import __version__
 from utils import PY_VER, abs_expanduser, fill_url
-import plat
+
 
 try:
     import keyring
     import keyring.backend
-    # Don't use keyring backends that require console input or just do
+    # don't use keyring backends that require console input or just do
     # more or less the same thing we're already doing
     keyring.backend._all_keyring = [keyring.backend.OSXKeychain(),
                                     keyring.backend.GnomeKeyring(),
@@ -25,7 +25,9 @@ try:
     keyring.core.init_backend()
     if keyring.get_keyring().supported() < 0:
         keyring = None
-except ImportError:
+except (ImportError, KeyError):
+    # the KeyError happens on Windows when the environment variable
+    # 'USERPROFILE' is not set
     keyring = None
 
 KEYRING_SERVICE_NAME = 'Enthought.com'
@@ -34,19 +36,15 @@ config_fn = ".enstaller4rc"
 home_config_path = abs_expanduser("~/" + config_fn)
 system_config_path = join(sys.prefix, config_fn)
 
-pypi_url = 'http://www.enthought.com/repo/pypi/eggs/'
-info_url = 'http://www.enthought.com/epd/index-info.bz2'
-upgrade_epd_url = 'http://www.enthought.com/epd/upgrade'
-
 default = dict(
-    info_url=info_url,
     prefix=sys.prefix,
     proxy=None,
     noapp=False,
     local=join(sys.prefix, 'LOCAL-REPO'),
     EPD_auth=None,
     EPD_userpass=None,
-    IndexedRepos=[pypi_url + plat.subdir + '/'],
+    use_webservice=True,
+    IndexedRepos=[],
 )
 
 
@@ -86,27 +84,28 @@ RC_TMPL = """\
 # This file was created by initially running the enpkg command.
 
 %(auth_section)s
+
+# use_webservice refers to using 'https://api.enthought.com/eggs/',
+# the default is True, i.e. the webservice URL is used for fetching eggs.
+# Uncommenting changes this behaviour, to use the explicit IndexedRepos
+# listed below.
+#use_webservice = False
+
 # The enpkg command is searching for eggs in the list 'IndexedRepos'.
 # When enpkg is searching for an egg, it tries to find it in the order
 # of this list, and selects the first one that matches, ignoring
 # repositories below.  Therefore the order of this list matters.
 #
-# Placeholders '{ARCH}' get substituted by 'amd64' or 'x86', depending
-# on the architecture of the current interpreter.
-#
-# Notice also that only indexed repositories, i.e. HTTP directories which
-# contain a file 'index-depend.bz2' (next to the eggs), can be listed here.
 # For local repositories, the index file is optional.  Remember that on
 # Windows systems the backslaches in the directory path need to escaped, e.g.:
 # r'file://C:\\repository\\' or 'file://C:\\\\repository\\\\'
 IndexedRepos = [
-%(repo_section)s]
-
-# The following variable is optional and, if provided, point to a URL which
-# contains an index file with additional package information, such as the
-# package home-page, license type, description.  The information is displayed
-# by the --info option.
-#info_url = 'http://www.enthought.com/epd/index-info.bz2'
+#  'https://www.enthought.com/repo/ets/eggs/{SUBDIR}/',
+  'https://www.enthought.com/repo/epd/GPL-eggs/{SUBDIR}/',
+  'https://www.enthought.com/repo/epd/eggs/{SUBDIR}/',
+# The Enthought PyPI build mirror:
+  'http://www.enthought.com/repo/pypi/eggs/{SUBDIR}/',
+]
 
 # Install prefix (enpkg --prefix and --sys-prefix options overwrite this).
 # When this variable is not provided, it will default to the value of
@@ -128,11 +127,6 @@ def write(username=None, password=None, proxy=None):
     """
     write the config file
     """
-    try:
-        from custom_tools import repo_section
-    except ImportError:
-        repo_section = ''
-
     # If user is 'root', then always create the config file in sys.prefix,
     # otherwise in the user's HOME directory.
     if sys.platform != 'win32' and os.getuid() == 0:
@@ -268,7 +262,7 @@ def read():
         return read.cache
 
     path = get_path()
-    read.cache = {}
+    read.cache = default
     if path is None:
         return read.cache
 
@@ -292,12 +286,13 @@ def print_config():
     print "sys.prefix:", sys.prefix
     print "platform:", platform.platform()
     print "architecture:", platform.architecture()[0]
+    print "use_webservice:", get('use_webservice')
     print "config file:", get_path()
     print
     print "settings:"
-    for k in 'info_url', 'prefix', 'local', 'noapp', 'proxy':
+    for k in 'prefix', 'local', 'noapp', 'proxy':
         print "    %s = %r" % (k, get(k))
-    print "    IndexedRepos:"
+    print "    IndexedRepos:", '(not used)' if get('use_webservice') else ''
     for repo in get('IndexedRepos'):
         print '        %r' % repo
 
