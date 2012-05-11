@@ -292,7 +292,6 @@ class Enpkg(object):
             if rev is None:
                 raise EnpkgError("Error: could not parse: %r" % rev_in)
 
-        print "reverting to: %r" % rev
         try:
             return h.get_state(rev)
         except IndexError:
@@ -318,7 +317,6 @@ class Enpkg(object):
 
         curr = h.get_state()
         if state == curr:
-            print "Nothing to do"
             return []
 
         res = []

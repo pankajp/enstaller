@@ -390,7 +390,11 @@ def main():
         else:
             arg = args.revert
         try:
-            enpkg.execute(enpkg.revert_actions(arg))
+            actions = enpkg.revert_actions(arg)
+            if not actions:
+                print "Nothing to do"
+                return
+            enpkg.execute(actions)
         except EnpkgError as e:
             print e.message
         return
