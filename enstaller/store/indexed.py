@@ -4,7 +4,9 @@ import urllib2
 from collections import defaultdict
 
 from base import AbstractStore
+from cached import CachedHandler
 from compressed import CompressedHandler
+from enstaller import config
 
 
 class IndexedStore(AbstractStore):
@@ -87,11 +89,18 @@ class RemoteHTTPIndexedStore(IndexedStore):
     def __init__(self, url):
         self.root = url
         self.opener = urllib2.build_opener(CompressedHandler,
+                                           CachedHandler(config.get('local')),
                                            urllib2.HTTPHandler,
                                            urllib2.HTTPSHandler)
 
     def info(self):
         return dict(root=self.root)
+
+    def get_index(self):
+        fp = self.get_data('index.json?pypi=true')
+        if fp is None:
+            raise Exception("could not connect")
+        return json.load(fp)
 
     def get_data(self, key):
         url = self._location(key)

@@ -54,10 +54,8 @@ class CachedHandler(urllib2.BaseHandler):
             os.makedirs(os.path.dirname(self._index_path))
         except OSError:
             pass
-        with open(self._index_path, 'wb') as f:
-            f.write(content)
-        with open(self._metadata_path, 'wb') as f:
-            json.dump(metadata, f)
+        open(self._index_path, 'wb').write(content)
+        json.dump(metadata, open(self._metadata_path, 'wb'))
 
     # BaseHandler API Methods #
 
@@ -78,15 +76,21 @@ class CachedHandler(urllib2.BaseHandler):
             self.clear_cache()
             return self.parent.open(req.get_full_url)
 
-        return urllib2.addinfourl(open(self._index_path, 'rb'),
-                                  headers, req.get_full_url())
+        res = urllib2.addinfourl(open(self._index_path, 'rb'),
+                                 headers, req.get_full_url())
+        res.code = code
+        res.msg = msg
+        return res
 
     def http_response(self, req, response):
         etag = response.headers.get('Etag')
-        if etag and self.cache_re.search(response.url):
+        if etag and response.code == 200 and self.cache_re.search(response.url):
             self.fill_cache(etag, response.read())
-            return urllib2.addinfourl(open(self._index_path, 'rb'),
-                                      response.headers, response.url)
+            res = urllib2.addinfourl(open(self._index_path, 'rb'),
+                                          response.headers, response.url)
+            res.code = response.code
+            res.msg = response.msg
+            return res
 
         return response
 

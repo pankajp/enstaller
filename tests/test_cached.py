@@ -64,6 +64,8 @@ class CacheTest(TestCase):
     def test_write_cache(self):
         req = urllib2.Request('http://foo.com/index.json')
         res = urllib2.addinfourl(StringIO('hello'), {'Etag': 'returned-etag'}, 'http://redirected.com/index-foo.json')
+        res.code = 200
+        res.msg = 'OK'
         self.cache_handler.http_response(req, res)
         self.assertTrue(os.path.exists(self.index_path))
         self.assertTrue(os.path.exists(self.metadata_path))
@@ -107,3 +109,14 @@ class CacheTest(TestCase):
         self.cache_handler.http_response(req, res)
         self.assertFalse(os.path.exists(self.metadata_path))
         self.assertFalse(os.path.exists(self.index_path))
+
+    def test_no_write_cache_on_304(self):
+        """ Only write cache on 200 responses """
+        req = urllib2.Request('http://foo.com/index.json')
+        res = urllib2.addinfourl(StringIO('foo'), {'Etag': 'whatevs'}, 'http://foo.com/index.json')
+        res.code = 304
+        res.msg = 'Not Modified'
+        self.cache_handler.http_response(req, res)
+        self.assertFalse(os.path.exists(self.metadata_path))
+        self.assertFalse(os.path.exists(self.index_path))
+        
