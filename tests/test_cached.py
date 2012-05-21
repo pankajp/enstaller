@@ -119,4 +119,4 @@ class CacheTest(TestCase):
         self.cache_handler.http_response(req, res)
         self.assertFalse(os.path.exists(self.metadata_path))
         self.assertFalse(os.path.exists(self.index_path))
-        
+
