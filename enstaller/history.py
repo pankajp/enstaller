@@ -3,17 +3,26 @@ import sys
 import time
 import bisect
 import string
+from datetime import datetime, timedelta
 from os.path import isfile, join
 
 import egginst
 
 
-def iso_curr_utc():
+TIME_FMT = '%Y-%m-%d %H:%M:%S'
+
+def now_utc():
     """
     return the current time (in UTC) as an ISO formated
     string, e.g. '2012-05-21 19:10:26'
     """
-    return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+    return time.strftime(TIME_FMT, time.gmtime())
+
+def utc2local(s):
+    dt = datetime.strptime(s, TIME_FMT)
+    dt -= timedelta(seconds=time.altzone if time.daylight else time.timezone)
+    return dt.strftime(TIME_FMT)
+
 
 def is_diff(cont):
     return any(s.startswith(('-', '+')) for s in cont)
@@ -79,7 +88,7 @@ class History(object):
         if not force and isfile(self._log_path):
             return
         fo = open(self._log_path, 'w')
-        fo.write("==> %s <==\n" % iso_curr_utc())
+        fo.write("==> %s <==\n" % now_utc())
         for eggname in egginst.get_installed(self.prefix):
             fo.write('%s\n' % eggname)
         fo.close()
@@ -94,7 +103,7 @@ class History(object):
         if last == curr:
             return
         fo = open(self._log_path, 'a')
-        fo.write("==> %s <==\n" % iso_curr_utc())
+        fo.write("==> %s <==\n" % now_utc())
         for fn in last - curr:
             fo.write('-%s\n' % fn)
         for fn in curr - last:
@@ -158,7 +167,7 @@ class History(object):
 
     def print_log(self):
         for i, (dt, cont) in enumerate(self.parse()):
-            print '%s  (rev %d)' % (dt, i)
+            print '%s  (rev %d)' % (utc2local(dt[:19]), i)
             for line in pretty_cont(cont):
                 print '    %s' % line
             print
