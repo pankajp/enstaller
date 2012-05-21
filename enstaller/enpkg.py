@@ -281,30 +281,12 @@ class Enpkg(object):
                              (req.name, ', '.join(versions)))
         return [('remove', index.keys()[0])]
 
-    def _get_state(self, h, rev_in):
-        assert isinstance(rev_in, (str, unicode, int, long))
-        try:
-            rev = int(rev_in)
-        except ValueError:
-            # we have a "date string"
-            from parse_dt import parse
-            rev = parse(rev_in)
-            if rev is None:
-                raise EnpkgError("Error: could not parse: %r" % rev_in)
-
-        try:
-            return h.get_state(rev)
-        except IndexError:
-            raise EnpkgError("Error: no such revision: %r" % rev)
-
     def revert_actions(self, arg):
         """
         Calculate the actions necessary to revert to a given state, the
         argument may be one of:
           * complete set of eggs, i.e. a set of egg file names
           * revision number (negative numbers allowed)
-          * datetime in ISO format, i.e. YYYY-mm-dd HH:MM:SS
-          * simple strings like '1 day ago', see parse_dt module
         """
         if self.hook:
             raise NotImplementedError
@@ -313,7 +295,14 @@ class Enpkg(object):
         if isinstance(arg, set):
             state = arg
         else:
-            state = self._get_state(h, arg)
+            try:
+                rev = int(arg)
+            except ValueError:
+                raise EnpkgError("Error: integer expected, got: %r" % arg)
+            try:
+                state = h.get_state(rev)
+            except IndexError:
+                raise EnpkgError("Error: no such revision: %r" % arg)
 
         curr = h.get_state()
         if state == curr:

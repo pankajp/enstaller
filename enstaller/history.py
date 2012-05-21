@@ -1,28 +1,20 @@
 import re
 import sys
 import time
-import bisect
 import string
-from datetime import datetime, timedelta
 from os.path import isfile, join
 
 import egginst
 
 
-TIME_FMT = '%Y-%m-%d %H:%M:%S'
+TIME_FMT = '%Y-%m-%d %H:%M:%S %z %Z'
 
-def now_utc():
+def now():
     """
-    return the current time (in UTC) as an ISO formated
-    string, e.g. '2012-05-21 19:10:26'
+    return the current local time as an ISO formated
+    string with time zone data, e.g. '2012-05-21 16:45:59 -0500 CDT'
     """
-    return time.strftime(TIME_FMT, time.gmtime())
-
-def utc2local(s):
-    dt = datetime.strptime(s, TIME_FMT)
-    dt -= timedelta(seconds=time.altzone if time.daylight else time.timezone)
-    return dt.strftime(TIME_FMT)
-
+    return time.strftime(TIME_FMT)
 
 def is_diff(cont):
     return any(s.startswith(('-', '+')) for s in cont)
@@ -51,17 +43,6 @@ def pretty_cont(cont):
     else:
         return iter(sorted(cont, key=string.lower))
 
-def find_revision(times, dt):
-    """
-    given a list of (sorted) datetimes 'times', return the index
-    corresponding to the time 'dt'
-    """
-    i = bisect.bisect(times, dt)
-    if i == 0:
-        return 0
-    else:
-        return i - 1
-
 
 class History(object):
 
@@ -88,7 +69,7 @@ class History(object):
         if not force and isfile(self._log_path):
             return
         fo = open(self._log_path, 'w')
-        fo.write("==> %s <==\n" % now_utc())
+        fo.write("==> %s <==\n" % now())
         for eggname in egginst.get_installed(self.prefix):
             fo.write('%s\n' % eggname)
         fo.close()
@@ -103,7 +84,7 @@ class History(object):
         if last == curr:
             return
         fo = open(self._log_path, 'a')
-        fo.write("==> %s <==\n" % now_utc())
+        fo.write("==> %s <==\n" % now())
         for fn in last - curr:
             fo.write('-%s\n' % fn)
         for fn in curr - last:
@@ -148,26 +129,18 @@ class History(object):
             res.append((dt, cur.copy()))
         return res
 
-    def get_state(self, arg=None):
+    def get_state(self, rev=-1):
         """
-        return the state, i.e. the set of eggs, for a given revision or time,
-        defaults to latest (which is the same as the current state when the
-        log file is up-to-date)
+        return the state, i.e. the set of eggs, for a given revision,
+        defaults to latest (which is the same as the current state when
+        the log file is up-to-date)
         """
         times, pkgs = zip(*self.construct_states())
-        if arg is None:
-            i = -1
-        elif isinstance(arg, str):
-            i = find_revision(times, arg)
-        elif isinstance(arg, int):
-            i = arg
-        else:
-            raise Exception('Did not expect: %r' % arg)
-        return pkgs[i]
+        return pkgs[rev]
 
     def print_log(self):
         for i, (dt, cont) in enumerate(self.parse()):
-            print '%s  (rev %d)' % (utc2local(dt[:19]), i)
+            print '%s  (rev %d)' % (dt, i)
             for line in pretty_cont(cont):
                 print '    %s' % line
             print
