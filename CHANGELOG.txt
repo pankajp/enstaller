@@ -1,7 +1,9 @@
-2012-05-??   4.5.1:
+2012-05-21   4.5.1:
 -------------------
   * add compression and caching of webservice index files
   * fixed scripts being created on Windows when enpkg is run with pythonw
+  * simplified much of the revert code, by only allowing actual revision
+    numbers (instead of also allowing date times)
 
 
 2012-04-27   4.5.0:
