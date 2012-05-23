@@ -10,7 +10,7 @@ import sys
 import site
 import string
 from argparse import ArgumentParser
-from os.path import join
+from os.path import isfile, join
 
 from egginst.utils import bin_dir_name, rel_site_packages
 from enstaller import __version__
@@ -21,7 +21,7 @@ from utils import abs_expanduser, fill_url
 from eggcollect import EggCollection
 from enpkg import Enpkg, EnpkgError, create_joined_store
 from resolve import Req, comparable_info
-from egg_meta import split_eggname
+from egg_meta import is_valid_eggname, split_eggname
 
 
 FMT = '%-20s %-20s %s'
@@ -96,6 +96,20 @@ def list_option(prefixes, hook=False, pat=None):
         print "prefix:", prefix
         print_installed(prefix, hook, pat)
         print
+
+
+def parse_list(fn):
+    pat = re.compile(r'([\w.]+)\s+([\w.]+-\d+)')
+    res = set()
+    for line in open(fn):
+        line = line.strip()
+        m = pat.match(line)
+        if m:
+            res.add(m.expand(r'\1-\2.egg'))
+            continue
+        if is_valid_eggname(line):
+            res.add(line)
+    return res
 
 
 def imports_option(enpkg, pat=None):
@@ -371,8 +385,16 @@ def main():
         return
 
     if args.revert:                               # --revert
+        if isfile(args.revert):
+            arg = parse_list(args.revert)
+        else:
+            arg = args.revert
         try:
-            enpkg.execute(enpkg.revert_actions(args.revert))
+            actions = enpkg.revert_actions(arg)
+            if not actions:
+                print "Nothing to do"
+                return
+            enpkg.execute(actions)
         except EnpkgError as e:
             print e.message
         return
