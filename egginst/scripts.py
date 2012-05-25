@@ -8,10 +8,11 @@ from egginst.utils import on_win, rm_rf
 
 verbose = False
 hashbang_pat = re.compile(r'#!.+$', re.M)
+executable = sys.executable
 
 
 def get_executable(pythonw=False, with_quotes=False):
-    res = sys.executable
+    res = executable
     if on_win:
         # sys.executable may actually be pythonw.exe in order to avoid
         # popping up a cmd shell during install.

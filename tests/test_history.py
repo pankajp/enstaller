@@ -13,26 +13,6 @@ class TestHistory(unittest.TestCase):
         self.history = History('<dummy prefix>')
         self.history._log_path = PATH
 
-    @unittest.skip
-    def test_find_revision(self):
-        times = [
-            '2011-08-01 21:17:22 CDT',
-            '2011-08-01 22:38:37 CDT',
-            '2011-08-01 23:05:07 CDT',
-        ]
-        for dt, res in [
-            ('2011-08-01 21:17:21 CDT', 0),
-            ('2011-08-01 21:17:22 CDT', 0),
-            ('2011-08-01 21:17:23 CDT', 0),
-            ('2011-08-01 22:38:36 CDT', 0),
-            ('2011-08-01 22:38:37 CDT', 1),
-            ('2011-08-01 22:38:38 CDT', 1),
-            ('2011-08-01 23:05:06 CDT', 1),
-            ('2011-08-01 23:05:07 CDT', 2),
-            ('2011-08-01 23:05:08 CDT', 2),
-            ]:
-            self.assertEqual(find_revision(times, dt), res)
-
     def test_get_state(self):
         self.assertEqual(self.history.get_state(0),
                          set(['appinst-2.1.0-1.egg',
