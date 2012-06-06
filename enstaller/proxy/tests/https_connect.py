@@ -11,22 +11,19 @@
 
 import urllib2
 
-from enthought.proxy.api import ConnectHTTPHandler, ConnectHTTPSHandler
-
+from enstaller.proxy.util import get_proxystr
 
 if __name__ == '__main__':
-
-    import sys
 
     # Point this at a working proxy server.  The below is specific to my
     # machine.
     p_info = {'host':'10.1.10.187', 'port':3128, 'user':'user', 'pass':'user'}
 
     # Setup urllib2 to connect through the proxy for http and https.
-    opener = urllib2.build_opener(
-        ConnectHTTPHandler(info=p_info),
-        ConnectHTTPSHandler(info=p_info),
-        )
+    proxystr = get_proxystr(p_info)
+    proxies = dict(http=proxystr, https=proxystr)
+    proxy_handler = urllib2.ProxyHandler(proxies)
+    opener = urllib2.build_opener(proxy_handler)
     urllib2.install_opener(opener)
 
     # Try an HTTPS request
