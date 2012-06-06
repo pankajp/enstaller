@@ -88,10 +88,18 @@ class RemoteHTTPIndexedStore(IndexedStore):
 
     def __init__(self, url):
         self.root = url
-        self.opener = urllib2.build_opener(CompressedHandler,
-                                           CachedHandler(config.get('local')),
-                                           urllib2.HTTPHandler,
-                                           urllib2.HTTPSHandler)
+
+        # Use handlers from urllib2's default opener, since we already
+        # added our proxy handler to it.
+        opener = urllib2._opener
+        http_handlers = [urllib2.HTTPHandler, urllib2.HTTPSHandler]
+        handlers = opener.handlers if opener is not None else http_handlers
+
+        # Add our handlers to the default handlers.
+        handlers_ = [CompressedHandler, CachedHandler(config.get('local'))] + \
+                    handlers
+
+        self.opener = urllib2.build_opener(*handlers_)
 
     def info(self):
         return dict(root=self.root)
