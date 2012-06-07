@@ -1,6 +1,11 @@
-2012-XX-XX   4.5.2:
+2012-??-??   4.5.3:
 -------------------
+  * Fixed proxy handling (https://github.com/enthought/enstaller/pull/41)
 
+
+2012-05-31   4.5.2:
+-------------------
+  * fixed using correct executable when prefix is not sys.prefix
 
 
 2012-05-21   4.5.1:
