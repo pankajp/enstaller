@@ -1,6 +1,6 @@
 2012-??-??   4.5.3:
 -------------------
-
+  * Fixed proxy handling (https://github.com/enthought/enstaller/pull/41)
 
 
 2012-05-31   4.5.2:
