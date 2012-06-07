@@ -13,9 +13,23 @@
 import os
 import urllib2
 
-from connect_HTTP_handler import ConnectHTTPHandler
-from connect_HTTPS_handler import ConnectHTTPSHandler
 
+def get_proxystr(pinfo):
+    """ Get proxystr from a dictionary of proxy info.
+
+    """
+    host = pinfo.get('host')
+    user = pinfo.get('user')
+
+    # Only install a custom opener if a host was actually specified.
+    if host is not None and len(host) > 0:
+
+        if user is not None and len(user) > 0:
+            proxystr = '%(user)s:%(pass)s@%(host)s:%(port)s' % pinfo
+        else:
+            proxystr = '%(host)s:%(port)s' % pinfo
+
+    return proxystr
 
 def install_proxy_handlers(pinfo):
     """
@@ -29,21 +43,14 @@ def install_proxy_handlers(pinfo):
 
     """
 
-    h = pinfo['host']
-    p = pinfo['port']
-    usr = pinfo['user']
-    pwd = pinfo['pass']
+    proxystr = get_proxystr(pinfo)
 
-    # Only install a custom opener if a host was actually specified.
-    if h is not None and len(h) > 0:
-        handlers = []
-
-        # Add handlers to deal with using the proxy.
-        handlers.append(ConnectHTTPSHandler(info=pinfo))
-        handlers.append(ConnectHTTPHandler(info=pinfo))
+    if proxystr:
+        proxies = dict(http=proxystr, https=proxystr)
+        handler = urllib2.ProxyHandler(proxies)
 
         # Create a proxy opener and install it.
-        opener = urllib2.build_opener(*handlers)
+        opener = urllib2.build_opener(handler)
         urllib2.install_opener(opener)
 
     return
@@ -66,6 +73,7 @@ def get_proxy_info(proxystr=None):
 
     # Only check for env variables if no explicit proxy string was provided.
     if proxystr is None or len(proxystr) < 1:
+        # FIXME: We should be supporting http_proxy, HTTP_PROXY variables.
         proxy_info = {
             'host' : os.environ.get('PROXY_HOST', None),
             'port' : os.environ.get('PROXY_PORT', default_port),
@@ -75,91 +83,25 @@ def get_proxy_info(proxystr=None):
 
     # Parse the passed proxy string
     else:
-        proxy_info = {}
-        res = proxystr.split('@')
-        if len(res) == 1:
-            user_pass = [None]
-            host_port = res[0].split(':')
-        elif len(res) == 2:
-            user_pass = res[0].split(':')
-            host_port = res[1].split(':')
-        else:
-            raise ValueError('Invalid proxy string: "%s"' % proxystr)
-
-        if len(user_pass) == 1:
-            proxy_info['user'] = user_pass[0]
-            proxy_info['pass'] = None
-        elif len(user_pass) == 2:
-            proxy_info['user'] = user_pass[0]
-            proxy_info['pass'] = user_pass[1]
-        else:
-            raise ValueError('Invalid user:pass in proxy string: '
-                '"%s"' % user_pass)
-
-        if len(host_port) == 1:
-            proxy_info['host'] = host_port[0]
-            proxy_info['port'] = default_port
-        elif len(host_port) == 2:
-            proxy_info['host'] = host_port[0]
-            try:
-                p = int(host_port[1])
-            except:
-                raise ValueError('Port specification must be an integer.  '
-                    'Had "%s"' % host_port[1])
-            proxy_info['port'] = p
-        else:
-            raise ValueError('Invalid host:port in proxy string: '
-                '"%s"' % host_port)
+        # XXX Using proxy parsing function from urllib2 to parse proxystr
+        _, user, passwd, host_port = urllib2._parse_proxy(proxystr)
+        host, port = urllib2.splitport(host_port)
+        proxy_info = {
+            'host' : host,
+            'port' : port or default_port,
+            'user' : user,
+            'pass' : passwd,
+            }
 
     # If a user was specified, but no password was, prompt for it now.
     user = proxy_info.get('user', None)
     if user is not None and len(user) > 0:
-        pwd = proxy_info.get('pass', None)
-        if pwd is None or len(pwd) < 1:
+        passwd = proxy_info.get('pass', None)
+        if passwd is None or len(passwd) < 1:
             import getpass
             proxy_info['pass'] = getpass.getpass()
 
     return proxy_info
-
-
-def setup_authentication(cfg, opener=None):
-    """
-    """
-
-    # Configure a password manager with the user's authentication info.
-    passmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-    section = 'url auth info'
-    if cfg.has_section(section):
-        for dummy, info in cfg.items(section):
-
-            # Ensure the info includes both a username and a url.
-            if '@' not in info:
-                raise ValueError('Invalid %s string: "%s"' % (section, info))
-            userpass, url = info.split('@')
-
-            # Ensure we have both a user and password.
-            if ':' in userpass:
-                user, password = userpass.split(':')
-            else:
-                user = userpass
-                prompt = 'Password for %s@%s: ' % (user, url)
-                import getpass
-                password = getpass.getpass(prompt)
-
-            passmgr.add_password(None, url, user, password)
-
-    # Create a basic auth handler that uses our authentication info.
-    handler = urllib2.HTTPBasicAuthHandler(passmgr)
-
-    # Add to an existing opener if one was specified and otherwise, create and
-    # register our own.
-    if opener is not None:
-        opener.add_handler(handler)
-    else:
-        opener = urllib2.build_opener(handler)
-        urllib2.install_opener(opener)
-
-    return
 
 
 def setup_proxy(proxystr=''):
@@ -178,7 +120,8 @@ def setup_proxy(proxystr=''):
     installed = False
 
     info = get_proxy_info(proxystr)
-    if 'host' in info and info['host'] is not None:
+
+    if info.get('host') is not None:
         install_proxy_handlers(info)
         installed = True
 
