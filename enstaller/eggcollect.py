@@ -33,7 +33,10 @@ class AbstractEggCollection(object):
 def info_from_metadir(meta_dir):
     path = join(meta_dir, '_info.json')
     if isfile(path):
-        info = json.load(open(path))
+        try:
+            info = json.load(open(path))
+        except ValueError:
+            return None
         info['installed'] = True
         info['meta_dir'] = meta_dir
         return info
