@@ -1,6 +1,12 @@
-2012-??-??   4.5.3:
+2012-??-??   4.5.4:
 -------------------
 
+
+
+2012-06-27   4.5.3:
+-------------------
+  * handle corrupted egginst info jason file more gracefully, rather
+    than crashing
 
 
 2012-05-31   4.5.2:
