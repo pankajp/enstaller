@@ -16,8 +16,8 @@ def now():
     """
     return time.strftime(TIME_FMT)
 
-def is_diff(cont):
-    return any(s.startswith(('-', '+')) for s in cont)
+def is_diff(content):
+    return any(s.startswith(('-', '+')) for s in content)
 
 def pretty_diff(diff):
     added = {}
@@ -37,11 +37,11 @@ def pretty_diff(diff):
     for name in sorted(set(added) - changed):
         yield '+%s-%s' % (name, added[name])
 
-def pretty_cont(cont):
-    if is_diff(cont):
-        return pretty_diff(cont)
+def pretty_content(content):
+    if is_diff(content):
+        return pretty_diff(content)
     else:
-        return iter(sorted(cont, key=string.lower))
+        return iter(sorted(content, key=string.lower))
 
 
 class History(object):
@@ -68,11 +68,7 @@ class History(object):
         """
         if not force and isfile(self._log_path):
             return
-        fo = open(self._log_path, 'w')
-        fo.write("==> %s <==\n" % now())
-        for eggname in egginst.get_installed(self.prefix):
-            fo.write('%s\n' % eggname)
-        fo.close()
+        self._write_egg_names(egginst.get_installed(self.prefix))
 
     def update(self):
         """
@@ -83,13 +79,7 @@ class History(object):
         curr = set(egginst.get_installed(self.prefix))
         if last == curr:
             return
-        fo = open(self._log_path, 'a')
-        fo.write("==> %s <==\n" % now())
-        for fn in last - curr:
-            fo.write('-%s\n' % fn)
-        for fn in curr - last:
-            fo.write('+%s\n' % fn)
-        fo.close()
+        self._write_changes(last, curr)
 
     def parse(self):
         """
@@ -141,11 +131,34 @@ class History(object):
         return pkgs[rev]
 
     def print_log(self):
-        for i, (dt, cont) in enumerate(self.parse()):
-            print '%s  (rev %d)' % (dt, i)
-            for line in pretty_cont(cont):
+        for i, (date, content) in enumerate(self.parse()):
+            print '%s  (rev %d)' % (date, i)
+            for line in pretty_content(content):
                 print '    %s' % line
             print
+
+    def _write_egg_names(self, names):
+        """ update the log file with the given list of egg names.
+
+        Should be used only when init-ing the log_file
+        """
+        fo = open(self._log_path, 'w')
+        fo.write("==> %s <==\n" % now())
+        for eggname in names:
+            fo.write('%s\n' % eggname)
+        fo.close()
+
+    def _write_changes(self, last_state, current_state):
+        """ write the changes between last_state and current_state to log_file.
+
+        """
+        fo = open(self._log_path, 'a')
+        fo.write("==> %s <==\n" % now())
+        for fn in last_state - current_state:
+            fo.write('-%s\n' % fn)
+        for fn in current_state - last_state:
+            fo.write('+%s\n' % fn)
+        fo.close()
 
 
 if __name__ == '__main__':
