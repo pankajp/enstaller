@@ -97,6 +97,8 @@ class History(object):
         tuples(datetime strings, set of eggs/diffs)
         """
         res = []
+        if not isfile(self._log_path):
+            return res
         sep_pat = re.compile(r'==>\s*(.+?)\s*<==')
         for line in open(self._log_path):
             line = line.strip()
