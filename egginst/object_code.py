@@ -123,16 +123,12 @@ def fix_object_code(path):
         while rest.startswith('/PLACEHOLD'):
             rest = rest[10:]
 
-        if tp.startswith('MachO-') and rest.startswith('/'):
-            # deprecated: because we now use rpath on OSX as well
-            r = find_lib(rest[1:])
-        else:
-            assert rest == '' or rest.startswith(':')
-            rpaths = list(_targets)
-            # extend the list with rpath which were already in the binary,
-            # if any
-            rpaths.extend(p for p in rest.split(':') if p)
-            r = ':'.join(rpaths)
+        assert rest == '' or rest.startswith(':')
+        rpaths = list(_targets)
+        # extend the list with rpath which were already in the binary,
+        # if any
+        rpaths.extend(p for p in rest.split(':') if p)
+        r = ':'.join(rpaths)
 
         if alt_replace_func is not None:
             r = alt_replace_func(r)
