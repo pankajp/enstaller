@@ -206,6 +206,19 @@ def install_req(enpkg, req, opts):
         print_install_time(enpkg, req.name)
 
 
+def print_web_greeting(user):
+    """Print out a message after authenticating with the web API."""
+    greeting = user.get('first_name', '') + ' ' +\
+            user.get('last_name', '')
+    greeting = greeting.strip()
+    if greeting:
+        print "Welcome to EPD " + greeting + "!"
+    else:
+        print "Welcome to EPD!"
+    if user['has_subscription']:
+        print "You have an EPD subscription."
+
+
 def main():
     try:
         user_base = site.USER_BASE
@@ -365,6 +378,14 @@ def main():
                 print e.message
             else:
                 config.change_auth(username, password)
+        elif config.get('use_webservice') and all(auth):
+            # check credentials using web API
+            user = config.web_auth(auth)
+            if user['is_authenticated']:
+                print_web_greeting(user)
+                config.change_auth(username, password)
+            else:
+                print "Authentication failed. Credentials not saved."
         else:
             config.change_auth(username, password)
         return

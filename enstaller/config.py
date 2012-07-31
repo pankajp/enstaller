@@ -191,6 +191,44 @@ def get_auth():
         return None, None
 
 
+def web_auth(userpass):
+    """Authenticate a `userpass` (as returned by `get_auth`) using the
+    web API.  Return a dictionary containing user info.
+
+    Function taken from Canopy and modified.
+    """
+    import json
+    import urllib2
+
+    API_URL = 'https://api.enthought.com/accounts/user/info/'
+    FAILURE = dict(is_authenticated=False)
+
+    # Make basic local checks
+    username, password = userpass
+    if username is None:
+        print "Authentication error: username is required."
+        return FAILURE
+    if password is None:
+        print "Authentication error: password is required."
+        return FAILURE
+
+    # Authenticate with the web API
+    auth = 'Basic ' + (':'.join(userpass).encode('base64').strip())
+    req = urllib2.Request(API_URL, headers={'Authorization': auth})
+    try:
+        f = urllib2.urlopen(req)
+    except urllib2.URLError as err:
+        print "Authentication Error: ", str(err)
+        return FAILURE
+    try:
+        res = f.read()
+    except urllib2.HTTPError as err:
+        print "Authentication Error: ", str(err)
+        return FAILURE
+
+    return json.loads(res)
+
+
 def clear_auth():
     username = get('EPD_username')
     if username and keyring:
