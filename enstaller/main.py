@@ -198,7 +198,9 @@ def install_req(enpkg, req, opts):
                 req.name,
                 ', '.join(sorted(set(i['version'] for i in info_list))))
             if any(not i.get('available', True) for i in info_list):
-                print "No subscription for %r" % req.name
+                print "No subscription for %r." \
+                      " Have you set your EPD credentials with --userpass?" \
+                      % req.name
         sys.exit(1)
 
     if len(actions) == 0:
