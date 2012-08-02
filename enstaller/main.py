@@ -132,6 +132,10 @@ def search(enpkg, pat=None):
     """
     Print the packages that are available in the (remote) KVS.
     """
+    # Flag indicating if the user received any 'not subscribed to'
+    # messages
+    SUBSCRIBED = True
+
     print FMT % ('Name', '  Versions', 'Note')
     print 60 * '-'
 
@@ -152,9 +156,23 @@ def search(enpkg, pat=None):
             version = VB_FMT % info
             disp_ver = (('* ' if installed_version == version else '  ') +
                         version)
+            available = info.get('available', True)
+            if not(available):
+                SUBSCRIBED = False
             print FMT % (disp_name, disp_ver,
-                   '' if info.get('available', True) else 'not subscribed to')
+                   '' if available else 'not subscribed to')
             disp_name = ''
+
+    # if the user's search returns any packages that are not available
+    # to them, attempt to authenticate and print out their subscriber
+    # level
+    if config.get('use_webservice') and not(SUBSCRIBED):
+        user = {}
+        try:
+            user = config.authenticate(config.get_auth())
+        except Exception as e:
+            print e.message
+        print config.subscription_message(user)
 
 
 def whats_new(enpkg):
@@ -198,27 +216,20 @@ def install_req(enpkg, req, opts):
                 req.name,
                 ', '.join(sorted(set(i['version'] for i in info_list))))
             if any(not i.get('available', True) for i in info_list):
-                print "No subscription for %r." \
-                      " Have you set your EPD credentials with --userpass?" \
-                      % req.name
+                print "No subscription for %r." % req.name
+
+                user = {}
+                if config.get('use_webservice'):
+                    try:
+                        user = config.authenticate(config.get_auth())
+                    except Exception as e:
+                        print e.message
+                print config.subscription_message(user)
         sys.exit(1)
 
     if len(actions) == 0:
         print "No update necessary, %r is up-to-date." % req.name
         print_install_time(enpkg, req.name)
-
-
-def print_web_greeting(user):
-    """Print out a message after authenticating with the web API."""
-    greeting = user.get('first_name', '') + ' ' +\
-            user.get('last_name', '')
-    greeting = greeting.strip()
-    if greeting:
-        print "Welcome to EPD " + greeting + "!"
-    else:
-        print "Welcome to EPD!"
-    if user['has_subscription']:
-        print "You have an EPD subscription."
 
 
 def main():
@@ -370,26 +381,17 @@ def main():
 
     if args.userpass:                             # --userpass
         auth = username, password = config.input_auth()
-        if remote is not None:
-            try:
-                print 'Verifying username and password...'
-                remote.connect(auth)
-            except KeyError as e:
-                print 'Invalid Username or Password'
-            except Exception as e:
-                print e.message
-            else:
-                config.change_auth(username, password)
-        elif config.get('use_webservice') and all(auth):
-            # check credentials using web API
-            user = config.web_auth(auth)
-            if user['is_authenticated']:
-                print_web_greeting(user)
-                config.change_auth(username, password)
-            else:
-                print "Authentication failed. Credentials not saved."
+        try:
+            user = config.authenticate(auth, remote)
+        except config.AuthNotImplementedError:
+            # fall back to old behavior: change the credentials silently
+            config.change_auth(username, password)
+        except Exception as e:
+            print e.message
+            print "Credentials not saved."
         else:
             config.change_auth(username, password)
+            print config.auth_message(user), config.subscription_message(user)
         return
 
     if args.dry_run:

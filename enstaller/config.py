@@ -199,42 +199,125 @@ def get_auth():
         return None, None
 
 
-def web_auth(userpass):
-    """Authenticate a `userpass` (as returned by `get_auth`) using the
-    web API.  Return a dictionary containing user info.
+class AuthFailedError(Exception):
+    pass
+
+
+class AuthNotImplementedError(Exception):
+    pass
+
+
+def web_auth(auth,
+        api_url='https://api.enthought.com/accounts/user/info/'):
+    """
+    Authenticate a user's credentials (an `auth` tuple of username,
+    password) using the web API.  Return a dictionary containing user
+    info.
 
     Function taken from Canopy and modified.
     """
     import json
     import urllib2
 
-    API_URL = 'https://api.enthought.com/accounts/user/info/'
-    FAILURE = dict(is_authenticated=False)
-
     # Make basic local checks
-    username, password = userpass
+    username, password = auth
     if username is None:
-        print "Authentication error: username is required."
-        return FAILURE
+        raise AuthFailedError("Authentication error: Username is required.")
     if password is None:
-        print "Authentication error: password is required."
-        return FAILURE
+        raise AuthFailedError("Authentication error: Password is required.")
 
     # Authenticate with the web API
-    auth = 'Basic ' + (':'.join(userpass).encode('base64').strip())
-    req = urllib2.Request(API_URL, headers={'Authorization': auth})
+    auth = 'Basic ' + (':'.join(auth).encode('base64').strip())
+    req = urllib2.Request(api_url, headers={'Authorization': auth})
+
     try:
         f = urllib2.urlopen(req)
-    except urllib2.URLError as err:
-        print "Authentication Error: ", str(err)
-        return FAILURE
+    except urllib2.URLError as e:
+        raise AuthFailedError("Authentication error: ", e.message)
+
     try:
         res = f.read()
-    except urllib2.HTTPError as err:
-        print "Authentication Error: ", str(err)
-        return FAILURE
+    except urllib2.HTTPError as e:
+        raise AuthFailedError("Authentication error: ", e.message)
 
     return json.loads(res)
+
+
+def auth_message(user):
+    """
+    Return a greeting message based on the `user` dictionary that may
+    contain `first_name` and `last_name`.
+    """
+    name = user.get('first_name', '') + ' ' + \
+            user.get('last_name', '')
+    name = name.strip()
+    if name:
+        return "Welcome to EPD " + name + "!"
+    else:
+        return "Welcome to EPD!"
+
+
+def user_subscription(user):
+    """
+    Extract the level of EPD subscription from the dictionary (`user`)
+    returned by the web API.
+    """
+    if user.get('is_authenticated', False) and user.get('has_subscription', False):
+        return 'EPD Basic or above'
+    elif user.get('is_authenticated', False) and not(user.get('has_subscription', False)):
+        return 'EPD Free'
+    else:
+        return None
+
+
+def subscription_message(user):
+    """
+    Return a 'subscription level' message based on the `user`
+    dictionary.
+
+    `user` is a dictionary, probably retrieved from the web API, that
+    may `is_authenticated`, and `has_subscription`.
+    """
+    if user.get('is_authenticated'):
+        return "You are subscribed to %s." % user_subscription(user)
+    else:
+        return "You are not subscribed to an EPD repository.\n" + \
+               "Have you set your EPD credentials with 'enpkg --userpass'?"
+
+
+def authenticate(auth, remote=None):
+    """
+    Attempt to authenticate the user's credentials by the appropriate
+    means.
+
+    `auth` is a tuple of (username, password).
+
+    If `remote` is not None, authenticate with remote.connect(auth),
+    else if 'use_webservice' is set, authenticate with the web API.
+
+    If web service authentication is successful, return a dictionary
+    containing user info.  Else return None.
+    """
+    if get('use_webservice'):
+        # check credentials using web API
+        try:
+            user = web_auth(auth)
+            assert user['is_authenticated']
+            return user
+        except:
+            raise
+    elif remote is not None:
+        # check credentials using remote.connect
+        try:
+            print 'Verifying username and password...'
+            remote.connect(auth)
+            return None
+        except KeyError:
+            raise AuthFailedError('Authentication failed:'
+                    ' Invalid username or password.')
+    else:
+        raise AuthNotImplementedError('Authentication type not implemented.')
+    return None
 
 
 def clear_auth():
