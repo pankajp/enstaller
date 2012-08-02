@@ -50,7 +50,7 @@ default = dict(
 
 def get_path():
     """
-    Return the absolute path to our config file.
+    Return the absolute path to the config file.
     """
     if isfile(home_config_path):
         return home_config_path
@@ -60,11 +60,15 @@ def get_path():
 
 
 def input_auth():
+    """
+    Prompt user for username and password.  Return (username, password)
+    tuple or (None, None) if left blank.
+    """
     from getpass import getpass
     print """\
-In order to access the EPD repository, please enter your
-username and password, which you use to subscribe to EPD.
-If you are not subscribed to EPD, just hit Return.
+To access the EPD repository, please enter the username
+and password for your EPD subscription.  If you are not
+subscribed to EPD, just hit Return.
 """
     username = raw_input('Username: ').strip()
     if not username:
@@ -81,7 +85,7 @@ RC_TMPL = """\
 #
 #   sys.prefix = %(sys_prefix)r
 #
-# This file was created by initially running the enpkg command.
+# This file was initially created by running the enpkg command.
 
 %(auth_section)s
 
@@ -123,9 +127,10 @@ IndexedRepos = [
 #noapp = True
 """
 
+
 def write(username=None, password=None, proxy=None):
     """
-    write the config file
+    Write the config file.
     """
     # If user is 'root', then always create the config file in sys.prefix,
     # otherwise in the user's HOME directory.
@@ -170,6 +175,9 @@ def write(username=None, password=None, proxy=None):
 
 
 def get_auth():
+    """
+    Retrieve the saved `auth` (username, password) tuple.
+    """
     password = None
     old_auth = get('EPD_auth')
     if old_auth:
@@ -293,8 +301,8 @@ def clear_cache():
 
 def read():
     """
-    return the configuration from the config file as a dictionary,
-    and fix some values and give defaults
+    Return the configuration from the config file as a dictionary,
+    fix some values, and give defaults.
     """
     if hasattr(read, 'cache'):
         return read.cache

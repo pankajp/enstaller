@@ -130,7 +130,7 @@ def imports_option(enpkg, pat=None):
 
 def search(enpkg, pat=None):
     """
-    print the packages which are available in the (remote) KVS
+    Print the packages that are available in the (remote) KVS.
     """
     print FMT % ('Name', '  Versions', 'Note')
     print 60 * '-'
