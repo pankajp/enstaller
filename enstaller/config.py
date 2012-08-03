@@ -66,8 +66,9 @@ def input_auth():
     """
     from getpass import getpass
     print """\
-Please enter the user login and password for your EPD or EPD Free
-subscription.  If you are not subscribed to EPD, just hit Return.
+Please enter the email address (or username) and password for your EPD
+or EPD Free subscription.  If you are not subscribed to EPD, just hit
+Return.
 """
     username = raw_input('Email (or username): ').strip()
     if not username:
@@ -150,7 +151,8 @@ def write(username=None, password=None, proxy=None):
         auth_section = """
 # EPD subscriber authentication is required to access the EPD
 # repository.  To change your credentials, use the 'enpkg --userpass'
-# command, which will ask you for your user login and password.
+# command, which will ask you for your email address (or username) and
+# password.
 %s
 """ % authline
     else:
@@ -219,10 +221,8 @@ def web_auth(auth,
 
     # Make basic local checks
     username, password = auth
-    if username is None:
+    if username is None or password is None:
         raise AuthFailedError("Authentication error: User login is required.")
-    if password is None:
-        raise AuthFailedError("Authentication error: Password is required.")
 
     # Authenticate with the web API
     auth = 'Basic ' + (':'.join(auth).encode('base64').strip())
@@ -238,7 +238,12 @@ def web_auth(auth,
     except urllib2.HTTPError as e:
         raise AuthFailedError("Authentication error: ", e.message)
 
-    return json.loads(res)
+    # See if web API refused to authenticate
+    user = json.loads(res)
+    if not(user['is_authenticated']):
+        raise AuthFailedError('Authentication failed: Invalid user login.')
+
+    return user
 
 
 def auth_message(user):
@@ -289,33 +294,32 @@ def authenticate(auth, remote=None):
     means.
 
     `auth` is a tuple of (username, password).
+    `remote` is enpkg.remote, required if not using the web API to authenticate
 
-    If `remote` is not None, authenticate with remote.connect(auth),
-    else if 'use_webservice' is set, authenticate with the web API.
+    If 'use_webservice' is set, authenticate with the web API and return
+    a dictionary containing user info on success.
 
-    If web service authentication is successful, return a dictionary
-    containing user info.  Else return None.
+    Else, authenticate with remote.connect and return None on success.
+
+    If authentication fails, raise an exception.
     """
+    user = None
     if get('use_webservice'):
         # check credentials using web API
         try:
             user = web_auth(auth)
             assert user['is_authenticated']
-            return user
         except:
             raise
-    elif remote is not None:
+    else:
         # check credentials using remote.connect
         try:
-            print 'Verifying username and password...'
+            print 'Verifying user login...'
             remote.connect(auth)
-            return None
         except KeyError:
             raise AuthFailedError('Authentication failed:'
-                    ' Invalid username or password.')
-    else:
-        raise AuthNotImplementedError('Authentication type not implemented.')
-    return None
+                    ' Invalid user login or password.')
+    return user
 
 
 def clear_auth():
@@ -361,6 +365,36 @@ def change_auth(username, password):
     fo = open(path, 'w')
     fo.write(data)
     fo.close()
+
+
+def checked_change_auth(username, password, remote=None):
+    """
+    Only run change_auth if the credentials are authenticated (or if the
+    username is None).  Print out a greeting if successful.
+
+    `remote` is enpkg.remote and is required if not using the web API to
+    authenticate.
+
+    If successful at authenticating via the web API, return a dictionary
+    containing user info.
+    """
+    auth = (username, password)
+    user = {}
+
+    # For backwards compatibility
+    if username is None:
+        change_auth(username, password)
+        return user
+
+    try:
+        user = authenticate(auth, remote)
+    except Exception as e:
+        print e.message
+        print "No credentials saved."
+    else:
+        change_auth(username, password)
+        print auth_message(user), subscription_message(user)
+    return user
 
 
 def prepend_url(url):
