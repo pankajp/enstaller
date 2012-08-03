@@ -302,10 +302,10 @@ def main():
         args.prefix = user_base
 
     if args.prefix and args.sys_prefix:
-        p.error("Options --prefix and --sys-prefix exclude each ohter")
+        p.error("Options --prefix and --sys-prefix exclude each other")
 
     if args.force and args.forceall:
-        p.error("Options --force and --forceall exclude each ohter")
+        p.error("Options --force and --forceall exclude each other")
 
     pat = None
     if (args.list or args.search) and args.cnames:

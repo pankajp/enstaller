@@ -66,11 +66,10 @@ def input_auth():
     """
     from getpass import getpass
     print """\
-To access the EPD repository, please enter the username
-and password for your EPD subscription.  If you are not
-subscribed to EPD, just hit Return.
+Please enter the user login and password for your EPD or EPD Free
+subscription.  If you are not subscribed to EPD, just hit Return.
 """
-    username = raw_input('Username: ').strip()
+    username = raw_input('Email (or username): ').strip()
     if not username:
         return None, None
     return username, getpass('Password: ')
@@ -91,7 +90,7 @@ RC_TMPL = """\
 
 # use_webservice refers to using 'https://api.enthought.com/eggs/',
 # the default is True, i.e. the webservice URL is used for fetching eggs.
-# Uncommenting changes this behaviour, to use the explicit IndexedRepos
+# Uncommenting changes this behavior to using the explicit IndexedRepos
 # listed below.
 #use_webservice = False
 
@@ -101,7 +100,7 @@ RC_TMPL = """\
 # repositories below.  Therefore the order of this list matters.
 #
 # For local repositories, the index file is optional.  Remember that on
-# Windows systems the backslaches in the directory path need to escaped, e.g.:
+# Windows systems the backslashes in the directory path need to escaped, e.g.:
 # r'file://C:\\repository\\' or 'file://C:\\\\repository\\\\'
 IndexedRepos = [
 #  'https://www.enthought.com/repo/ets/eggs/{SUBDIR}/',
@@ -122,8 +121,8 @@ IndexedRepos = [
 %(proxy_line)s
 
 # Uncommenting the next line will disable application menu item install.
-# This only effects the few packages which install menu items,
-# which as IPython.
+# This only affects the few packages that install menu items, such as
+# IPython.
 #noapp = True
 """
 
@@ -149,9 +148,9 @@ def write(username=None, password=None, proxy=None):
             auth = ('%s:%s' % (username, password)).encode('base64')
             authline = 'EPD_auth = %r' % auth.strip()
         auth_section = """
-# The EPD subscriber authentication is required to access the EPD repository.
-# To change this setting, use the 'enpkg --userpass' command which will ask
-# you for your username and password.
+# EPD subscriber authentication is required to access the EPD
+# repository.  To change your credentials, use the 'enpkg --userpass'
+# command, which will ask you for your user login and password.
 %s
 """ % authline
     else:
@@ -170,7 +169,6 @@ def write(username=None, password=None, proxy=None):
     fo.write(RC_TMPL % locals())
     fo.close()
     print "Wrote configuration file:", path
-    print 77 * '='
     clear_cache()
 
 
@@ -222,7 +220,7 @@ def web_auth(auth,
     # Make basic local checks
     username, password = auth
     if username is None:
-        raise AuthFailedError("Authentication error: Username is required.")
+        raise AuthFailedError("Authentication error: User login is required.")
     if password is None:
         raise AuthFailedError("Authentication error: Password is required.")
 
