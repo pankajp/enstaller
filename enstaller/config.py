@@ -281,11 +281,14 @@ def subscription_message(user):
     `user` is a dictionary, probably retrieved from the web API, that
     may `is_authenticated`, and `has_subscription`.
     """
-    if user.get('is_authenticated'):
-        return "You are subscribed to %s." % user_subscription(user)
+    if 'is_authenticated' in user:
+        if user['is_authenticated']:
+            return "You are subscribed to %s." % user_subscription(user)
+        else:
+            return "You are not subscribed to an EPD repository.\n" + \
+                "Have you set your EPD credentials with 'enpkg --userpass'?"
     else:
-        return "You are not subscribed to an EPD repository.\n" + \
-               "Have you set your EPD credentials with 'enpkg --userpass'?"
+        return ""
 
 
 def authenticate(auth, remote=None):
@@ -303,7 +306,7 @@ def authenticate(auth, remote=None):
 
     If authentication fails, raise an exception.
     """
-    user = None
+    user = {}
     if get('use_webservice'):
         # check credentials using web API
         try:
