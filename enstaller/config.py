@@ -67,8 +67,8 @@ def input_auth():
     from getpass import getpass
     print """\
 Please enter the email address (or username) and password for your EPD
-or EPD Free subscription.  If you are not subscribed to EPD, just hit
-Return.
+or EPD Free subscription.  If you are not subscribed to EPD, just press
+Enter.
 """
     username = raw_input('Email (or username): ').strip()
     if not username:
@@ -255,7 +255,7 @@ def auth_message(user):
             user.get('last_name', '')
     name = name.strip()
     if name:
-        return "Welcome to EPD " + name + "!"
+        return "Welcome to EPD, " + name + "!"
     else:
         return "Welcome to EPD!"
 
