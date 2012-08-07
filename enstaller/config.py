@@ -298,7 +298,8 @@ def authenticate(auth, remote=None):
     If 'use_webservice' is set, authenticate with the web API and return
     a dictionary containing user info on success.
 
-    Else, authenticate with remote.connect and return None on success.
+    Else, authenticate with remote.connect and return an empty dict on
+    success.
 
     If authentication fails, raise an exception.
     """
