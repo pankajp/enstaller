@@ -203,10 +203,6 @@ class AuthFailedError(Exception):
     pass
 
 
-class AuthNotImplementedError(Exception):
-    pass
-
-
 def web_auth(auth,
         api_url='https://api.enthought.com/accounts/user/info/'):
     """
