@@ -382,7 +382,7 @@ def checked_change_auth(username, password, remote=None):
     user = {}
 
     # For backwards compatibility
-    if username is None:
+    if username is None or username is '':
         change_auth(username, password)
         return user
 
