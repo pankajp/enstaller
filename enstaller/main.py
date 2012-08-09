@@ -407,10 +407,6 @@ def main():
     if args.sys_config:                           # --sys-config
         config.get_path = lambda: config.system_config_path
 
-    if args.config:                               # --config
-        config.print_config()
-        return
-
     if args.list:                                 # --list
         list_option(prefixes, args.hook, pat)
         return
@@ -438,6 +434,10 @@ def main():
 
     enpkg = Enpkg(remote, prefixes=prefixes, hook=args.hook,
                   evt_mgr=evt_mgr, verbose=args.verbose)
+
+    if args.config:                               # --config
+        config.print_config(enpkg.remote)
+        return
 
     if args.userpass:                             # --userpass
         username, password = config.input_auth()

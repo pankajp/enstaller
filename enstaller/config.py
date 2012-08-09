@@ -261,12 +261,18 @@ def user_subscription(user):
     Extract the level of EPD subscription from the dictionary (`user`)
     returned by the web API.
     """
-    if user.get('is_authenticated', False) and user.get('has_subscription', False):
-        return 'EPD Basic or above'
-    elif user.get('is_authenticated', False) and not(user.get('has_subscription', False)):
-        return 'EPD Free'
-    else:
-        return None
+    if 'has_subscription' in user:
+        if user.get('is_authenticated', False) and user.get('has_subscription', False):
+            return 'EPD Basic or above'
+        elif user.get('is_authenticated', False) and not(user.get('has_subscription', False)):
+            return 'EPD Free'
+        else:
+            return None
+    else:  # don't know the subscription level
+        if user.get('is_authenticated', False):
+            return 'EPD'
+        else:
+            return None
 
 
 def subscription_message(user):
@@ -300,8 +306,8 @@ def authenticate(auth, remote=None):
     If 'use_webservice' is set, authenticate with the web API and return
     a dictionary containing user info on success.
 
-    Else, authenticate with remote.connect and return an empty dict on
-    success.
+    Else, authenticate with remote.connect and return a dict containing
+    is_authenticated=True on success.
 
     If authentication fails, raise an exception.
     """
@@ -318,6 +324,7 @@ def authenticate(auth, remote=None):
         try:
             print 'Verifying user login...'
             remote.connect(auth)
+            user = dict(is_authenticated=True)
         except KeyError:
             raise AuthFailedError('Authentication failed:'
                     ' Invalid user login or password.')
@@ -443,7 +450,15 @@ def get(key, default=None):
     return read().get(key, default)
 
 
-def print_config():
+def print_config(remote):
+    username, password = get_auth()
+    user = {}
+    try:
+        user = authenticate((username, password), remote)
+    except Exception as e:
+        print e.message
+    print "Email (or username):", username
+    print "Subscription level:", user_subscription(user)
     print "Python version:", PY_VER
     print "enstaller version:", __version__
     print "sys.prefix:", sys.prefix
