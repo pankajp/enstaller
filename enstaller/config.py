@@ -327,7 +327,7 @@ def authenticate(auth, remote=None):
             user = dict(is_authenticated=True)
         except KeyError:
             raise AuthFailedError('Authentication failed:'
-                    ' Invalid user login or password.')
+                    ' Invalid user login.')
     return user
 
 
