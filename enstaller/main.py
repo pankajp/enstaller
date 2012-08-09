@@ -260,7 +260,8 @@ def install_req(enpkg, req, opts):
             user = config.authenticate(config.get_auth())
             assert(user['is_authenticated'])
             # An EPD Free user who is trying to install a package not in
-            # EPD free.
+            # EPD free.  Print out subscription level and fail.
+            print config.subscription_message(user)
             _done(FAILURE)
         except Exception as e:
             print e.message
