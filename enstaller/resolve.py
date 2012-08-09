@@ -15,7 +15,7 @@ def comparable_info(spec):
 
 class Req(object):
     """
-    A requirement object is initalized by a requirement string. Attributes:
+    A requirement object is initialized by a requirement string. Attributes:
     name: the lowercase project name
     version: the list of possible versions required
     strictness: the level of strictness

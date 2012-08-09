@@ -3,6 +3,7 @@ import json
 import os.path
 import re
 import urllib2
+import errno
 
 
 class CachedHandler(urllib2.BaseHandler):
@@ -52,8 +53,12 @@ class CachedHandler(urllib2.BaseHandler):
         }
         try:
             os.makedirs(os.path.dirname(self._index_path))
-        except OSError:
-            pass
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                # File exists
+                pass
+            else:
+                raise
         open(self._index_path, 'wb').write(content)
         json.dump(metadata, open(self._metadata_path, 'wb'))
 

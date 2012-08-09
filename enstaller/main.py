@@ -130,8 +130,12 @@ def imports_option(enpkg, pat=None):
 
 def search(enpkg, pat=None):
     """
-    print the packages which are available in the (remote) KVS
+    Print the packages that are available in the (remote) KVS.
     """
+    # Flag indicating if the user received any 'not subscribed to'
+    # messages
+    SUBSCRIBED = True
+
     print FMT % ('Name', '  Versions', 'Note')
     print 60 * '-'
 
@@ -152,9 +156,23 @@ def search(enpkg, pat=None):
             version = VB_FMT % info
             disp_ver = (('* ' if installed_version == version else '  ') +
                         version)
+            available = info.get('available', True)
+            if not(available):
+                SUBSCRIBED = False
             print FMT % (disp_name, disp_ver,
-                   '' if info.get('available', True) else 'not subscribed to')
+                   '' if available else 'not subscribed to')
             disp_name = ''
+
+    # if the user's search returns any packages that are not available
+    # to them, attempt to authenticate and print out their subscriber
+    # level
+    if config.get('use_webservice') and not(SUBSCRIBED):
+        user = {}
+        try:
+            user = config.authenticate(config.get_auth())
+        except Exception as e:
+            print e.message
+        print config.subscription_message(user)
 
 
 def whats_new(enpkg):
@@ -184,26 +202,93 @@ def add_url(url, verbose):
 
 
 def install_req(enpkg, req, opts):
-    try:
-        actions = enpkg.install_actions(
-                req,
-                mode='root' if opts.no_deps else 'recur',
-                force=opts.force, forceall=opts.forceall)
-        enpkg.execute(actions)
-    except EnpkgError, e:
-        print e.message
-        info_list = enpkg.info_list_name(req.name)
-        if info_list:
-            print "Versions for package %r are: %s" % (
-                req.name,
-                ', '.join(sorted(set(i['version'] for i in info_list))))
-            if any(not i.get('available', True) for i in info_list):
-                print "No subscription for %r" % req.name
-        sys.exit(1)
+    """
+    Try to execute the install actions.
 
-    if len(actions) == 0:
-        print "No update necessary, %r is up-to-date." % req.name
-        print_install_time(enpkg, req.name)
+    If 'use_webservice', check the user's credentials and prompt the
+    user to input them if not authenticated.
+    """
+    # Below is a slightly complicated state machine that attempts to "do
+    # the right thing" if the install initially fails.  Basically, the
+    # flow is to try the install, prompt the user for credentials if "No
+    # subscription" for the package and the user isn't authenticated,
+    # then try the install once more if the credentials are valid.
+
+    # Unix exit-status codes
+    FAILURE = 1
+    SUCCESS = 0
+
+    def _perform_install(last_try=False):
+        """
+        Try to perform the install.
+
+        If 'use_webservice' and the install fails, check the user's
+        credentials (_check_auth), else _done.
+        """
+        try:
+            actions = enpkg.install_actions(
+                    req,
+                    mode='root' if opts.no_deps else 'recur',
+                    force=opts.force, forceall=opts.forceall)
+            enpkg.execute(actions)
+            if len(actions) == 0:
+                print "No update necessary, %r is up-to-date." % req.name
+                print_install_time(enpkg, req.name)
+                _done(SUCCESS)
+        except EnpkgError, e:
+            info_list = enpkg.info_list_name(req.name)
+            if info_list:
+                print "Versions for package %r are: %s" % (
+                    req.name,
+                    ', '.join(sorted(set(i['version'] for i in info_list))))
+                if any(not i.get('available', True) for i in info_list):
+                    print "No subscription for %r." % req.name
+                    if config.get('use_webservice') and not(last_try):
+                        _check_auth()
+                    else:
+                        _done(FAILURE)
+            else:
+                print e.message
+                _done(FAILURE)
+
+    def _check_auth():
+        """
+        Check the user's credentials against the web API.
+        """
+        user = {}
+        try:
+            user = config.authenticate(config.get_auth())
+            assert(user['is_authenticated'])
+            # An EPD Free user who is trying to install a package not in
+            # EPD free.
+            _done(FAILURE)
+        except Exception as e:
+            print e.message
+            # No credentials.
+            _prompt_for_auth()
+
+    def _prompt_for_auth():
+        """
+        Prompt the user for credentials and save them and retry the
+        install if the credentials validate.
+        """
+        # prompt for username and password
+        username, password = config.input_auth()
+        user = config.checked_change_auth(username, password)
+        # FIXME: This is a hack...  shouldn't have to change
+        # enpkg.userpass or enpkg._connected manually
+        if user:
+            enpkg.userpass = (username, password)
+            enpkg._connected = False
+            _perform_install(last_try=True)
+        else:
+            _done(FAILURE)
+
+    def _done(exit_status):
+        sys.exit(exit_status)
+
+    # kick off the state machine
+    _perform_install()
 
 
 def main():
@@ -276,10 +361,10 @@ def main():
         args.prefix = user_base
 
     if args.prefix and args.sys_prefix:
-        p.error("Options --prefix and --sys-prefix exclude each ohter")
+        p.error("Options --prefix and --sys-prefix exclude each other")
 
     if args.force and args.forceall:
-        p.error("Options --force and --forceall exclude each ohter")
+        p.error("Options --force and --forceall exclude each other")
 
     pat = None
     if (args.list or args.search) and args.cnames:
@@ -354,19 +439,8 @@ def main():
                   evt_mgr=evt_mgr, verbose=args.verbose)
 
     if args.userpass:                             # --userpass
-        auth = username, password = config.input_auth()
-        if remote is not None:
-            try:
-                print 'Verifying username and password...'
-                remote.connect(auth)
-            except KeyError as e:
-                print 'Invalid Username or Password'
-            except Exception as e:
-                print e.message
-            else:
-                config.change_auth(username, password)
-        else:
-            config.change_auth(username, password)
+        username, password = config.input_auth()
+        config.checked_change_auth(username, password, enpkg.remote)
         return
 
     if args.dry_run:

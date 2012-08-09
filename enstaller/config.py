@@ -50,7 +50,7 @@ default = dict(
 
 def get_path():
     """
-    Return the absolute path to our config file.
+    Return the absolute path to the config file.
     """
     if isfile(home_config_path):
         return home_config_path
@@ -60,13 +60,17 @@ def get_path():
 
 
 def input_auth():
+    """
+    Prompt user for username and password.  Return (username, password)
+    tuple or (None, None) if left blank.
+    """
     from getpass import getpass
     print """\
-In order to access the EPD repository, please enter your
-username and password, which you use to subscribe to EPD.
-If you are not subscribed to EPD, just hit Return.
+Please enter the email address (or username) and password for your EPD
+or EPD Free subscription.  If you are not subscribed to EPD, just press
+Enter.
 """
-    username = raw_input('Username: ').strip()
+    username = raw_input('Email (or username): ').strip()
     if not username:
         return None, None
     return username, getpass('Password: ')
@@ -81,13 +85,13 @@ RC_TMPL = """\
 #
 #   sys.prefix = %(sys_prefix)r
 #
-# This file was created by initially running the enpkg command.
+# This file was initially created by running the enpkg command.
 
 %(auth_section)s
 
 # use_webservice refers to using 'https://api.enthought.com/eggs/',
 # the default is True, i.e. the webservice URL is used for fetching eggs.
-# Uncommenting changes this behaviour, to use the explicit IndexedRepos
+# Uncommenting changes this behavior to using the explicit IndexedRepos
 # listed below.
 #use_webservice = False
 
@@ -97,7 +101,7 @@ RC_TMPL = """\
 # repositories below.  Therefore the order of this list matters.
 #
 # For local repositories, the index file is optional.  Remember that on
-# Windows systems the backslaches in the directory path need to escaped, e.g.:
+# Windows systems the backslashes in the directory path need to escaped, e.g.:
 # r'file://C:\\repository\\' or 'file://C:\\\\repository\\\\'
 IndexedRepos = [
 #  'https://www.enthought.com/repo/ets/eggs/{SUBDIR}/',
@@ -118,14 +122,15 @@ IndexedRepos = [
 %(proxy_line)s
 
 # Uncommenting the next line will disable application menu item install.
-# This only effects the few packages which install menu items,
-# which as IPython.
+# This only affects the few packages that install menu items, such as
+# IPython.
 #noapp = True
 """
 
+
 def write(username=None, password=None, proxy=None):
     """
-    write the config file
+    Write the config file.
     """
     # If user is 'root', then always create the config file in sys.prefix,
     # otherwise in the user's HOME directory.
@@ -144,9 +149,10 @@ def write(username=None, password=None, proxy=None):
             auth = ('%s:%s' % (username, password)).encode('base64')
             authline = 'EPD_auth = %r' % auth.strip()
         auth_section = """
-# The EPD subscriber authentication is required to access the EPD repository.
-# To change this setting, use the 'enpkg --userpass' command which will ask
-# you for your username and password.
+# EPD subscriber authentication is required to access the EPD
+# repository.  To change your credentials, use the 'enpkg --userpass'
+# command, which will ask you for your email address (or username) and
+# password.
 %s
 """ % authline
     else:
@@ -165,11 +171,13 @@ def write(username=None, password=None, proxy=None):
     fo.write(RC_TMPL % locals())
     fo.close()
     print "Wrote configuration file:", path
-    print 77 * '='
     clear_cache()
 
 
 def get_auth():
+    """
+    Retrieve the saved `auth` (username, password) tuple.
+    """
     password = None
     old_auth = get('EPD_auth')
     if old_auth:
@@ -189,6 +197,129 @@ def get_auth():
         return username, password
     else:
         return None, None
+
+
+class AuthFailedError(Exception):
+    pass
+
+
+def web_auth(auth,
+        api_url='https://api.enthought.com/accounts/user/info/'):
+    """
+    Authenticate a user's credentials (an `auth` tuple of username,
+    password) using the web API.  Return a dictionary containing user
+    info.
+
+    Function taken from Canopy and modified.
+    """
+    import json
+    import urllib2
+
+    # Make basic local checks
+    username, password = auth
+    if username is None or password is None:
+        raise AuthFailedError("Authentication error: User login is required.")
+
+    # Authenticate with the web API
+    auth = 'Basic ' + (':'.join(auth).encode('base64').strip())
+    req = urllib2.Request(api_url, headers={'Authorization': auth})
+
+    try:
+        f = urllib2.urlopen(req)
+    except urllib2.URLError as e:
+        raise AuthFailedError("Authentication error: ", e.message)
+
+    try:
+        res = f.read()
+    except urllib2.HTTPError as e:
+        raise AuthFailedError("Authentication error: ", e.message)
+
+    # See if web API refused to authenticate
+    user = json.loads(res)
+    if not(user['is_authenticated']):
+        raise AuthFailedError('Authentication failed: Invalid user login.')
+
+    return user
+
+
+def auth_message(user):
+    """
+    Return a greeting message based on the `user` dictionary that may
+    contain `first_name` and `last_name`.
+    """
+    name = user.get('first_name', '') + ' ' + \
+            user.get('last_name', '')
+    name = name.strip()
+    if name:
+        return "Welcome to EPD, " + name + "!"
+    else:
+        return "Welcome to EPD!"
+
+
+def user_subscription(user):
+    """
+    Extract the level of EPD subscription from the dictionary (`user`)
+    returned by the web API.
+    """
+    if user.get('is_authenticated', False) and user.get('has_subscription', False):
+        return 'EPD Basic or above'
+    elif user.get('is_authenticated', False) and not(user.get('has_subscription', False)):
+        return 'EPD Free'
+    else:
+        return None
+
+
+def subscription_message(user):
+    """
+    Return a 'subscription level' message based on the `user`
+    dictionary.
+
+    `user` is a dictionary, probably retrieved from the web API, that
+    may `is_authenticated`, and `has_subscription`.
+    """
+    if 'is_authenticated' in user:
+        if user['is_authenticated']:
+            return "You are subscribed to %s." % user_subscription(user)
+        else:
+            return "You are not subscribed to an EPD repository.\n" + \
+                "Have you set your EPD credentials with 'enpkg --userpass'?"
+    else:
+        return ""
+
+
+def authenticate(auth, remote=None):
+    """
+    Attempt to authenticate the user's credentials by the appropriate
+    means.
+
+    `auth` is a tuple of (username, password).
+    `remote` is enpkg.remote, required if not using the web API to authenticate
+
+    If 'use_webservice' is set, authenticate with the web API and return
+    a dictionary containing user info on success.
+
+    Else, authenticate with remote.connect and return an empty dict on
+    success.
+
+    If authentication fails, raise an exception.
+    """
+    user = {}
+    if get('use_webservice'):
+        # check credentials using web API
+        try:
+            user = web_auth(auth)
+            assert user['is_authenticated']
+        except:
+            raise
+    else:
+        # check credentials using remote.connect
+        try:
+            print 'Verifying user login...'
+            remote.connect(auth)
+        except KeyError:
+            raise AuthFailedError('Authentication failed:'
+                    ' Invalid user login or password.')
+    return user
 
 
 def clear_auth():
@@ -236,6 +367,36 @@ def change_auth(username, password):
     fo.close()
 
 
+def checked_change_auth(username, password, remote=None):
+    """
+    Only run change_auth if the credentials are authenticated (or if the
+    username is None).  Print out a greeting if successful.
+
+    `remote` is enpkg.remote and is required if not using the web API to
+    authenticate.
+
+    If successful at authenticating via the web API, return a dictionary
+    containing user info.
+    """
+    auth = (username, password)
+    user = {}
+
+    # For backwards compatibility
+    if username is None or username is '':
+        change_auth(username, password)
+        return user
+
+    try:
+        user = authenticate(auth, remote)
+    except Exception as e:
+        print e.message
+        print "No credentials saved."
+    else:
+        change_auth(username, password)
+        print auth_message(user), subscription_message(user)
+    return user
+
+
 def prepend_url(url):
     f = open(get_path(), 'r+')
     data = f.read()
@@ -255,8 +416,8 @@ def clear_cache():
 
 def read():
     """
-    return the configuration from the config file as a dictionary,
-    and fix some values and give defaults
+    Return the configuration from the config file as a dictionary,
+    fix some values, and give defaults.
     """
     if hasattr(read, 'cache'):
         return read.cache
