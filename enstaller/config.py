@@ -66,9 +66,9 @@ def input_auth():
     """
     from getpass import getpass
     print """\
-Please enter the email address (or username) and password for your EPD
-or EPD Free subscription.  If you are not subscribed to EPD, just press
-Enter.
+Please enter the email address (or username) and password for your
+EPD or EPD Free subscription.  If you are not subscribed to EPD,
+just press Enter.
 """
     username = raw_input('Email (or username): ').strip()
     if not username:
@@ -227,36 +227,22 @@ def web_auth(auth,
     try:
         f = urllib2.urlopen(req)
     except urllib2.URLError as e:
-        raise AuthFailedError("Authentication error: ", e.message)
+        raise AuthFailedError("Authentication error: %s" % e.reason)
 
     try:
         res = f.read()
     except urllib2.HTTPError as e:
-        raise AuthFailedError("Authentication error: ", e.message)
+        raise AuthFailedError("Authentication error: %s" % e.reason)
 
     # See if web API refused to authenticate
     user = json.loads(res)
     if not(user['is_authenticated']):
-        raise AuthFailedError('Authentication failed: Invalid user login.')
+        raise AuthFailedError('Authentication error: Invalid user login.')
 
     return user
 
 
-def auth_message(user):
-    """
-    Return a greeting message based on the `user` dictionary that may
-    contain `first_name` and `last_name`.
-    """
-    name = user.get('first_name', '') + ' ' + \
-            user.get('last_name', '')
-    name = name.strip()
-    if name:
-        return "Welcome to EPD, " + name + "!"
-    else:
-        return "Welcome to EPD!"
-
-
-def user_subscription(user):
+def subscription_level(user):
     """
     Extract the level of EPD subscription from the dictionary (`user`)
     returned by the web API.
@@ -281,18 +267,23 @@ def subscription_message(user):
     dictionary.
 
     `user` is a dictionary, probably retrieved from the web API, that
-    may `is_authenticated`, and `has_subscription`.
+    may contain `is_authenticated`, and `has_subscription`.
     """
-    if 'is_authenticated' in user:
+    message = ""
+
+    if user.get('is_authenticated', False):
         username, password = get_auth()
-        if user['is_authenticated']:
-            return "You are subscribed to %s and logged in as '%s'." % \
-                    (user_subscription(user), username)
-        else:
-            return "You are not subscribed to an EPD repository.\n" + \
-                "Have you set your EPD credentials with 'enpkg --userpass'?"
+        login = "You are logged in as %s" % username
+        subscription = "Subscription level: %s" % subscription_level(user)
+        name = user.get('first_name', '') + ' ' + user.get('last_name', '')
+        name = name.strip()
+        if name:
+            name = ' (' + name + ')'
+        message = login + name + '.\n' + subscription
     else:
-        return ""
+        message = "You are not logged in.  To log in, type 'enpkg --userpass'."
+
+    return message
 
 
 def authenticate(auth, remote=None):
@@ -328,6 +319,8 @@ def authenticate(auth, remote=None):
         except KeyError:
             raise AuthFailedError('Authentication failed:'
                     ' Invalid user login.')
+        except Exception as e:
+            raise AuthFailedError('Authentication failed: %s.' % e)
     return user
 
 
@@ -379,13 +372,12 @@ def change_auth(username, password):
 def checked_change_auth(username, password, remote=None):
     """
     Only run change_auth if the credentials are authenticated (or if the
-    username is None).  Print out a greeting if successful.
+    username is None).  Print out subscription info if successful.
 
     `remote` is enpkg.remote and is required if not using the web API to
     authenticate.
 
-    If successful at authenticating via the web API, return a dictionary
-    containing user info.
+    If successful at authenticating, return a dictionary containing user info.
     """
     auth = (username, password)
     user = {}
@@ -402,7 +394,7 @@ def checked_change_auth(username, password, remote=None):
         print "No credentials saved."
     else:
         change_auth(username, password)
-        print auth_message(user), subscription_message(user)
+        print subscription_message(user)
     return user
 
 
@@ -451,14 +443,6 @@ def get(key, default=None):
 
 
 def print_config(remote):
-    username, password = get_auth()
-    user = {}
-    try:
-        user = authenticate((username, password), remote)
-    except Exception as e:
-        print e.message
-    print "Email (or username):", username
-    print "Subscription level:", user_subscription(user)
     print "Python version:", PY_VER
     print "enstaller version:", __version__
     print "sys.prefix:", sys.prefix
@@ -466,7 +450,6 @@ def print_config(remote):
     print "architecture:", platform.architecture()[0]
     print "use_webservice:", get('use_webservice')
     print "config file:", get_path()
-    print
     print "settings:"
     for k in 'prefix', 'local', 'noapp', 'proxy':
         print "    %s = %r" % (k, get(k))
@@ -474,6 +457,13 @@ def print_config(remote):
     for repo in get('IndexedRepos'):
         print '        %r' % repo
 
+    username, password = get_auth()
+    user = {}
+    try:
+        user = authenticate((username, password), remote)
+    except Exception as e:
+        print e
+    print subscription_message(user)
 
 if __name__ == '__main__':
     write()

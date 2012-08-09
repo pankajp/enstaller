@@ -266,6 +266,7 @@ def install_req(enpkg, req, opts):
         except Exception as e:
             print e.message
             # No credentials.
+            print ""
             _prompt_for_auth()
 
     def _prompt_for_auth():
