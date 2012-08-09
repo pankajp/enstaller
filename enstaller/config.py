@@ -278,8 +278,10 @@ def subscription_message(user):
     may `is_authenticated`, and `has_subscription`.
     """
     if 'is_authenticated' in user:
+        username, password = get_auth()
         if user['is_authenticated']:
-            return "You are subscribed to %s." % user_subscription(user)
+            return "You are subscribed to %s and logged in as '%s'." % \
+                    (user_subscription(user), username)
         else:
             return "You are not subscribed to an EPD repository.\n" + \
                 "Have you set your EPD credentials with 'enpkg --userpass'?"
