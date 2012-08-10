@@ -291,6 +291,24 @@ def install_req(enpkg, req, opts):
     _perform_install()
 
 
+def update_enstaller(enpkg, opts):
+    """
+    Check if Enstaller is up to date, and if not, ask the user if he
+    wants to update.  Return boolean indicating whether enstaller was
+    updated.
+    """
+    updated = False
+    try:
+        if len(enpkg.install_actions('enstaller')) > 0:
+            yn = raw_input("Enstaller is out of date.  Update? ([y]/n) ")
+            if yn in set(['y', 'Y', '', None]):
+                install_req(enpkg, 'enstaller', opts)
+                updated = True
+    except EnpkgError as e:
+        print "Can't update enstaller:", e
+    return updated
+
+
 def main():
     try:
         user_base = site.USER_BASE
@@ -471,6 +489,12 @@ def main():
             enpkg.execute(actions)
         except EnpkgError as e:
             print e.message
+        return
+
+    # Try to auto-update enstaller
+    if update_enstaller(enpkg, args):
+        print "Enstaller has been updated.", \
+            "Please re-run your previous command."
         return
 
     if args.search:                               # --search
