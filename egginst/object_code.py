@@ -87,8 +87,6 @@ def macho_add_rpath_to_header(header, rpath):
 def macho_add_rpaths_to_file(filename, rpaths):
     """ Add LC_RPATH load commands to all headers in a MachO file.
     """
-    print "ADDING RPATHS TO", filename
-    print rpaths
     from egginst.macho import MachO
     macho = MachO.MachO(filename)
     for header in macho.headers:
@@ -99,24 +97,12 @@ def macho_add_rpaths_to_file(filename, rpaths):
             f.seek(0)
             header.write(f)
 
-
 placehold_pat = re.compile(5 * '/PLACEHOLD' + '([^\0\\s]*)\0')
 def fix_object_code(path):
     tp = get_object_type(path)
     if tp is None:
         return
-
-    if tp.startswith('MachO-') and rest.startswith('/'):
-        # deprecated: because we now use rpath on OSX as well
-        r = find_lib(rest[1:])
-    else:
-        assert rest == '' or rest.startswith(':')
-        rpaths = list(_targets)
-        # extend the list with rpath which were already in the binary,
-        # if any
-        rpaths.extend(p for p in rest.split(':') if p)
-        r = ':'.join(rpaths)
-
+    
     f = open(path, 'r+b')
     data = f.read()
     matches = list(placehold_pat.finditer(data))
@@ -131,12 +117,16 @@ def fix_object_code(path):
         while rest.startswith('/PLACEHOLD'):
             rest = rest[10:]
 
-        assert rest == '' or rest.startswith(':')
-        rpaths = list(_targets)
-        # extend the list with rpath which were already in the binary,
-        # if any
-        rpaths.extend(p for p in rest.split(':') if p)
-        r = ':'.join(rpaths)
+        if tp.startswith('MachO-') and rest.startswith('/'):
+            # deprecated: because we now use rpath on OSX as well
+            r = find_lib(rest[1:])
+        else:
+            assert rest == '' or rest.startswith(':')
+            rpaths = list(_targets)
+            # extend the list with rpath which were already in the binary,
+            # if any
+            rpaths.extend(p for p in rest.split(':') if p)
+            r = ':'.join(rpaths)
 
         if alt_replace_func is not None:
             r = alt_replace_func(r)
