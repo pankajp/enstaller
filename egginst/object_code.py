@@ -84,6 +84,19 @@ def macho_add_rpath_to_header(header, rpath):
     header.header.ncmds += 1
     header.changedHeaderSizeBy(command_size)
 
+def macho_delete_placehold(header):
+    """ Remove LC_RPATH commands that refer to /PLACEHOLD.
+    """
+    from egginst.macho import mach_o
+    to_delete = []
+    for lc, cmd, data in header.commands:
+        if lc.cmd == mach_o.LC_RPATH and data.startswith('/PLACEHOLD'):
+            to_delete.append((lc, cmd, data))
+    for l_c_d in to_delete:
+        header.commands.remove(l_c_d)
+        header.header.ncmds -= 1
+        header.changedHeaderSizeBy(-l_c_d[0].cmdsize)
+
 def macho_add_rpaths_to_file(filename, rpaths):
     """ Add LC_RPATH load commands to all headers in a MachO file.
     """
@@ -92,6 +105,7 @@ def macho_add_rpaths_to_file(filename, rpaths):
     from egginst.macho import MachO
     macho = MachO.MachO(filename)
     for header in macho.headers:
+        macho_delete_placehold(header)
         for rpath in rpaths:
             macho_add_rpath_to_header(header, rpath)
     with open(filename, 'rb+') as f:
