@@ -9,7 +9,5 @@
 #------------------------------------------------------------------------------
 
 
-from connect_HTTP_handler import ConnectHTTPHandler
-from connect_HTTPS_handler import ConnectHTTPSHandler
-from util import install_proxy_handlers, setup_authentication, setup_proxy
+from util import install_proxy_handlers, setup_proxy
 
