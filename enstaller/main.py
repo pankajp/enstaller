@@ -260,11 +260,13 @@ def install_req(enpkg, req, opts):
             user = config.authenticate(config.get_auth())
             assert(user['is_authenticated'])
             # An EPD Free user who is trying to install a package not in
-            # EPD free.
+            # EPD free.  Print out subscription level and fail.
+            print config.subscription_message(user)
             _done(FAILURE)
         except Exception as e:
             print e.message
             # No credentials.
+            print ""
             _prompt_for_auth()
 
     def _prompt_for_auth():
@@ -406,10 +408,6 @@ def main():
     if args.sys_config:                           # --sys-config
         config.get_path = lambda: config.system_config_path
 
-    if args.config:                               # --config
-        config.print_config()
-        return
-
     if args.list:                                 # --list
         list_option(prefixes, args.hook, pat)
         return
@@ -437,6 +435,10 @@ def main():
 
     enpkg = Enpkg(remote, prefixes=prefixes, hook=args.hook,
                   evt_mgr=evt_mgr, verbose=args.verbose)
+
+    if args.config:                               # --config
+        config.print_config(enpkg.remote)
+        return
 
     if args.userpass:                             # --userpass
         username, password = config.input_auth()
