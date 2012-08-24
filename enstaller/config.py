@@ -44,6 +44,7 @@ default = dict(
     EPD_auth=None,
     EPD_userpass=None,
     use_webservice=True,
+    autoupdate = True,
     IndexedRepos=[],
 )
 
@@ -121,10 +122,14 @@ IndexedRepos = [
 # here.  Note that the enpkg --proxy option will overwrite this setting.
 %(proxy_line)s
 
-# Uncommenting the next line will disable application menu item
-# installation.  This only affects the few packages that install menu
-# items, such as IPython.
+# Uncomment the next line to disable application menu-item installation.
+# This only affects the few packages that install menu items, such as
+# IPython.
 #noapp = True
+
+# Uncomment the next line to turn off automatic prompts to update
+# enstaller.
+#autoupdate = False
 """
 
 

@@ -300,6 +300,9 @@ def update_enstaller(enpkg, opts):
     updated.
     """
     updated = False
+    # exit early if autoupdate=False
+    if not config.get('autoupdate', True):
+        return updated
     try:
         if len(enpkg.install_actions('enstaller')) > 0:
             yn = raw_input("Enstaller is out of date.  Update? ([y]/n) ")
