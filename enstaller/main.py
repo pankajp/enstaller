@@ -26,6 +26,7 @@ from egg_meta import is_valid_eggname, split_eggname
 
 FMT = '%-20s %-20s %s'
 VB_FMT = '%(version)s-%(build)d'
+FMT4 = '%-20s %-20s %-20s %s'
 
 
 def env_option(prefixes):
@@ -136,8 +137,8 @@ def search(enpkg, pat=None):
     # messages
     SUBSCRIBED = True
 
-    print FMT % ('Name', '  Versions', 'Note')
-    print 60 * '='
+    print FMT4 % ('Name', '  Versions', 'Product', 'Note')
+    print 80 * '='
 
     names = {}
     for key, info in enpkg.query_remote():
@@ -157,9 +158,10 @@ def search(enpkg, pat=None):
             disp_ver = (('* ' if installed_version == version else '  ') +
                         version)
             available = info.get('available', True)
+            product = info.get('product', '')
             if not(available):
                 SUBSCRIBED = False
-            print FMT % (disp_name, disp_ver,
+            print FMT4 % (disp_name, disp_ver, product,
                    '' if available else 'not subscribed to')
             disp_name = ''
 
