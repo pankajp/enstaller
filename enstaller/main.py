@@ -137,7 +137,7 @@ def search(enpkg, pat=None):
     SUBSCRIBED = True
 
     print FMT % ('Name', '  Versions', 'Note')
-    print 60 * '-'
+    print 60 * '='
 
     names = {}
     for key, info in enpkg.query_remote():
