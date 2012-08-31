@@ -9,6 +9,7 @@ import re
 import sys
 import site
 import string
+import datetime
 from argparse import ArgumentParser
 from os.path import isfile, join
 
@@ -72,14 +73,23 @@ def print_install_time(enpkg, name):
 def info_option(enpkg, name):
     name = name.lower()
     print 'Package:', name
-    versions = []
-    for info in enpkg.info_list_name(name):
-        versions.append(VB_FMT % info)
-    print 'Available version: %s' % (', '.join(versions) or None)
-    if versions:
-        reqs = set(r for r in info['packages'])
-        print "Requirements: %s" % (', '.join(sorted(reqs)) or None)
     print_install_time(enpkg, name)
+    pad = 4*' '
+    for info in enpkg.info_list_name(name):
+        print 'Version: ' + VB_FMT % info
+        print pad + 'Product: %s' % info.get('product', '')
+        print pad + 'Available: %s' % info.get('available', '')
+        print pad + 'Python version: %s' % info.get('python', '')
+        print pad + 'Store location: %s' % info.get('store_location', '')
+        mtime = info.get('mtime', '')
+        if mtime:
+            mtime = datetime.datetime.fromtimestamp(mtime)
+        print pad + 'Last modified: %s' % mtime
+        print pad + 'Type: %s' % info.get('type', '')
+        print pad + 'MD5: %s' % info.get('md5', '')
+        print pad + 'Size: %s' % info.get('size', '')
+        reqs = set(r for r in info['packages'])
+        print pad + "Requirements: %s" % (', '.join(sorted(reqs)) or None)
 
 
 def print_installed(prefix, hook=False, pat=None):
