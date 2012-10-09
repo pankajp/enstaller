@@ -26,7 +26,7 @@ from egg_meta import is_valid_eggname, split_eggname
 
 
 FMT = '%-20s %-20s %s'
-VB_FMT = '%(version)s-%(build)d'
+VB_FMT = '%(version)s-%(build)s'
 FMT4 = '%-20s %-20s %-20s %s'
 
 
