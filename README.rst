@@ -106,7 +106,7 @@ The preferred and easiest way to install Enstaller is from the executable egg,
 i.e. the Enstaller egg contains a bash header and on Unix systems you can
 download the egg and type::
 
-   $ bash enstaller-4.5.4-1.egg
+   $ bash enstaller-4.5.5-1.egg
    Bootstrapping: ...
    283 KB [.................................................................]
 
