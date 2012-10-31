@@ -1,3 +1,8 @@
+2012-10-31   4.5.5:
+-------------------
+  * Several usability improvements
+
+
 2012-??-??   4.5.4:
 -------------------
   * Fixed proxy handling (https://github.com/enthought/enstaller/pull/41)
