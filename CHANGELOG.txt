@@ -1,6 +1,10 @@
 2012-10-31   4.5.5:
 -------------------
-  * Several usability improvements
+  * Better auth errors
+  * Add subscription info to --config
+  * Automatically prompt user to update enstaller
+  * Display package product
+  * Bug fixes
 
 
 2012-??-??   4.5.4:
