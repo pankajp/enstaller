@@ -1,3 +1,12 @@
+2012-10-31   4.5.5:
+-------------------
+  * Better auth errors
+  * Add subscription info to --config
+  * Automatically prompt user to update enstaller
+  * Display package product
+  * Bug fixes
+
+
 2012-??-??   4.5.4:
 -------------------
   * Fixed proxy handling (https://github.com/enthought/enstaller/pull/41)
