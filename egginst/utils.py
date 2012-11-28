@@ -1,7 +1,11 @@
+import logging
 import sys
 import os
+import re
 import shutil
 import tempfile
+import uuid
+
 from os.path import basename, isdir, isfile, islink, join
 
 
@@ -83,3 +87,34 @@ def human_bytes(n):
     if k < 1024:
         return '%i KB' % k
     return '%.2f MB' % (float(n) / (2**20))
+
+def safe_write(target, writer, mode="wb"):
+    """a 'safe' way to write to files.
+
+    Instead of writing directly into a file, this function writes to a
+    temporary file, and then rename the file to the target if no error occured.
+    On most platforms, rename is atomic, so this avoids leaving stale files in
+    inconsistent states.
+
+    Parameters
+    ----------
+    target: str
+        destination to write to
+    writer: callable or data
+        if callable, assumed to be function which takes one argument, a file
+        descriptor, and writes content to it. Otherwise, assumed to be data
+        to be directly written to target.
+    mode: str
+        opening mode
+    """
+    if not callable(writer):
+        data = writer
+        writer = lambda fp: fp.write(data)
+
+    tmp_target = "%s.tmp%s" % (target, uuid.uuid4().hex)
+    f = open(tmp_target, mode)
+    try:
+        writer(f)
+    finally:
+        f.close()
+    os.rename(tmp_target, target)
