@@ -6,7 +6,7 @@ import uuid
 
 import os.path as op
 
-def safe_write(target, writer, mode="wb"):
+def safe_write(target, writer, mode="wt"):
     """a 'safe' way to write to files.
 
     Instead of writing directly into a file, this function writes to a
