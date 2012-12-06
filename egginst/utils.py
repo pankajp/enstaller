@@ -1,11 +1,7 @@
-import logging
 import sys
 import os
-import re
 import shutil
 import tempfile
-import uuid
-
 from os.path import basename, isdir, isfile, islink, join
 
 
