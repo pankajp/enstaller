@@ -196,7 +196,9 @@ class Resolve(object):
             d = self.get_egg(r)
             if d is None:
                 from enstaller.enpkg import EnpkgError
-                raise EnpkgError('Error: could not resolve %r' % r)
+                err = EnpkgError('Error: could not resolve %r' % r)
+                err.req = r
+                raise err
             eggs.append(d)
 
         can_order = self.are_complete(eggs)
@@ -221,8 +223,10 @@ class Resolve(object):
                 d = self.get_egg(r)
                 if d is None:
                     from enstaller.enpkg import EnpkgError
-                    raise EnpkgError('Error: could not resolve %r '
+                    err = EnpkgError('Error: could not resolve %r '
                                      'required by %r' % (r, egg))
+                    err.req = r
+                    raise err
                 eggs.add(d)
                 add_dependents(d)
 

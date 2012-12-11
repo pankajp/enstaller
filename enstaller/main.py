@@ -267,8 +267,17 @@ def install_req(enpkg, req, opts):
                     _done(FAILURE)
             elif mode == 'recur':
                 print e.message
-                print "You can force an install of just this package by " +\
-                    "using the --no-deps enpkg commandline argument"
+                print "You may be able to force an install of just this " + \
+                    "egg by using the --no-deps enpkg commandline argument " + \
+                    "after installing another version of the dependency. "
+                if e.req:
+                    info_list = enpkg.info_list_name(e.req.name)
+                    if info_list:
+                        print "Availble versions of the required package %r are: %s" % (
+                            e.req.name,
+                            ', '.join(sorted(set(i['version'] for i in info_list))))
+                        if any(not i.get('available', True) for i in info_list):
+                            print "No subscription for %r." % e.req.name
                 
 
     def _check_auth():
