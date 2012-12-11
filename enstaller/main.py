@@ -278,6 +278,7 @@ def install_req(enpkg, req, opts):
                             ', '.join(sorted(set(i['version'] for i in info_list))))
                         if any(not i.get('available', True) for i in info_list):
                             print "No subscription for %r." % e.req.name
+            _done(FAILURE)
                 
 
     def _check_auth():
