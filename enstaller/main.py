@@ -238,9 +238,10 @@ def install_req(enpkg, req, opts):
         credentials (_check_auth), else _done.
         """
         try:
+            mode = 'root' if opts.no_deps else 'recur'
             actions = enpkg.install_actions(
                     req,
-                    mode='root' if opts.no_deps else 'recur',
+                    mode=mode,
                     force=opts.force, forceall=opts.forceall)
             enpkg.execute(actions)
             if len(actions) == 0:
@@ -248,20 +249,27 @@ def install_req(enpkg, req, opts):
                 print_install_time(enpkg, req.name)
                 _done(SUCCESS)
         except EnpkgError, e:
-            info_list = enpkg.info_list_name(req.name)
-            if info_list:
-                print "Versions for package %r are: %s" % (
-                    req.name,
-                    ', '.join(sorted(set(i['version'] for i in info_list))))
-                if any(not i.get('available', True) for i in info_list):
-                    print "No subscription for %r." % req.name
-                    if config.get('use_webservice') and not(last_try):
-                        _check_auth()
-                    else:
-                        _done(FAILURE)
-            else:
+            if mode == 'root':
+                # trying to install just one requirement - try to give more info
+                info_list = enpkg.info_list_name(req.name)
+                if info_list:
+                    print "Versions for package %r are: %s" % (
+                        req.name,
+                        ', '.join(sorted(set(i['version'] for i in info_list))))
+                    if any(not i.get('available', True) for i in info_list):
+                        print "No subscription for %r." % req.name
+                        if config.get('use_webservice') and not(last_try):
+                            _check_auth()
+                        else:
+                            _done(FAILURE)
+                else:
+                    print e.message
+                    _done(FAILURE)
+            elif mode == 'recur':
                 print e.message
-                _done(FAILURE)
+                print "You can force an install of just this package by " +\
+                    "using the --no-deps enpkg commandline argument"
+                
 
     def _check_auth():
         """
