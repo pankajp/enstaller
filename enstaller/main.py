@@ -366,6 +366,7 @@ def main():
                         "the config file)")
     p.add_argument("--proxy", metavar='URL', help="use a proxy for downloads")
     p.add_argument("--remove", action="store_true", help="remove a package")
+    p.add_argument("--remove-enstaller", action="store_true", help="remove enstaller (will break enpkg)")
     p.add_argument("--revert", metavar="REV",
                    help="revert to a previous set of packages")
     p.add_argument('-s', "--search", action="store_true",
@@ -550,6 +551,19 @@ def main():
         print
 
     print "prefix:", prefix
+
+    if args.remove:
+        if any(req.name == 'enstaller' for req in reqs):
+            print "Removing enstaller package will break enpkg and is not recommended."
+            print "If you are sure you wish to remove enstaller, use:"
+            print "    enpkg --remove-enstaller"
+    
+    if args.remove_enstaller:
+        print "Removing enstaller package will break enpkg and is not recommended."
+        yn = raw_input("Really remove enstaller? (y/[n]) ")
+        if yn.lower() in set(['y', 'yes']):
+            args.remove = True
+            reqs = [Req('enstaller')]
 
     for req in reqs:
         if args.remove:                               # --remove
