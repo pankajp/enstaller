@@ -223,8 +223,8 @@ class Resolve(object):
                 d = self.get_egg(r)
                 if d is None:
                     from enstaller.enpkg import EnpkgError
-                    err = EnpkgError('Error: could not resolve "%s" ' +
-                                     'required by "%s"' % (r.name, egg))
+                    err = EnpkgError(('Error: could not resolve "%s" ' +
+                                     'required by "%s"') % (r.name, egg))
                     err.req = r
                     raise err
                 eggs.add(d)
