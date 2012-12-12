@@ -15,14 +15,14 @@ from os.path import isfile, join
 
 from egginst.utils import bin_dir_name, rel_site_packages
 from enstaller import __version__
-import config
-from proxy.api import setup_proxy
-from utils import abs_expanduser, fill_url
+import enstaller.config as config
+from enstaller.proxy.api import setup_proxy
+from enstaller.utils import abs_expanduser, fill_url
 
-from eggcollect import EggCollection
-from enpkg import Enpkg, EnpkgError, create_joined_store
-from resolve import Req, comparable_info
-from egg_meta import is_valid_eggname, split_eggname
+from enstaller.eggcollect import EggCollection
+from enstaller.enpkg import Enpkg, EnpkgError, create_joined_store
+from enstaller.resolve import Req, comparable_info
+from enstaller.egg_meta import is_valid_eggname, split_eggname
 
 
 FMT = '%-20s %-20s %s'
