@@ -41,7 +41,7 @@ def req_from_anything(arg):
     return Req(arg)
 
 class EnpkgError(Exception):
-    pass
+    req = None
 
 
 class Enpkg(object):

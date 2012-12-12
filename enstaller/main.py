@@ -10,19 +10,20 @@ import sys
 import site
 import string
 import datetime
+import textwrap
 from argparse import ArgumentParser
 from os.path import isfile, join
 
 from egginst.utils import bin_dir_name, rel_site_packages
 from enstaller import __version__
-import config
-from proxy.api import setup_proxy
-from utils import abs_expanduser, fill_url
+import enstaller.config as config
+from enstaller.proxy.api import setup_proxy
+from enstaller.utils import abs_expanduser, fill_url
 
-from eggcollect import EggCollection
-from enpkg import Enpkg, EnpkgError, create_joined_store
-from resolve import Req, comparable_info
-from egg_meta import is_valid_eggname, split_eggname
+from enstaller.eggcollect import EggCollection
+from enstaller.enpkg import Enpkg, EnpkgError, create_joined_store
+from enstaller.resolve import Req, comparable_info
+from enstaller.egg_meta import is_valid_eggname, split_eggname
 
 
 FMT = '%-20s %-20s %s'
@@ -212,6 +213,16 @@ def add_url(url, verbose):
         return
     config.prepend_url(url)
 
+def pretty_print_packages(info_list):
+    packages = {}
+    for info in info_list:
+        version = info['version']
+        available = info.get('available', True)
+        packages[version] = packages.get(version, False) or available
+    pad = 4*' '
+    descriptions = [version+(' (no subscription)' if not available else '')
+        for version, available in sorted(packages.items())]
+    return pad + '\n    '.join(textwrap.wrap(', '.join(descriptions)))
 
 def install_req(enpkg, req, opts):
     """
@@ -238,9 +249,10 @@ def install_req(enpkg, req, opts):
         credentials (_check_auth), else _done.
         """
         try:
+            mode = 'root' if opts.no_deps else 'recur'
             actions = enpkg.install_actions(
                     req,
-                    mode='root' if opts.no_deps else 'recur',
+                    mode=mode,
                     force=opts.force, forceall=opts.forceall)
             enpkg.execute(actions)
             if len(actions) == 0:
@@ -248,20 +260,37 @@ def install_req(enpkg, req, opts):
                 print_install_time(enpkg, req.name)
                 _done(SUCCESS)
         except EnpkgError, e:
-            info_list = enpkg.info_list_name(req.name)
-            if info_list:
-                print "Versions for package %r are: %s" % (
-                    req.name,
-                    ', '.join(sorted(set(i['version'] for i in info_list))))
-                if any(not i.get('available', True) for i in info_list):
-                    print "No subscription for %r." % req.name
-                    if config.get('use_webservice') and not(last_try):
-                        _check_auth()
-                    else:
-                        _done(FAILURE)
-            else:
+            if mode == 'root' or e.req is None or e.req == req:
+                # trying to install just one requirement - try to give more info
+                info_list = enpkg.info_list_name(req.name)
+                if info_list:
+                    print "Versions for package %r are:\n%s" % (req.name,
+                        pretty_print_packages(info_list))
+                    if any(not i.get('available', True) for i in info_list):
+                        if config.get('use_webservice') and not(last_try):
+                            _check_auth()
+                        else:
+                            _done(FAILURE)
+                else:
+                    print e.message
+                    _done(FAILURE)
+            elif mode == 'recur':
                 print e.message
-                _done(FAILURE)
+                print '\n'.join(textwrap.wrap("You may be able to force an install of just this " + \
+                    "egg by using the --no-deps enpkg commandline argument " + \
+                    "after installing another version of the dependency. "))
+                if e.req:
+                    info_list = enpkg.info_list_name(e.req.name)
+                    if info_list:
+                        print "Availble versions of the required package %r are:\n%s" % (
+                            e.req.name, pretty_print_packages(info_list))
+                        if any(not i.get('available', True) for i in info_list):
+                            if config.get('use_webservice') and not(last_try):
+                                _check_auth()
+                            else:
+                                _done(FAILURE)
+            _done(FAILURE)
+                
 
     def _check_auth():
         """
