@@ -557,6 +557,7 @@ def main():
             print "Removing enstaller package will break enpkg and is not recommended."
             print "If you are sure you wish to remove enstaller, use:"
             print "    enpkg --remove-enstaller"
+            return
     
     if args.remove_enstaller:
         print "Removing enstaller package will break enpkg and is not recommended."
