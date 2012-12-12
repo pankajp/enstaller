@@ -281,6 +281,11 @@ def install_req(enpkg, req, opts):
                     if info_list:
                         print "Availble versions of the required package %r are:\n%s" % (
                             e.req.name, pretty_print_packages(info_list))
+                        if any(not i.get('available', True) for i in info_list):
+                            if config.get('use_webservice') and not(last_try):
+                                _check_auth()
+                            else:
+                                _done(FAILURE)
             _done(FAILURE)
                 
 
