@@ -212,11 +212,11 @@ def add_url(url, verbose):
         return
     config.prepend_url(url)
 
-def available_packages(enpkg, name):
+def available_packages(info_list):
     packages = [(info['version'], info.get('available', True))
-        for info in enpkg.info_list_name(name)]
+        for info in info_list]
     descriptions = [version+(' (no subscription)' if not available else '')
-        for version, available in packages]
+        for version, available in sorted(packages)]
     return ', '.join(descriptions)
 
 def install_req(enpkg, req, opts):
@@ -260,7 +260,7 @@ def install_req(enpkg, req, opts):
                 info_list = enpkg.info_list_name(req.name)
                 if info_list:
                     print "Versions for package %r are: %s" % (req.name,
-                        available_packages(req.name))
+                        available_packages(info_list))
                     if any(not i.get('available', True) for i in info_list):
                         if config.get('use_webservice') and not(last_try):
                             _check_auth()
@@ -278,7 +278,7 @@ def install_req(enpkg, req, opts):
                     info_list = enpkg.info_list_name(e.req.name)
                     if info_list:
                         print "Availble versions of the required package %r are: %s" % (
-                            e.req.name, available_packages(req.name))
+                            e.req.name, available_packages(info_list))
             _done(FAILURE)
                 
 
