@@ -214,11 +214,13 @@ def add_url(url, verbose):
     config.prepend_url(url)
 
 def pretty_print_packages(info_list):
-    packages = [(info['version'], info.get('available', True))
-        for info in info_list]
+    packages = {}
+    for info in info_list:
+        version = info['version']
+        packages[version] = packages.get(version, False) or info.get('available', True)
     pad = 4*' '
     descriptions = [pad+version+(' (no subscription)' if not available else '')
-        for version, available in sorted(packages)]
+        for version, available in sorted(packages.items())]
     return '\n'.join(descriptions)
 
 def install_req(enpkg, req, opts):
