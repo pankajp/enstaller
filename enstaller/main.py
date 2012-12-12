@@ -390,7 +390,8 @@ def main():
     args = p.parse_args()
 
     if len(args.cnames) > 0 and (args.config or args.env or args.userpass or
-                                 args.revert or args.log or args.whats_new):
+                                 args.revert or args.log or args.whats_new or
+                                 args.remove_enstaller):
         p.error("Option takes no arguments")
 
     if args.user:
@@ -529,7 +530,7 @@ def main():
         whats_new(enpkg)
         return
 
-    if len(args.cnames) == 0:
+    if len(args.cnames) == 0 and not args.remove_enstaller:
         p.error("Requirement(s) missing")
     elif len(args.cnames) == 2:
         pat = re.compile(r'\d+\.\d+')
