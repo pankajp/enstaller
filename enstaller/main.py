@@ -217,11 +217,12 @@ def pretty_print_packages(info_list):
     packages = {}
     for info in info_list:
         version = info['version']
-        packages[version] = packages.get(version, False) or info.get('available', True)
+        available = info.get('available', True)
+        packages[version] = packages.get(version, False) or available
     pad = 4*' '
-    descriptions = [pad+version+(' (no subscription)' if not available else '')
+    descriptions = [version+(' (no subscription)' if not available else '')
         for version, available in sorted(packages.items())]
-    return '\n'.join(descriptions)
+    return pad + '\n    '.join(textwrap.wrap(', '.join(descriptions)))
 
 def install_req(enpkg, req, opts):
     """
@@ -259,7 +260,7 @@ def install_req(enpkg, req, opts):
                 print_install_time(enpkg, req.name)
                 _done(SUCCESS)
         except EnpkgError, e:
-            if mode == 'root':
+            if mode == 'root' or e.req is None or e.req == req:
                 # trying to install just one requirement - try to give more info
                 info_list = enpkg.info_list_name(req.name)
                 if info_list:
