@@ -212,6 +212,12 @@ def add_url(url, verbose):
         return
     config.prepend_url(url)
 
+def available_packages(enpkg, name):
+    packages = [(info['version'], info.get('available', True))
+        for info in enpkg.info_list_name(name)]
+    descriptions = [version+(' (no subscription)' if not available else '')
+        for version, available in packages]
+    return ', '.join(descriptions)
 
 def install_req(enpkg, req, opts):
     """
@@ -253,11 +259,9 @@ def install_req(enpkg, req, opts):
                 # trying to install just one requirement - try to give more info
                 info_list = enpkg.info_list_name(req.name)
                 if info_list:
-                    print "Versions for package %r are: %s" % (
-                        req.name,
-                        ', '.join(sorted(set(i['version'] for i in info_list))))
+                    print "Versions for package %r are: %s" % (req.name,
+                        available_packages(req.name))
                     if any(not i.get('available', True) for i in info_list):
-                        print "No subscription for %r." % req.name
                         if config.get('use_webservice') and not(last_try):
                             _check_auth()
                         else:
@@ -274,10 +278,7 @@ def install_req(enpkg, req, opts):
                     info_list = enpkg.info_list_name(e.req.name)
                     if info_list:
                         print "Availble versions of the required package %r are: %s" % (
-                            e.req.name,
-                            ', '.join(sorted(set(i['version'] for i in info_list))))
-                        if any(not i.get('available', True) for i in info_list):
-                            print "No subscription for %r." % e.req.name
+                            e.req.name, available_packages(req.name))
             _done(FAILURE)
                 
 
