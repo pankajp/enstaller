@@ -31,18 +31,10 @@ def name_version_fn(fn):
     """
     if fn.endswith('.egg'):
         fn = fn[:-4]
-    hyphen_count = fn.count("-")
-    if hyphen_count >= 2:
-        base, version, build = fn.rsplit("-", 2)
-    elif hyphen_count == 1:
-        # XXX: can this really every happen ?
-        base, version = fn.split("-")
-        build = ""
+    if '-' in fn:
+        return tuple(fn.split('-', 1))
     else:
-        base = fn
-        version = ""
-        build = ""
-    return base, "-".join((version, build))
+        return fn, ''
 
 
 class EggInst(object):
