@@ -395,6 +395,7 @@ def main():
                         "the config file)")
     p.add_argument("--proxy", metavar='URL', help="use a proxy for downloads")
     p.add_argument("--remove", action="store_true", help="remove a package")
+    p.add_argument("--remove-enstaller", action="store_true", help="remove enstaller (will break enpkg)")
     p.add_argument("--revert", metavar="REV",
                    help="revert to a previous set of packages")
     p.add_argument('-s', "--search", action="store_true",
@@ -418,7 +419,8 @@ def main():
     args = p.parse_args()
 
     if len(args.cnames) > 0 and (args.config or args.env or args.userpass or
-                                 args.revert or args.log or args.whats_new):
+                                 args.revert or args.log or args.whats_new or
+                                 args.remove_enstaller):
         p.error("Option takes no arguments")
 
     if args.user:
@@ -557,7 +559,7 @@ def main():
         whats_new(enpkg)
         return
 
-    if len(args.cnames) == 0:
+    if len(args.cnames) == 0 and not args.remove_enstaller:
         p.error("Requirement(s) missing")
     elif len(args.cnames) == 2:
         pat = re.compile(r'\d+\.\d+')
@@ -579,6 +581,20 @@ def main():
         print
 
     print "prefix:", prefix
+
+    if args.remove:
+        if any(req.name == 'enstaller' for req in reqs):
+            print "Removing enstaller package will break enpkg and is not recommended."
+            print "If you are sure you wish to remove enstaller, use:"
+            print "    enpkg --remove-enstaller"
+            return
+    
+    if args.remove_enstaller:
+        print "Removing enstaller package will break enpkg and is not recommended."
+        yn = raw_input("Really remove enstaller? (y/[n]) ")
+        if yn.lower() in set(['y', 'yes']):
+            args.remove = True
+            reqs = [Req('enstaller')]
 
     for req in reqs:
         if args.remove:                               # --remove
