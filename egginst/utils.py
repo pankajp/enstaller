@@ -66,17 +66,10 @@ def get_executable(prefix):
     else:
         path = join(prefix, bin_dir_name, 'python')
         if isfile(path):
-            from subprocess import check_output
-            if sys.platform == 'darwin':
-                cmd = [path, '-c',
-                       'import os;print os.environ.get("__PYVENV_LAUNCHER__")']
-                p = check_output(cmd).strip()
-                if isfile(p):
-                    return p
-
+            from subprocess import Popen, PIPE
             cmd = [path, '-c', 'import sys;print sys.executable']
-            p = check_output(cmd).strip()
-            return p
+            p = Popen(cmd, stdout=PIPE)
+            return p.communicate()[0].strip()
     return sys.executable
 
 
