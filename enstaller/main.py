@@ -206,7 +206,31 @@ def whats_new(enpkg):
     if not something_new:
         print "no new version of any installed package is available"
 
+def update_all(enpkg, args):
+    something_new = False
+    once = False
+    updates = []
+    for key, info in enpkg.query_installed():
+        av_infos = enpkg.info_list_name(info['name'])
+        if len(av_infos) == 0:
+            continue
+        av_info = av_infos[-1]
+        if comparable_info(av_info) > comparable_info(info):
+            if not once:
+                print "The following packages and their dependencies will be updated"    
+                print FMT % ('Name', 'installed', 'available')
+                print 60 * "="
+            print FMT % (name_egg(key), VB_FMT % info, VB_FMT % av_info)
+            updates.append(info['name'])
+            something_new = True
+            once = True
 
+    if not something_new:
+        print "No new version of any installed package is available"
+    else:
+        for update in updates:
+            install_req(enpkg, update, args)
+           
 def add_url(url, verbose):
     url = fill_url(url)
     if url in config.get('IndexedRepos'):
@@ -413,6 +437,8 @@ def main():
                         "~/.enstaller4rc exists)")
     p.add_argument("--sys-prefix", action="store_true",
                    help="use sys.prefix as the install prefix")
+    p.add_argument("--update-all", action="store_true",
+                   help="Updates all installed packages")
     p.add_argument("--user", action="store_true",
                help="install into user prefix, i.e. --prefix=%r" % user_base)
     p.add_argument("--userpass", action="store_true",
@@ -427,7 +453,7 @@ def main():
 
     if len(args.cnames) > 0 and (args.config or args.env or args.userpass or
                                  args.revert or args.log or args.whats_new or
-                                 args.remove_enstaller):
+                                 args.update_all or args.remove_enstaller):
         p.error("Option takes no arguments")
 
     if args.user:
@@ -566,6 +592,10 @@ def main():
 
     if args.whats_new:                            # --whats-new
         whats_new(enpkg)
+        return
+
+    if args.update_all:                           # --update-all
+        update_all(enpkg, args)
         return
 
     if len(args.cnames) == 0 and not args.remove_enstaller:
