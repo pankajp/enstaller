@@ -1,15 +1,23 @@
 """
 Utilities for reading and writing Mach-O headers
 """
-
-from __future__ import absolute_import
+from __future__ import print_function
 
 import sys
 import struct
 
 from .mach_o import *
+from .dyld import dyld_find, framework_info
 from .util import fileview
-from ._compat import B
+try:
+    from .compat import bytes
+except ImportError:
+    pass
+
+try:
+    unicode
+except NameError:
+    unicode = str
 
 __all__ = ['MachO']
 
@@ -53,11 +61,12 @@ class MachO(object):
         # supports the ObjectGraph protocol
         self.graphident = filename
         self.filename = filename
-        
+
         # initialized by load
         self.fat = None
         self.headers = []
-        self.load(open(filename, 'rb'))
+        with open(filename, 'rb') as fp:
+            self.load(fp)
 
     def __repr__(self):
         return "<MachO filename=%r>" % (self.filename,)
@@ -76,7 +85,7 @@ class MachO(object):
 
     def load_fat(self, fh):
         self.fat = fat_header.from_fileobj(fh)
-        archs = [fat_arch.from_fileobj(fh) for i in xrange(self.fat.nfat_arch)]
+        archs = [fat_arch.from_fileobj(fh) for i in range(self.fat.nfat_arch)]
         for arch in archs:
             self.load_header(fh, arch.offset, arch.size)
 
@@ -108,7 +117,7 @@ class MachO(object):
     def write(self, f):
         for header in self.headers:
             header.write(f)
-    
+
 class MachOHeader(object):
     """
     Provides reading/writing the Mach-O header of a specific existing file
@@ -166,8 +175,8 @@ class MachOHeader(object):
         self.filetype = MH_FILETYPE_SHORTNAMES[header.filetype]
 
         read_bytes = 0
-        low_offset = sys.maxint
-        for i in xrange(header.ncmds):
+        low_offset = sys.maxsize
+        for i in range(header.ncmds):
             # read the load command
             cmd_load = load_command.from_fileobj(fh, **kw)
 
@@ -191,7 +200,7 @@ class MachOHeader(object):
                     section_cls = section
                 else: # LC_SEGMENT_64
                     section_cls = section_64
-                    
+
                 expected_size = (
                     sizeof(klass) + sizeof(load_command) +
                     (sizeof(section_cls) * cmd_cmd.nsects)
@@ -205,7 +214,7 @@ class MachOHeader(object):
                         low_offset = min(low_offset, cmd_cmd.fileoff)
                 else:
                     # this one has multiple segments
-                    for j in xrange(cmd_cmd.nsects):
+                    for j in range(cmd_cmd.nsects):
                         # read the segment
                         seg = section_cls.from_fileobj(fh, **kw)
                         # if the segment has a size and is not zero filled
@@ -246,7 +255,7 @@ class MachOHeader(object):
             if shouldRelocateCommand(lc.cmd):
                 name = _RELOCATABLE_NAMES[lc.cmd]
                 ofs = cmd.name - sizeof(lc.__class__) - sizeof(cmd.__class__)
-                yield idx, name, data[ofs:data.find(B('\x00'), ofs)].decode(
+                yield idx, name, data[ofs:data.find(b'\x00', ofs)].decode(
                         sys.getfilesystemencoding())
 
     def rewriteInstallNameCommand(self, loadcmd):
@@ -259,7 +268,7 @@ class MachOHeader(object):
     def changedHeaderSizeBy(self, bytes):
         self.sizediff += bytes
         if (self.total_size + self.sizediff) > self.low_offset:
-            print "WARNING: Mach-O header may be too large to relocate"
+            print("WARNING: Mach-O header may be too large to relocate")
 
     def rewriteLoadCommands(self, changefunc):
         """
@@ -283,7 +292,7 @@ class MachOHeader(object):
         lc, cmd, old_data = self.commands[idx]
         hdrsize = sizeof(lc.__class__) + sizeof(cmd.__class__)
         align = struct.calcsize('L')
-        data = data + (B('\x00') * (align - (len(data) % align)))
+        data = data + (b'\x00' * (align - (len(data) % align)))
         newsize = hdrsize + len(data)
         self.commands[idx] = (lc, cmd, data)
         self.changedHeaderSizeBy(newsize - lc.cmdsize)
@@ -309,19 +318,31 @@ class MachOHeader(object):
             lc.to_fileobj(fileobj)
             cmd.to_fileobj(fileobj)
 
-            if isinstance(data, unicode):
-                fileobj.write(data.encode(sys.getfilesystemencoding()))
-            
-            elif isinstance(data, (bytes, str)):
-                fileobj.write(data)
+            if sys.version_info[0] == 2:
+                if isinstance(data, unicode):
+                    fileobj.write(data.encode(sys.getfilesystemencoding()))
+
+                elif isinstance(data, (bytes, str)):
+                    fileobj.write(data)
+                else:
+                    # segments..
+                    for obj in data:
+                        obj.to_fileobj(fileobj)
             else:
-                # segments..
-                for obj in data:
-                    obj.to_fileobj(fileobj)
+                if isinstance(data, str):
+                    fileobj.write(data.encode(sys.getfilesystemencoding()))
+
+                elif isinstance(data, bytes):
+                    fileobj.write(data)
+
+                else:
+                    # segments..
+                    for obj in data:
+                        obj.to_fileobj(fileobj)
 
         # zero out the unused space, doubt this is strictly necessary
         # and is generally probably already the case
-        fileobj.write(B('\x00') * (self.low_offset - fileobj.tell()))
+        fileobj.write(b'\x00' * (self.low_offset - fileobj.tell()))
 
     def getSymbolTableCommand(self):
         for lc, cmd, data in self.commands:
@@ -339,16 +360,14 @@ def main(fn):
     m = MachO(fn)
     seen = set()
     for header in m.headers:
-        #print '[%s endian=%r]' % (header.__class__.__name__, header.endian)
-        #seen = set()
         for idx, name, other in header.walkRelocatables():
             if other not in seen:
                 seen.add(other)
-                print '\t' + name + ": " + other
+                print('\t' + name + ": " + other)
 
 if __name__ == '__main__':
     import sys
     files = sys.argv[1:] or ['/bin/ls']
     for fn in files:
-        print fn
+        print(fn)
         main(fn)
