@@ -1,7 +1,10 @@
+import errno
 import sys
 import os
 import shutil
 import tempfile
+import zipfile
+
 from os.path import basename, isdir, isfile, islink, join
 
 
@@ -14,6 +17,7 @@ else:
     bin_dir_name = 'bin'
     rel_site_packages = 'lib/python%i.%i/site-packages' % sys.version_info[:2]
 
+ZIP_SOFTLINK_ATTRIBUTE_MAGIC = 0xA1ED0000L
 
 def rm_empty_dir(path):
     """
@@ -83,3 +87,33 @@ def human_bytes(n):
     if k < 1024:
         return '%i KB' % k
     return '%.2f MB' % (float(n) / (2**20))
+
+def makedirs(path):
+    """Recursive directory creation function that does not fail if the
+    directory already exists."""
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+def is_zipinfo_symlink(zip_info):
+    """Return True if the given zip_info instance refers to a symbolic link."""
+    return zip_info.external_attr == ZIP_SOFTLINK_ATTRIBUTE_MAGIC
+
+def zip_write_symlink(fp, link_name, source):
+    """Add to the zipfile the given link_name as a softlink to source
+
+    Parameters
+    ----------
+    fp: file object
+        ZipFile instance
+    link_name: str
+        Path of the symlink
+    source: str
+        Path the symlink points to (the output of os.readlink)
+    """
+    zip_info = zipfile.ZipInfo(link_name)
+    zip_info.create_system = 3
+    zip_info.external_attr = ZIP_SOFTLINK_ATTRIBUTE_MAGIC
+    fp.writestr(zip_info, source)

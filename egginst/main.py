@@ -16,7 +16,7 @@ from uuid import uuid4
 from os.path import abspath, basename, dirname, join, isdir, isfile
 
 from utils import (on_win, bin_dir_name, rel_site_packages, human_bytes,
-                   rm_empty_dir, rm_rf, get_executable)
+                   rm_empty_dir, rm_rf, get_executable, makedirs, is_zipinfo_symlink)
 import scripts
 
 
@@ -35,7 +35,6 @@ def name_version_fn(fn):
         return tuple(fn.split('-', 1))
     else:
         return fn, ''
-
 
 class EggInst(object):
 
@@ -210,12 +209,27 @@ class EggInst(object):
                 return abspath(join(dst_dir, arcname[len(start):]))
         raise Exception("Didn't expect to get here")
 
+
+    def extract_symlink(self, arcname):
+        link_name = self.get_dst(arcname)
+        source = self.z.read(arcname)
+        dirn, filename = os.path.split(link_name)
+        makedirs(dirn)
+        os.symlink(source, link_name)
+        return link_name
+
     py_pat = re.compile(r'^(.+)\.py(c|o)?$')
     so_pat = re.compile(r'^lib.+\.so')
     py_obj = '.pyd' if on_win else '.so'
     def write_arcname(self, arcname):
         if arcname.endswith('/') or arcname.startswith('.unused'):
             return
+        zip_info = self.z.getinfo(arcname)
+        if is_zipinfo_symlink(zip_info):
+            link_name = self.extract_symlink(arcname)
+            self.files.append(link_name)
+            return
+
         m = self.py_pat.match(arcname)
         if m and (m.group(1) + self.py_obj) in self.arcnames:
             # .py, .pyc, .pyo next to .so are not written
