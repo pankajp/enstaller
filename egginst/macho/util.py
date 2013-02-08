@@ -1,11 +1,11 @@
-from __future__ import absolute_import
-
 import os
 import sys
 import stat
 import operator
 import struct
 import shutil
+
+#from modulegraph.util import *
 
 from . import mach_o
 
@@ -16,6 +16,11 @@ MAGIC = [
 FAT_MAGIC_BYTES = struct.pack('!L', mach_o.FAT_MAGIC)
 MAGIC_LEN = 4
 STRIPCMD = ['/usr/bin/strip', '-x', '-S', '-']
+
+try:
+    unicode
+except NameError:
+    unicode = str
 
 
 def fsencoding(s, encoding=sys.getfilesystemencoding()):
@@ -70,7 +75,7 @@ class fileview(object):
         if not (self._start <= seekto <= self._end):
             raise IOError("%s to offset %d is outside window [%d, %d]" % (
                 op, seekto, self._start, self._end))
-        
+
     def seek(self, offset, whence=0):
         seekto = offset
         if whence == 0:
@@ -90,13 +95,14 @@ class fileview(object):
         self._checkwindow(here + len(bytes), 'write')
         self._fileobj.write(bytes)
 
-    def read(self, size=sys.maxint):
-        assert size >= 0
+    def read(self, size=sys.maxsize):
+        if size < 0:
+            raise ValueError("Invalid size %s while reading from %s", size, self._fileobj)
         here = self._fileobj.tell()
         self._checkwindow(here, 'read')
         bytes = min(size, self._end - here)
         return self._fileobj.read(bytes)
-        
+
 
 def mergecopy(src, dest):
     """
@@ -135,7 +141,7 @@ def mergetree(src, dst, condition=None, copyfn=mergecopy, srcbase=None):
                     condition=condition, copyfn=copyfn, srcbase=srcbase)
             else:
                 copyfn(srcname, dstname)
-        except (IOError, os.error), why:
+        except (IOError, os.error) as why:
             errors.append((srcname, dstname, why))
     if errors:
         raise IOError(errors)
@@ -186,20 +192,19 @@ def is_platform_file(path):
     if not os.path.exists(path) or os.path.islink(path):
         return False
     # If the header is fat, we need to read into the first arch
-    fileobj = open(path, 'rb')
-    bytes = fileobj.read(MAGIC_LEN)
-    if bytes == FAT_MAGIC_BYTES:
-        # Read in the fat header
-        fileobj.seek(0)
-        header = mach_o.fat_header.from_fileobj(fileobj, _endian_='>')
-        if header.nfat_arch < 1:
-            return False
-        # Read in the first fat arch header
-        arch = mach_o.fat_arch.from_fileobj(fileobj, _endian_='>')
-        fileobj.seek(arch.offset)
-        # Read magic off the first header
+    with open(path, 'rb') as fileobj:
         bytes = fileobj.read(MAGIC_LEN)
-    fileobj.close()
+        if bytes == FAT_MAGIC_BYTES:
+            # Read in the fat header
+            fileobj.seek(0)
+            header = mach_o.fat_header.from_fileobj(fileobj, _endian_='>')
+            if header.nfat_arch < 1:
+                return False
+            # Read in the first fat arch header
+            arch = mach_o.fat_arch.from_fileobj(fileobj, _endian_='>')
+            fileobj.seek(arch.offset)
+            # Read magic off the first header
+            bytes = fileobj.read(MAGIC_LEN)
     for magic in MAGIC:
         if bytes == magic:
             return True
@@ -208,7 +213,7 @@ def is_platform_file(path):
 def iter_platform_files(dst):
     """
     Walk a directory and yield each full path that is a Mach-O file
-    """ 
+    """
     for root, dirs, files in os.walk(dst):
         for fn in files:
             fn = os.path.join(root, fn)
@@ -223,7 +228,7 @@ def strip_files(files, argv_max=(256 * 1024)):
     while tostrip:
         cmd = list(STRIPCMD)
         flips = []
-        pathlen = reduce(operator.add, [len(s) + 1 for s in cmd])
+        pathlen = sum([len(s) + 1 for s in cmd])
         while pathlen < argv_max:
             if not tostrip:
                 break
