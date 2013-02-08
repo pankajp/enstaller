@@ -206,6 +206,7 @@ def whats_new(enpkg):
     if not something_new:
         print "no new version of any installed package is available"
 
+
 def update_all(enpkg, args):
     something_new = False
     once = False
@@ -217,7 +218,7 @@ def update_all(enpkg, args):
         av_info = av_infos[-1]
         if comparable_info(av_info) > comparable_info(info):
             if not once:
-                print "The following packages and their dependencies will be updated"    
+                print "The following packages and their dependencies will be updated"
                 print FMT % ('Name', 'installed', 'available')
                 print 60 * "="
             print FMT % (name_egg(key), VB_FMT % info, VB_FMT % av_info)
@@ -230,6 +231,7 @@ def update_all(enpkg, args):
     else:
         for update in updates:
             install_req(enpkg, update, args)
+
            
 def add_url(url, verbose):
     url = fill_url(url)
