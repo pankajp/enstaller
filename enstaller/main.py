@@ -440,7 +440,7 @@ def main():
     p.add_argument("--sys-prefix", action="store_true",
                    help="use sys.prefix as the install prefix")
     p.add_argument("--update-all", action="store_true",
-                   help="Updates all installed packages")
+                   help="update all installed packages")
     p.add_argument("--user", action="store_true",
                help="install into user prefix, i.e. --prefix=%r" % user_base)
     p.add_argument("--userpass", action="store_true",
