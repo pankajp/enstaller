@@ -290,7 +290,13 @@ def install_req(enpkg, req, opts):
                             else:
                                 _done(FAILURE)
             _done(FAILURE)
-                
+        except OSError as e:
+            if 'Permission denied' in e and sys.platform == 'darwin':
+                print "Install failed. OSX install requires admin privileges."
+                print "You should add 'sudo ' before the 'enpkg' command."
+                _done(FAILURE)
+            else:
+                raise
 
     def _check_auth():
         """
@@ -588,7 +594,7 @@ def main():
             print "If you are sure you wish to remove enstaller, use:"
             print "    enpkg --remove-enstaller"
             return
-    
+
     if args.remove_enstaller:
         print "Removing enstaller package will break enpkg and is not recommended."
         yn = raw_input("Really remove enstaller? (y/[n]) ")
