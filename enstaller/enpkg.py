@@ -81,7 +81,7 @@ class Enpkg(object):
     def __init__(self, remote=None, userpass='<config>', prefixes=[sys.prefix],
                  hook=False, evt_mgr=None, verbose=False):
         if remote is None:
-            self.remote = get_default_kvs()
+            self.remote = RemoteHTTPIndexedStore(get_default_url(), prefixes[0])
         else:
             self.remote = remote
         if userpass == '<config>':
