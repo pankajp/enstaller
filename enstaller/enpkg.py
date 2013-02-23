@@ -1,4 +1,5 @@
 import sys
+import warnings
 from uuid import uuid4
 from os.path import isdir, isfile, join
 
@@ -26,12 +27,15 @@ def create_joined_store(urls):
             raise Exception("cannot create store: %r" % url)
     return JoinedStore(stores)
 
+
 def get_default_url():
     import plat
     return 'https://api.enthought.com/eggs/%s/' % plat.custom_plat
 
+
 def get_default_kvs():
     return RemoteHTTPIndexedStore(get_default_url())
+
 
 def req_from_anything(arg):
     if isinstance(arg, Req):
@@ -39,6 +43,31 @@ def req_from_anything(arg):
     if is_valid_eggname(arg):
         return Req('%s %s-%d' % split_eggname(arg))
     return Req(arg)
+
+
+def get_package_path(prefix):
+    """Return site-packages path for the given repo prefix."""
+    postfix = 'lib/python{0}.{1}/site-packages'.format(*sys.version_info)
+    return join(prefix, postfix)
+
+
+def check_prefixes(prefixes):
+    """
+    Check that package prefixes lead to site-packages that are on the python
+    path and that the order of the prefixes matches the python path.
+    """
+    index_order = []
+    for prefix in prefixes:
+        path = get_package_path(prefix)
+        try:
+            index_order.append(sys.path.index(path))
+        except ValueError:
+            warnings.warn("Expected to find %s in PYTHONPATH" % path)
+            break
+    else:
+        if not index_order == sorted(index_order):
+            warnings.warn("Order of path prefixes doesn't match PYTHONPATH")
+
 
 class EnpkgError(Exception):
     req = None
@@ -89,6 +118,8 @@ class Enpkg(object):
             self.userpass = config.get_auth()
         else:
             self.userpass = userpass
+
+        check_prefixes(prefixes)
         self.prefixes = prefixes
         self.hook = hook
         self.evt_mgr = evt_mgr
