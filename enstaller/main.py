@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import site
+import errno
 import string
 import datetime
 import textwrap
@@ -291,7 +292,7 @@ def install_req(enpkg, req, opts):
                                 _done(FAILURE)
             _done(FAILURE)
         except OSError as e:
-            if 'Permission denied' in e and sys.platform == 'darwin':
+            if e.errno == errno.EACCES and sys.platform == 'darwin':
                 print "Install failed. OSX install requires admin privileges."
                 print "You should add 'sudo ' before the 'enpkg' command."
                 _done(FAILURE)
