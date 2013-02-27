@@ -81,6 +81,7 @@ def get_writable_local_dir(prefix):
         return local_dir
 
     import tempfile
+    warnings.warn('%s is not writable. Using a temporary cache' % prefix)
     return tempfile.mkdtemp()
 
 
