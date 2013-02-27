@@ -87,7 +87,7 @@ class LocalIndexedStore(IndexedStore):
 
 class RemoteHTTPIndexedStore(IndexedStore):
 
-    def __init__(self, url, prefix=None):
+    def __init__(self, url, cache_dir=None):
         self.root = url
 
         # Use handlers from urllib2's default opener, since we already
@@ -97,8 +97,8 @@ class RemoteHTTPIndexedStore(IndexedStore):
         handlers = opener.handlers if opener is not None else http_handlers
 
         # Add our handlers to the default handlers.
-        cache_dir = join(prefix, 'LOCAL-REPO') if prefix else \
-                    config.get('local')
+        if cache_dir is None:
+            cache_dir = config.get('local')
         handlers_ = [CompressedHandler, CachedHandler(cache_dir)] + handlers
 
         self.opener = urllib2.build_opener(*handlers_)

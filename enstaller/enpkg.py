@@ -2,6 +2,7 @@ import sys
 import warnings
 from uuid import uuid4
 from os.path import isdir, isfile, join
+import os
 
 from store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
 from store.joined import JoinedStore
@@ -68,6 +69,20 @@ def check_prefixes(prefixes):
         if not index_order == sorted(index_order):
             warnings.warn("Order of path prefixes doesn't match PYTHONPATH")
 
+def get_writable_local_dir(prefix):
+    local_dir = join(prefix, 'LOCAL-REPO')
+    if not os.access(local_dir, os.F_OK):
+        try:
+            os.makedirs(local_dir)
+            return local_dir
+        except (OSError, IOError) as e:
+            pass
+    elif os.access(local_dir, os.W_OK):
+        return local_dir
+
+    import tempfile
+    return tempfile.mkdtemp()
+
 
 class EnpkgError(Exception):
     req = None
@@ -109,8 +124,10 @@ class Enpkg(object):
     """
     def __init__(self, remote=None, userpass='<config>', prefixes=[sys.prefix],
                  hook=False, evt_mgr=None, verbose=False):
+        self.local_dir = get_writable_local_dir(prefixes[0])
         if remote is None:
-            self.remote = RemoteHTTPIndexedStore(get_default_url(), prefixes[0])
+            self.remote = RemoteHTTPIndexedStore(get_default_url(),
+                                                 self.local_dir)
         else:
             self.remote = remote
         if userpass == '<config>':
@@ -128,7 +145,6 @@ class Enpkg(object):
         self.ec = JoinedEggCollection([
                 EggCollection(prefix, self.hook, self.evt_mgr)
                 for prefix in self.prefixes])
-        self.local_dir = join(self.prefixes[0], 'LOCAL-REPO')
         self._connected = False
 
     # ============= methods which relate to remove store =================
