@@ -9,3 +9,4 @@ script:
 notifications:
   email:
     - davidc@enthought.com
+    - cwebster@enthought.com
