@@ -64,9 +64,11 @@ def rm_rf(path, verbose=False):
 
 def get_executable(prefix):
     if on_win:
-        path = join(prefix, 'python.exe')
-        if isfile(path):
-            return path
+        paths = [prefix, join(prefix, bin_dir_name)]
+        for path in paths:
+            executable = join(prefix, 'python.exe')
+            if isfile(executable):
+                return executable
     else:
         path = join(prefix, bin_dir_name, 'python')
         if isfile(path):
