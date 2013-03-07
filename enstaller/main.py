@@ -501,7 +501,7 @@ def main():
                   evt_mgr=evt_mgr, verbose=args.verbose)
 
     if args.config:                               # --config
-        config.print_config(enpkg.remote)
+        config.print_config(enpkg.remote, prefixes[0])
         return
 
     if args.userpass:                             # --userpass

@@ -443,7 +443,7 @@ def get(key, default=None):
     return read().get(key, default)
 
 
-def print_config(remote):
+def print_config(remote, prefix):
     print "Python version:", PY_VER
     print "enstaller version:", __version__
     print "sys.prefix:", sys.prefix
@@ -452,7 +452,8 @@ def print_config(remote):
     print "use_webservice:", get('use_webservice')
     print "config file:", get_path()
     print "settings:"
-    for k in 'prefix', 'local', 'noapp', 'proxy':
+    print "    prefix = %s" % prefix
+    for k in 'local', 'noapp', 'proxy':
         print "    %s = %r" % (k, get(k))
     print "    IndexedRepos:", '(not used)' if get('use_webservice') else ''
     for repo in get('IndexedRepos'):
