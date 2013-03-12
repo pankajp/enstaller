@@ -290,7 +290,7 @@ def install_req(enpkg, req, opts):
                             else:
                                 _done(FAILURE)
             _done(FAILURE)
-                
+
 
     def _check_auth():
         """
@@ -501,7 +501,7 @@ def main():
                   evt_mgr=evt_mgr, verbose=args.verbose)
 
     if args.config:                               # --config
-        config.print_config(enpkg.remote)
+        config.print_config(enpkg.remote, prefixes[0])
         return
 
     if args.userpass:                             # --userpass
@@ -588,7 +588,7 @@ def main():
             print "If you are sure you wish to remove enstaller, use:"
             print "    enpkg --remove-enstaller"
             return
-    
+
     if args.remove_enstaller:
         print "Removing enstaller package will break enpkg and is not recommended."
         yn = raw_input("Really remove enstaller? (y/[n]) ")
