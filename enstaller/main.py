@@ -18,7 +18,7 @@ from egginst.utils import bin_dir_name, rel_site_packages
 from enstaller import __version__
 import enstaller.config as config
 from enstaller.proxy.api import setup_proxy
-from enstaller.utils import abs_expanduser, fill_url
+from enstaller.utils import abs_expanduser, fill_url, exit_if_sudo_on_venv
 
 from enstaller.eggcollect import EggCollection
 from enstaller.enpkg import Enpkg, EnpkgError, create_joined_store
@@ -449,6 +449,8 @@ def main():
         prefixes = [sys.prefix]
     else:
         prefixes = [prefix, sys.prefix]
+
+    exit_if_sudo_on_venv(prefix)
 
     if args.verbose:
         print "Prefixes:"
