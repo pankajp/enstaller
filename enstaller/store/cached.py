@@ -77,9 +77,9 @@ class CachedHandler(urllib2.BaseHandler):
     def http_error_304(self, req, fp, code, msg, headers):
         metadata = self.read_metadata()
 
-        if headers['Etag'] != metadata['etag'] or not self.cache_is_valid(metadata):
+        if not self.cache_is_valid(metadata):
             self.clear_cache()
-            return self.parent.open(req.get_full_url)
+            return self.parent.open(req.get_full_url())
 
         res = urllib2.addinfourl(open(self._index_path, 'rb'),
                                  headers, req.get_full_url())
