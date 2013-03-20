@@ -123,10 +123,16 @@ class JoinedEggCollection(AbstractEggCollection):
         return None
 
     def query(self, **kwargs):
-        index = {}
+        # Use the package name as the dict-key so that eggs in a collection of
+        # higher precedence overwrites those in collection of lower precedence.
+        index_by_name = {}
         for collection in reversed(self.collections):
-            index.update(collection.query(**kwargs))
-        return index.iteritems()
+            for key, info in collection.query(**kwargs):
+                index_by_name[info['name']] = info
+        # Switch keys to the egg name.
+        index_iter = ((info['key'], info)
+                      for name, info in index_by_name.iteritems())
+        return index_iter
 
     def install(self, egg, dir_path, extra_info=None):
         self.collections[0].install(egg, dir_path, extra_info)
