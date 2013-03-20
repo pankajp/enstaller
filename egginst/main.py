@@ -215,6 +215,8 @@ class EggInst(object):
         source = self.z.read(arcname)
         dirn, filename = os.path.split(link_name)
         makedirs(dirn)
+        if os.path.exists(link_name):
+            os.unlink(link_name)
         os.symlink(source, link_name)
         return link_name
 
