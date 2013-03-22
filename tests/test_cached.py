@@ -80,20 +80,6 @@ class CacheTest(TestCase):
         self.assertEqual(res.read(), 'hello again')
         self.assertEqual(res.headers['Etag'], 'test-etag')
 
-    def test_missing_304(self):
-        """ On a 304 with an invalid cache, the cache should be cleared and a new request done. """
-
-        class FakeParent(object):
-            def open(self, url):
-                return urllib2.addinfourl(StringIO('goodbye'), {}, 'http://whoop.com')
-
-        self._write_cache('hello again')
-        req = urllib2.Request('http://foo.com/index.json')
-        self.cache_handler.parent = FakeParent()
-        res = self.cache_handler.http_error_304(req, StringIO(''), '304', 'Not Modified', {'Etag': 'other-etag'})
-        self.assertEqual(res.read(), 'goodbye')
-        self.assertEqual(res.headers.get('Etag'), None)
-
     def test_no_etag(self):
         """ No Etag header == no cache written """
         req = urllib2.Request('http://foo.com/index.json')
