@@ -188,50 +188,61 @@ def search(enpkg, pat=None):
             print e.message
         print config.subscription_message(user)
 
+def updates_check(enpkg):
+    updates = []
+    EPD_update = []
+    for key, info in enpkg.query_installed():
+        av_infos = enpkg.info_list_name(info['name'])
+        if len(av_infos) == 0:
+            continue
+        av_info = av_infos[-1]
+        if comparable_info(av_info) > comparable_info(info):
+            if name_egg(info['key']) == "EPD":
+                EPD_update.append(info)
+            else:
+                updates.append(info)
+    return updates, EPD_update
 
 def whats_new(enpkg):
-    print FMT % ('Name', 'installed', 'available')
-    print 60 * "="
-
-    something_new = False
-    for key, info in enpkg.query_installed():
-        av_infos = enpkg.info_list_name(info['name'])
-        if len(av_infos) == 0:
-            continue
-        av_info = av_infos[-1]
-        if comparable_info(av_info) > comparable_info(info):
-            print FMT % (name_egg(key), VB_FMT % info, VB_FMT % av_info)
-            something_new = True
-
-    if not something_new:
+    updates, EPD_update = updates_check(enpkg)
+    if not (updates or EPD_update):
         print "no new version of any installed package is available"
-
+    else:
+        if EPD_update:
+           print "EPD ", VB_FMT % enpkg.info_list_name(EPD_update[0]['name'])[-1], " is available. Run enpkg --upgrade-epd to update to the latest version of EPD"
+        if updates:
+            print FMT % ('Name', 'installed', 'available')
+            print 60 * "="
+            for update in updates:
+                # Ugly, yes.
+                print FMT % (name_egg(update["key"]), VB_FMT % update, VB_FMT % enpkg.info_list_name(update['name'])[-1])
+       
 
 def update_all(enpkg, args):
-    something_new = False
-    once = False
-    updates = []
-    for key, info in enpkg.query_installed():
-        av_infos = enpkg.info_list_name(info['name'])
-        if len(av_infos) == 0:
-            continue
-        av_info = av_infos[-1]
-        if comparable_info(av_info) > comparable_info(info):
-            if not once:
-                print "The following packages and their dependencies will be updated"
-                print FMT % ('Name', 'installed', 'available')
-                print 60 * "="
-            print FMT % (name_egg(key), VB_FMT % info, VB_FMT % av_info)
-            updates.append(info['name'])
-            something_new = True
-            once = True
-
-    if not something_new:
+    updates, EPD_update = updates_check(enpkg)
+    if not (updates or EPD_update):
         print "No new version of any installed package is available"
     else:
-        for update in updates:
-            install_req(enpkg, update, args)
+        if EPD_update:
+           print "EPD ", VB_FMT % enpkg.info_list_name(EPD_update[0]['name'])[-1], " is available. Run enpkg --upgrade-epd to update to the latest version of EPD"
+        if updates:
+            print "The following updates and their dependencies will be installed"
+            print FMT % ('Name', 'installed', 'available')
+            print 60 * "=" 
+            for update in updates:
+                # Ugly, yes.
+                print FMT % (name_egg(update["key"]), VB_FMT % update, VB_FMT % enpkg.info_list_name(update['name'])[-1])
+            for update in updates:
+                install_req(enpkg, update["name"], args)
 
+
+def upgrade_epd(enpkg, args):
+    updates, EPD_update = updates_check(enpkg)
+    if EPD_update:
+        print "EPD ", VB_FMT % EPD_update[0], " will be updated to version", VB_FMT % enpkg.info_list_name(EPD_update[0]['name'])[-1]
+        install_req(enpkg, EPD_update[0]["name"], args)
+    else:
+        print "No new version of EPD is available"
            
 def add_url(url, verbose):
     url = fill_url(url)
@@ -451,11 +462,15 @@ def main():
     p.add_argument("--whats-new", action="store_true",
                    help="display to which installed packages updates are "
                         "available")
+    p.add_argument("--upgrade-epd", action="store_true",
+                   help="Upgrade to a newer version of EPD")
+
     args = p.parse_args()
 
     if len(args.cnames) > 0 and (args.config or args.env or args.userpass or
                                  args.revert or args.log or args.whats_new or
-                                 args.update_all or args.remove_enstaller):
+                                 args.update_all or args.remove_enstaller or
+                                 args.upgrade_epd):
         p.error("Option takes no arguments")
 
     if args.user:
@@ -598,6 +613,10 @@ def main():
 
     if args.update_all:                           # --update-all
         update_all(enpkg, args)
+        return
+
+    if args.upgrade_epd:                          # --upgrade-epd
+        upgrade_epd(enpkg, args)
         return
 
     if len(args.cnames) == 0 and not args.remove_enstaller:
