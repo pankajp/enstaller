@@ -244,15 +244,24 @@ def update_all(enpkg, args):
             for update in updates:
                 install_req(enpkg, update['current']['name'], args)
 
+def epd_install_confirm():
+    print "Warning: both 'enpkg epd' and 'enpkg --upgrade-epd' will downgrade"
+    print "any packages that are currently at a higher version than in that"
+    print "EPD release. Usually it is preferable to update all installed"
+    print "packages with:'enpkg --update-all'."
+    yn = raw_input("Are you sure that you wish to proceed? (y/[n]) ")
+    return yn.lower() in set(['y', 'yes'])
+
 
 def upgrade_epd(enpkg, args):
     updates, EPD_update = updates_check(enpkg)
     if EPD_update:
-        new_EPD_version = VB_FMT % EPD_update[0]['update']
-        current_EPD_version = VB_FMT % EPD_update[0]['current']
-        print "EPD", current_EPD_version, "will be updated to version", \
-              new_EPD_version
-        install_req(enpkg, EPD_update[0]['current']['name'], args)
+        if epd_install_confirm():
+            new_EPD_version = VB_FMT % EPD_update[0]['update']
+            current_EPD_version = VB_FMT % EPD_update[0]['current']
+            print "EPD", current_EPD_version, "will be updated to version", \
+                new_EPD_version
+            install_req(enpkg, EPD_update[0]['current']['name'], args)
     else:
         print "No new version of EPD is available"
 
@@ -673,6 +682,15 @@ def main():
         if yn.lower() in set(['y', 'yes']):
             args.remove = True
             reqs = [Req('enstaller')]
+
+    if any(req.name == 'epd' for req in reqs):
+        if args.remove:
+            p.error("Can't remove 'epd'")
+        elif len(reqs) > 1:
+            p.error("Can't combine 'enpkg epd' with other packages.")
+            return
+        elif not epd_install_confirm():
+            return
 
     for req in reqs:
         if args.remove:                               # --remove
