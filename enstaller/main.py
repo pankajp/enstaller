@@ -208,7 +208,7 @@ def updates_check(enpkg):
 def whats_new(enpkg):
     updates, EPD_update = updates_check(enpkg)
     if not (updates or EPD_update):
-        print "no new version of any installed package is available"
+        print "No new version of any installed package is available"
     else:
         if EPD_update:
             new_EPD_version = VB_FMT % EPD_update[0]['update']
@@ -218,7 +218,8 @@ def whats_new(enpkg):
             print FMT % ('Name', 'installed', 'available')
             print 60 * "="
             for update in updates:
-                print FMT % (name_egg(update['current']['key']), VB_FMT % update['current'],
+                print FMT % (name_egg(update['current']['key']),
+                             VB_FMT % update['current'],
                              VB_FMT % update['update'])
 
 
@@ -229,14 +230,16 @@ def update_all(enpkg, args):
     else:
         if EPD_update:
             new_EPD_version = VB_FMT % EPD_update[0]['update']
-            print "EPD", new_EPD_version, "is now available. " \
+            print "EPD", new_EPD_version, "is available. " \
                 "Run enpkg --upgrade-epd to update to the latest version of EPD"
         if updates:
-            print "The following updates and their dependencies will be installed"
+            print ("The following updates and their dependencies "
+                   "will be installed")
             print FMT % ('Name', 'installed', 'available')
             print 60 * "="
             for update in updates:
-                print FMT % (name_egg(update['current']['key']), VB_FMT % update['current'],
+                print FMT % (name_egg(update['current']['key']),
+                             VB_FMT % update['current'],
                              VB_FMT % update['update'])
             for update in updates:
                 install_req(enpkg, update['current']['name'], args)
@@ -247,7 +250,8 @@ def upgrade_epd(enpkg, args):
     if EPD_update:
         new_EPD_version = VB_FMT % EPD_update[0]['update']
         current_EPD_version = VB_FMT % EPD_update[0]['current']
-        print "EPD", current_EPD_version, "will be updated to version", new_EPD_version
+        print "EPD", current_EPD_version, "will be updated to version", \
+              new_EPD_version
         install_req(enpkg, EPD_update[0]['current']['name'], args)
     else:
         print "No new version of EPD is available"
@@ -323,13 +327,15 @@ def install_req(enpkg, req, opts):
                     _done(FAILURE)
             elif mode == 'recur':
                 print e.message
-                print '\n'.join(textwrap.wrap("You may be able to force an install of just this " + \
-                    "egg by using the --no-deps enpkg commandline argument " + \
+                print '\n'.join(textwrap.wrap(
+                    "You may be able to force an install of just this "
+                    "egg by using the --no-deps enpkg commandline argument "
                     "after installing another version of the dependency. "))
                 if e.req:
                     info_list = enpkg.info_list_name(e.req.name)
                     if info_list:
-                        print "Available versions of the required package %r are:\n%s" % (
+                        print ("Available versions of the required package "
+                               "%r are:\n%s") % (
                             e.req.name, pretty_print_packages(info_list))
                         if any(not i.get('available', True) for i in info_list):
                             if config.get('use_webservice') and not(last_try):
@@ -448,7 +454,8 @@ def main():
                         "the config file)")
     p.add_argument("--proxy", metavar='URL', help="use a proxy for downloads")
     p.add_argument("--remove", action="store_true", help="remove a package")
-    p.add_argument("--remove-enstaller", action="store_true", help="remove enstaller (will break enpkg)")
+    p.add_argument("--remove-enstaller", action="store_true",
+                   help="remove enstaller (will break enpkg)")
     p.add_argument("--revert", metavar="REV",
                    help="revert to a previous set of packages")
     p.add_argument('-s', "--search", action="store_true",
@@ -651,15 +658,17 @@ def main():
 
     print "prefix:", prefix
 
+    REMOVE_ENSTALLER_WARNING = ("Removing enstaller package will break enpkg "
+                                "and is not recommended.")
     if args.remove:
         if any(req.name == 'enstaller' for req in reqs):
-            print "Removing enstaller package will break enpkg and is not recommended."
+            print REMOVE_ENSTALLER_WARNING
             print "If you are sure you wish to remove enstaller, use:"
             print "    enpkg --remove-enstaller"
             return
 
     if args.remove_enstaller:
-        print "Removing enstaller package will break enpkg and is not recommended."
+        print REMOVE_ENSTALLER_WARNING
         yn = raw_input("Really remove enstaller? (y/[n]) ")
         if yn.lower() in set(['y', 'yes']):
             args.remove = True
