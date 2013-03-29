@@ -492,10 +492,22 @@ def main():
 
     args = p.parse_args()
 
-    if len(args.cnames) > 0 and (args.config or args.env or args.userpass or
-                                 args.revert or args.log or args.whats_new or
-                                 args.update_all or args.remove_enstaller or
-                                 args.upgrade_epd):
+    # Check for incompatible actions and options
+    # Action options which take no package name pattern:
+    simple_standalone_actions = (args.config, args.env, args.userpass,
+                                args.revert, args.log, args.whats_new,
+                                args.update_all, args.remove_enstaller,
+                                args.upgrade_epd, args.add_url)
+    # Action options which can take a package name pattern:
+    complex_standalone_actions = (args.list, args.imports,
+                                 args.search, args.info, args.remove)
+
+    count_simple_actions = sum(bool(opt) for opt in simple_standalone_actions)
+    count_complex_actions = sum(bool(opt) for opt in complex_standalone_actions)
+
+    if count_simple_actions + count_complex_actions > 1:
+        p.error('Multiple action options specified')
+    if count_simple_actions > 0 and len(args.cnames) > 0:
         p.error("Option takes no arguments")
 
     if args.user:
