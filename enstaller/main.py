@@ -198,10 +198,10 @@ def updates_check(enpkg):
             continue
         av_info = av_infos[-1]
         if comparable_info(av_info) > comparable_info(info):
-            if name_egg(info['key']) == "EPD":
-                EPD_update.append(info)
+            if info['name'] == "epd":
+                EPD_update.append({'current': info, 'update': av_info})
             else:
-                updates.append(info)
+                updates.append({'current': info, 'update': av_info})
     return updates, EPD_update
 
 
@@ -211,16 +211,15 @@ def whats_new(enpkg):
         print "no new version of any installed package is available"
     else:
         if EPD_update:
-            new_EPD_version = VB_FMT % enpkg.info_list_name(EPD_update[0]['name'])[-1]
+            new_EPD_version = VB_FMT % EPD_update[0]['update']
             print "EPD", new_EPD_version, "is now available. " \
                 "Run enpkg --upgrade-epd to update to the latest version of EPD"
         if updates:
             print FMT % ('Name', 'installed', 'available')
             print 60 * "="
             for update in updates:
-                # Ugly, yes.
-                print FMT % (name_egg(update["key"]), VB_FMT % update,
-                             VB_FMT % enpkg.info_list_name(update['name'])[-1])
+                print FMT % (name_egg(update['current']['key']), VB_FMT % update['current'],
+                             VB_FMT % update['update'])
 
 
 def update_all(enpkg, args):
@@ -229,7 +228,7 @@ def update_all(enpkg, args):
         print "No new version of any installed package is available"
     else:
         if EPD_update:
-            new_EPD_version = VB_FMT % enpkg.info_list_name(EPD_update[0]['name'])[-1]
+            new_EPD_version = VB_FMT % EPD_update[0]['update']
             print "EPD", new_EPD_version, "is now available. " \
                 "Run enpkg --upgrade-epd to update to the latest version of EPD"
         if updates:
@@ -237,20 +236,19 @@ def update_all(enpkg, args):
             print FMT % ('Name', 'installed', 'available')
             print 60 * "="
             for update in updates:
-                # Ugly, yes.
-                print FMT % (name_egg(update["key"]), VB_FMT % update,
-                             VB_FMT % enpkg.info_list_name(update['name'])[-1])
+                print FMT % (name_egg(update['current']['key']), VB_FMT % update['current'],
+                             VB_FMT % update['update'])
             for update in updates:
-                install_req(enpkg, update["name"], args)
+                install_req(enpkg, update['current']['name'], args)
 
 
 def upgrade_epd(enpkg, args):
     updates, EPD_update = updates_check(enpkg)
     if EPD_update:
-        new_EPD_version = VB_FMT % enpkg.info_list_name(EPD_update[0]['name'])[-1]
-        current_EPD_version = VB_FMT % EPD_update[0]
+        new_EPD_version = VB_FMT % EPD_update[0]['update']
+        current_EPD_version = VB_FMT % EPD_update[0]['current']
         print "EPD", current_EPD_version, "will be updated to version", new_EPD_version
-        install_req(enpkg, EPD_update[0]["name"], args)
+        install_req(enpkg, EPD_update[0]['current']['name'], args)
     else:
         print "No new version of EPD is available"
 
