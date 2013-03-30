@@ -6,7 +6,7 @@
 # Build notes:
 #   * setuptools needs to be installed to run this script
 
-VER=4.5.6
+VER=4.6.0
 
 SPEC=enstaller.egg-info/spec
 mkdir -p $SPEC

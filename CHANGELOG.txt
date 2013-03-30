@@ -1,3 +1,10 @@
+2013-03-30   4.6.0:
+-------------------
+  * Adding an --update-all switch to enpkg.
+  * Usability improvements, improved warnings.
+  * Improve --prefix support.
+  * Support for softlinks inside eggs.
+
 2012-12-14   4.5.6:
 -------------------
   * Usability improvements
