@@ -212,8 +212,8 @@ def whats_new(enpkg):
     else:
         if EPD_update:
             new_EPD_version = VB_FMT % EPD_update[0]['update']
-            print "EPD", new_EPD_version, "is now available. " \
-                "Run enpkg --upgrade-epd to update to the latest version of EPD"
+            print "EPD", new_EPD_version, "is available. " \
+                "To update to it (with confirmation warning), run 'enpkg epd'."
         if updates:
             print FMT % ('Name', 'installed', 'available')
             print 60 * "="
@@ -231,7 +231,7 @@ def update_all(enpkg, args):
         if EPD_update:
             new_EPD_version = VB_FMT % EPD_update[0]['update']
             print "EPD", new_EPD_version, "is available. " \
-                "Run enpkg --upgrade-epd to update to the latest version of EPD"
+                "To update to it (with confirmation warning), run 'enpkg epd'."
         if updates:
             print ("The following updates and their dependencies "
                    "will be installed")
@@ -245,26 +245,12 @@ def update_all(enpkg, args):
                 install_req(enpkg, update['current']['name'], args)
 
 def epd_install_confirm():
-    print "Warning: both 'enpkg epd' and 'enpkg --upgrade-epd' will downgrade"
-    print "any packages that are currently at a higher version than in that"
-    print "EPD release. Usually it is preferable to update all installed"
-    print "packages with:'enpkg --update-all'."
+    print "Warning: 'enpkg epd' will downgrade any packages that are currently"
+    print "at a higher version than in the specified EPD release."
+    print "Usually it is preferable to update all installed packages with:"
+    print "    enpkg --update-all"
     yn = raw_input("Are you sure that you wish to proceed? (y/[n]) ")
     return yn.lower() in set(['y', 'yes'])
-
-
-def upgrade_epd(enpkg, args):
-    updates, EPD_update = updates_check(enpkg)
-    if EPD_update:
-        if epd_install_confirm():
-            new_EPD_version = VB_FMT % EPD_update[0]['update']
-            current_EPD_version = VB_FMT % EPD_update[0]['current']
-            print "EPD", current_EPD_version, "will be updated to version", \
-                new_EPD_version
-            install_req(enpkg, EPD_update[0]['current']['name'], args)
-    else:
-        print "No new version of EPD is available"
-
 
 def add_url(url, verbose):
     url = fill_url(url)
@@ -486,9 +472,6 @@ def main():
     p.add_argument("--whats-new", action="store_true",
                    help="display to which installed packages updates are "
                         "available")
-    p.add_argument("--upgrade-epd", action="store_true",
-                   help="Upgrade to a newer version of EPD")
-
     args = p.parse_args()
 
     # Check for incompatible actions and options
@@ -496,7 +479,7 @@ def main():
     simple_standalone_actions = (args.config, args.env, args.userpass,
                                 args.revert, args.log, args.whats_new,
                                 args.update_all, args.remove_enstaller,
-                                args.upgrade_epd, args.add_url)
+                                args.add_url)
     # Action options which can take a package name pattern:
     complex_standalone_actions = (args.list, args.imports,
                                  args.search, args.info, args.remove)
@@ -649,10 +632,6 @@ def main():
 
     if args.update_all:                           # --update-all
         update_all(enpkg, args)
-        return
-
-    if args.upgrade_epd:                          # --upgrade-epd
-        upgrade_epd(enpkg, args)
         return
 
     if len(args.cnames) == 0 and not args.remove_enstaller:
