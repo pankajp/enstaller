@@ -362,9 +362,13 @@ class Enpkg(object):
 
         res = []
         for egg in curr - state:
+            if egg.startswith('enstaller'):
+                continue
             res.append(('remove', egg))
 
         for egg in state - curr:
+            if egg.startswith('enstaller'):
+                continue
             if not isfile(join(self.local_dir, egg)):
                 self._connect()
                 if self.remote.exists(egg):
