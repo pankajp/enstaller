@@ -1,3 +1,8 @@
+2013-04-04   4.6.1:
+-------------------
+  * Fix bugs in --update-all and --revert
+  * Improve help text
+
 2013-03-30   4.6.0:
 -------------------
   * Adding an --update-all switch to enpkg.
