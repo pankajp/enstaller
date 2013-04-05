@@ -470,7 +470,8 @@ def main():
     p.add_argument("--user", action="store_true",
                help="install into user prefix, i.e. --prefix=%r" % user_base)
     p.add_argument("--userpass", action="store_true",
-                   help="set EPD authentication in configuration file")
+                   help="prompt for Enthought authentication, and save in "
+                   "configuration file .enstaller4rc")
     p.add_argument('-v', "--verbose", action="store_true")
     p.add_argument('--version', action="version",
                    version='enstaller version: ' + __version__)
