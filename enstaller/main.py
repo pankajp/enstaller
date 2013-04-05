@@ -22,7 +22,8 @@ from enstaller.proxy.api import setup_proxy
 from enstaller.utils import abs_expanduser, fill_url, exit_if_sudo_on_venv
 
 from enstaller.eggcollect import EggCollection
-from enstaller.enpkg import Enpkg, EnpkgError, create_joined_store
+from enstaller.enpkg import (Enpkg, EnpkgError, create_joined_store,
+    req_from_anything)
 from enstaller.resolve import Req, comparable_info
 from enstaller.egg_meta import is_valid_eggname, split_eggname
 
@@ -286,6 +287,7 @@ def install_req(enpkg, req, opts):
     # Unix exit-status codes
     FAILURE = 1
     SUCCESS = 0
+    req = req_from_anything(req)
 
     def _perform_install(last_try=False):
         """
