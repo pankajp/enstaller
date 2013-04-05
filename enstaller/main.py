@@ -1,8 +1,9 @@
 # Author: Ilan Schnell <ischnell@enthought.com>
 """\
-enstaller is a managing tool for egginst-based installs, and the CLI is
-called enpkg which calls out to egginst to do the actual install.
-enpkg can access distributions from local and HTTP repositories.
+The enstaller package is a tool for managing egginst-based installs.
+Its primary command-line interface program is enpkg, which processes user
+commands and in turn invokes egginst to do the actual installations.
+enpkg can access eggs from both local and HTTP repositories.
 """
 import os
 import re
@@ -425,7 +426,7 @@ def main():
                    help="display the configuration and exit")
     p.add_argument('-f', "--force", action="store_true",
                    help="force install the main package "
-                        "(not it's dependencies, see --forceall)")
+                        "(not its dependencies, see --forceall)")
     p.add_argument("--forceall", action="store_true",
                    help="force install of all packages "
                         "(i.e. including dependencies)")
@@ -443,20 +444,22 @@ def main():
     p.add_argument('-N', "--no-deps", action="store_true",
                    help="neither download nor install dependencies")
     p.add_argument("--env", action="store_true",
-                   help="based on the configuration, display how to set the "
-                        "some environment variables")
+                   help="based on the configuration, display how to set "
+                        "environment variables")
     p.add_argument("--prefix", metavar='PATH',
-                   help="install prefix (disregarding of any settings in "
+                   help="install prefix (disregarding any settings in "
                         "the config file)")
-    p.add_argument("--proxy", metavar='URL', help="use a proxy for downloads")
+    p.add_argument("--proxy", metavar='<proxy server>:<proxy port>',
+                   help="use a proxy for downloads")
     p.add_argument("--remove", action="store_true", help="remove a package")
     p.add_argument("--remove-enstaller", action="store_true",
                    help="remove enstaller (will break enpkg)")
-    p.add_argument("--revert", metavar="REV",
-                   help="revert to a previous set of packages")
+    p.add_argument("--revert", metavar="REV#",
+                   help="revert to a previous set of packages (does not revert "
+                   "enstaller itself)")
     p.add_argument('-s', "--search", action="store_true",
-                   help="search the index in the repo of packages "
-                        "and display versions available.")
+                   help="search the online repo index "
+                        "and display versions available")
     p.add_argument("--sys-config", action="store_true",
                    help="use <sys.prefix>/.enstaller4rc (even when "
                         "~/.enstaller4rc exists)")
@@ -467,13 +470,14 @@ def main():
     p.add_argument("--user", action="store_true",
                help="install into user prefix, i.e. --prefix=%r" % user_base)
     p.add_argument("--userpass", action="store_true",
-                   help="change EPD authentication in configuration file")
+                   help="prompt for Enthought authentication, and save in "
+                   "configuration file .enstaller4rc")
     p.add_argument('-v', "--verbose", action="store_true")
     p.add_argument('--version', action="version",
                    version='enstaller version: ' + __version__)
     p.add_argument("--whats-new", action="store_true",
-                   help="display to which installed packages updates are "
-                        "available")
+                   help="display available updates for installed packages")
+
     args = p.parse_args()
 
     # Check for incompatible actions and options
