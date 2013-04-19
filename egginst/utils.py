@@ -66,7 +66,7 @@ def get_executable(prefix):
     if on_win:
         paths = [prefix, join(prefix, bin_dir_name)]
         for path in paths:
-            executable = join(prefix, 'python.exe')
+            executable = join(path, 'python.exe')
             if isfile(executable):
                 return executable
     else:
