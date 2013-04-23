@@ -113,7 +113,7 @@ class TestChain0(unittest.TestCase):
 
     r = JoinedStore([
            DummyStore(join(this_dir, fn))
-           for fn in ['index-add.txt', 'index-5.1.txt', 'index-5.0.txt']])
+           for fn in ['index-add.txt', 'index-5.1.txt', 'index-5.0.txt', 'index-cycle.txt']])
     r.connect()
     c = Resolve(r)
 
@@ -232,6 +232,17 @@ class TestChain2(unittest.TestCase):
             self.r.get_metadata('numpy-1.5.1-2.egg').get('repo_dispname'),
             'epd')
 
+class TestCycle(unittest.TestCase):
+    
+    r = JoinedStore([
+            DummyStore(join(this_dir, 'index-cycle.txt'))])
+    r.connect()
+    c = Resolve(r)
+
+    def test_cycle(self):
+        resolve.PY_VER = '2.5'
+        eg = eggs_rs(self.c, 'cycleParent 2.0-5')
+        raise ValueError, "got eg "+repr((type(eg), eg))
 
 if __name__ == '__main__':
     unittest.main()
