@@ -13,7 +13,7 @@ import re
 import json
 import zipfile
 from uuid import uuid4
-from os.path import abspath, basename, dirname, join, isdir, isfile
+from os.path import abspath, basename, dirname, join, isdir, isfile, sep
 
 from utils import (on_win, bin_dir_name, rel_site_packages, human_bytes,
                    rm_empty_dir, rm_rf, get_executable, makedirs, is_zipinfo_symlink)
@@ -301,7 +301,8 @@ class EggInst(object):
                 path = dirname(path)
 
         for path in sorted(dir_paths, key=len, reverse=True):
-            rm_empty_dir(path)
+            if not path.rstrip(sep).endswith('site-packages'):
+                rm_empty_dir(path)
 
     def remove(self):
         if not isdir(self.meta_dir):
