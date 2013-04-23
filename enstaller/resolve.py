@@ -214,7 +214,10 @@ class Resolve(object):
             reqs_shallow[r.name] = r
         reqs_deep = defaultdict(set)
 
-        def add_dependents(egg):
+        def add_dependents(egg, visited=None):
+            if visited is None:
+                visited = set()
+            visited.add(egg)
             for r in self.reqs_egg(egg):
                 reqs_deep[r.name].add(r)
                 if (r.name in reqs_shallow  and
@@ -228,7 +231,8 @@ class Resolve(object):
                     err.req = r
                     raise err
                 eggs.add(d)
-                add_dependents(d)
+                if not d in visited:
+                    add_dependents(d, visited)
 
         eggs = set([root])
         add_dependents(root)

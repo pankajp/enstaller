@@ -233,6 +233,7 @@ class TestChain2(unittest.TestCase):
             'epd')
 
 class TestCycle(unittest.TestCase):
+    "Avoid an infinite recursion when the dependancies contain a cycle"
     
     r = JoinedStore([
             DummyStore(join(this_dir, 'index-cycle.txt'))])
@@ -241,8 +242,12 @@ class TestCycle(unittest.TestCase):
 
     def test_cycle(self):
         resolve.PY_VER = '2.5'
-        eg = eggs_rs(self.c, 'cycleParent 2.0-5')
-        raise ValueError, "got eg "+repr((type(eg), eg))
+        try:
+            eg = eggs_rs(self.c, 'cycleParent 2.0-5')
+        except Exception, e:
+            self.assertTrue( e.message.find("Loop")>=0, "unexpected exception message "+repr(e.message) )
+        else:
+            self.assertIsNone(eg, "dependancy cycle did not trigger an exception "+repr(eg))
 
 if __name__ == '__main__':
     unittest.main()

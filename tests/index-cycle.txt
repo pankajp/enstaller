@@ -12,9 +12,7 @@ platform = None
 osdist = None
 python = '2.5'
 packages = [
-  'cycleChild 2.0-5',
-  'ETS 3.2.0',
-  'TraitsBackendWX 3.1.0-1'
+  'cycleChild 2.0-5'
 ]
 
 ==> cycleChild-2.0-5.egg <==
@@ -31,9 +29,7 @@ platform = None
 osdist = None
 python = '2.5'
 packages = [
-  'cycleParent 2.0-5',
-  'ETS 3.2.0',
-  'TraitsBackendWX 3.1.0-1'
+  'cycleParent 2.0-5'
 ]
 
 
