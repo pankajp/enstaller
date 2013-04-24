@@ -113,7 +113,7 @@ class TestChain0(unittest.TestCase):
 
     r = JoinedStore([
            DummyStore(join(this_dir, fn))
-           for fn in ['index-add.txt', 'index-5.1.txt', 'index-5.0.txt']])
+           for fn in ['index-add.txt', 'index-5.1.txt', 'index-5.0.txt', 'index-cycle.txt']])
     r.connect()
     c = Resolve(r)
 
@@ -232,6 +232,23 @@ class TestChain2(unittest.TestCase):
             self.r.get_metadata('numpy-1.5.1-2.egg').get('repo_dispname'),
             'epd')
 
+class TestCycle(unittest.TestCase):
+    """Avoid an infinite recursion when the dependencies contain a cycle."""
+    
+    def setUp(self):
+        self.r = JoinedStore([
+                DummyStore(join(this_dir, 'index-cycle.txt'))])
+        self.r.connect()
+        self.c = Resolve(self.r)
+
+    def test_cycle(self):
+        resolve.PY_VER = '2.5'
+        try:
+            eg = eggs_rs(self.c, 'cycleParent 2.0-5')
+        except Exception, e:
+            self.assertIn("Loop", e.message, "unexpected exception message "+repr(e.message) )
+        else:
+            self.assertIsNone(eg, "dependency cycle did not trigger an exception "+repr(eg))
 
 if __name__ == '__main__':
     unittest.main()
