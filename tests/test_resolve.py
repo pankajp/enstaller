@@ -248,7 +248,7 @@ class TestCycle(unittest.TestCase):
         except Exception, e:
             self.assertIn("Loop", e.message, "unexpected exception message "+repr(e.message) )
         else:
-            self.assertIsNone(eg, "dependancy cycle did not trigger an exception "+repr(eg))
+            self.assertIsNone(eg, "dependency cycle did not trigger an exception "+repr(eg))
 
 if __name__ == '__main__':
     unittest.main()
