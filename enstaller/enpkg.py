@@ -47,9 +47,15 @@ def req_from_anything(arg):
 
 
 def get_package_path(prefix):
-    """Return site-packages path for the given repo prefix."""
-    postfix = 'lib/python{0}.{1}/site-packages'.format(*sys.version_info)
-    return join(prefix, postfix)
+    """Return site-packages path for the given repo prefix.
+    
+    Note: on windows the path is lowercased and returned.
+    """
+    if sys.platform == 'win32':
+        return join(prefix, 'Lib', 'site-packages').lower()
+    else:
+        postfix = 'lib/python{0}.{1}/site-packages'.format(*sys.version_info)
+        return join(prefix, postfix)
 
 
 def check_prefixes(prefixes):
@@ -58,10 +64,14 @@ def check_prefixes(prefixes):
     path and that the order of the prefixes matches the python path.
     """
     index_order = []
+    if sys.platform == 'win32':
+        sys_path = [x.lower() for x in sys.path]
+    else:
+        sys_path = sys.path
     for prefix in prefixes:
         path = get_package_path(prefix)
         try:
-            index_order.append(sys.path.index(path))
+            index_order.append(sys_path.index(path))
         except ValueError:
             warnings.warn("Expected to find %s in PYTHONPATH" % path)
             break
