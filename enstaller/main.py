@@ -449,8 +449,10 @@ def main():
     p.add_argument("--prefix", metavar='PATH',
                    help="install prefix (disregarding any settings in "
                         "the config file)")
-    p.add_argument("--proxy", metavar='<proxy server>:<proxy port>',
-                   help="use a proxy for downloads")
+    p.add_argument("--proxy", metavar='PROXYSTR',
+                   help="use a proxy for downloads."
+                        " <proxy protocol>://[<proxy username>"
+                        "[:<proxy password>@]]<proxy server>:<proxy port>")
     p.add_argument("--remove", action="store_true", help="remove a package")
     p.add_argument("--remove-enstaller", action="store_true",
                    help="remove enstaller (will break enpkg)")
