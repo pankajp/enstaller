@@ -5,6 +5,7 @@ Its primary command-line interface program is enpkg, which processes user
 commands and in turn invokes egginst to do the actual installations.
 enpkg can access eggs from both local and HTTP repositories.
 """
+import collections
 import os
 import re
 import sys
@@ -16,6 +17,7 @@ import textwrap
 from argparse import ArgumentParser
 from os.path import isfile, join
 
+from enstaller import __version__ as __ENSTALLER_VERSION__
 from egginst.utils import bin_dir_name, rel_site_packages
 from enstaller import __version__
 import enstaller.config as config
@@ -24,9 +26,12 @@ from enstaller.utils import abs_expanduser, fill_url, exit_if_sudo_on_venv
 
 from enstaller.eggcollect import EggCollection
 from enstaller.enpkg import (Enpkg, EnpkgError, create_joined_store,
-    req_from_anything)
+    req_from_anything, get_default_remote)
 from enstaller.resolve import Req, comparable_info
 from enstaller.egg_meta import is_valid_eggname, split_eggname
+
+from enstaller.store.joined import JoinedStore
+from enstaller.store.indexed import IndexedStore
 
 
 FMT = '%-20s %-20s %s'
@@ -389,6 +394,42 @@ def install_req(enpkg, req, opts):
     # kick off the state machine
     _perform_install()
 
+def _create_enstaller_update_enpkg(enpkg, version=None):
+    if version is None:
+        version = __ENSTALLER_VERSION__
+
+    # This repo is used to inject the current version of
+    # enstaller into the set of enstaller eggs considered
+    # by Resolve. This is unfortunately the easiest way I
+    # could find to do so...
+    class MockedStore(IndexedStore):
+        def connect(self, auth=None):
+            pyver = ".".join(str(i) for i in sys.version_info[:2])
+            spec = {"name": "enstaller",
+                    "type": "egg",
+                    "version": version,
+                    "build": 1,
+                    "python": pyver,
+                    "packages": []}
+            self._index = {"enstaller-{}-1.egg".format(version): spec}
+
+            self._groups = collections.defaultdict(list)
+            for key, info in self._index.iteritems():
+                self._groups[info['name']].append(key)
+
+        def get_data(self, key):
+            pass
+
+    prefixes = enpkg.prefixes
+    hook = enpkg.hook
+    evt_mgr = enpkg.evt_mgr
+    verbose = enpkg.verbose
+
+    installed_repo = MockedStore()
+    remote = JoinedStore([enpkg.remote, installed_repo])
+    return Enpkg(remote, prefixes=prefixes, hook=hook,
+                 evt_mgr=evt_mgr, verbose=verbose)
+
 
 def update_enstaller(enpkg, opts):
     """
@@ -401,7 +442,11 @@ def update_enstaller(enpkg, opts):
     if not config.get('autoupdate', True):
         return updated
     try:
-        if len(enpkg.install_actions('enstaller')) > 0:
+        # Ugly: we create a new enpkg class to merge a
+        # fake local repo to take into account our locally
+        # installed enstaller
+        new_enpkg = _create_enstaller_update_enpkg(enpkg)
+        if len(new_enpkg._install_actions_enstaller()) > 0:
             yn = raw_input("Enstaller is out of date.  Update? ([y]/n) ")
             if yn in set(['y', 'Y', '', None]):
                 install_req(enpkg, 'enstaller', opts)
@@ -576,6 +621,7 @@ def main():
 
     enpkg = Enpkg(remote, prefixes=prefixes, hook=args.hook,
                   evt_mgr=evt_mgr, verbose=args.verbose)
+
 
     if args.config:                               # --config
         config.print_config(enpkg.remote, prefixes[0])
