@@ -103,6 +103,11 @@ class EnpkgError(Exception):
     req = None
 
 
+def get_default_remote(prefixes):
+    local_dir = get_writable_local_dir(prefixes[0])
+    return RemoteHTTPIndexedStore(get_default_url(), local_dir)
+
+
 class Enpkg(object):
     """
     This is main interface for using enpkg, it is used by the CLI.
@@ -141,8 +146,7 @@ class Enpkg(object):
                  hook=False, evt_mgr=None, verbose=False):
         self.local_dir = get_writable_local_dir(prefixes[0])
         if remote is None:
-            self.remote = RemoteHTTPIndexedStore(get_default_url(),
-                                                 self.local_dir)
+            self.remote = get_default_remote(prefixes)
         else:
             self.remote = remote
         if userpass == '<config>':
