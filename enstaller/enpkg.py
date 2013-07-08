@@ -4,6 +4,8 @@ from uuid import uuid4
 from os.path import isdir, isfile, join
 import os
 
+import enstaller
+
 from store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
 from store.joined import JoinedStore
 
@@ -103,6 +105,11 @@ class EnpkgError(Exception):
     req = None
 
 
+def get_default_remote(prefixes):
+    local_dir = get_writable_local_dir(prefixes[0])
+    return RemoteHTTPIndexedStore(get_default_url(), local_dir)
+
+
 class Enpkg(object):
     """
     This is main interface for using enpkg, it is used by the CLI.
@@ -141,8 +148,7 @@ class Enpkg(object):
                  hook=False, evt_mgr=None, verbose=False):
         self.local_dir = get_writable_local_dir(prefixes[0])
         if remote is None:
-            self.remote = RemoteHTTPIndexedStore(get_default_url(),
-                                                 self.local_dir)
+            self.remote = get_default_remote(prefixes)
         else:
             self.remote = remote
         if userpass == '<config>':
@@ -282,6 +288,26 @@ class Enpkg(object):
         for c in self.ec.collections:
             c.super_id = self.super_id
 
+    def _install_actions_enstaller(self, installed_version=None):
+        # installed_version is only useful for testing
+        if installed_version is None:
+            installed_version = enstaller.__version__
+
+        mode = 'recur'
+        self._connect()
+        req = req_from_anything("enstaller")
+        eggs = Resolve(self.remote, self.verbose).install_sequence(req, mode)
+        if eggs is None:
+            raise EnpkgError("No egg found for requirement '%s'." % req)
+        elif not len(eggs) == 1:
+            raise EnpkgError("No egg found to update enstaller, aborting...")
+        else:
+            name, version, build = split_eggname(eggs[0])
+            if version == installed_version:
+                return []
+            else:
+                return self._install_actions(eggs, mode, False, False)
+
     def install_actions(self, arg, mode='recur', force=False, forceall=False):
         """
         Create a list of actions which are required for installing, which
@@ -298,7 +324,9 @@ class Enpkg(object):
         eggs = Resolve(self.remote, self.verbose).install_sequence(req, mode)
         if eggs is None:
              raise EnpkgError("No egg found for requirement '%s'." % req)
+        return self._install_actions(eggs, mode, force, forceall)
 
+    def _install_actions(self, eggs, mode, force, forceall):
         if not forceall:
             # remove already installed eggs from egg list
             rm = lambda eggs: [e for e in eggs if self.find(e) is None]
