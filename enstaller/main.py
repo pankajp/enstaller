@@ -574,8 +574,8 @@ def main():
 
     if args.verbose:
         print "Prefixes:"
-        for p in prefixes:
-            print '    %s%s' % (p, ['', ' (sys)'][p == sys.prefix])
+        for prefix in prefixes:
+            print '    %s%s' % (prefix, ['', ' (sys)'][prefix == sys.prefix])
         print
 
     if args.env:                                  # --env
