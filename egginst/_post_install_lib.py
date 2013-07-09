@@ -1,10 +1,36 @@
+import errno
 import logging
 import os
 import re
+import sys
 import tempfile
 import uuid
 
 import os.path as op
+
+def win32_rename(src, dst):
+    """A rename that does not fail if dst already exists.
+
+    Note: It will still fail if dst is already opened,
+    though.
+    """
+    try:
+        os.rename(src, dst)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+        # FIXME: this could still fail if the file is already opened. That's
+        # not something we need ATM, adding unlink with POSIX semantics can be
+        # done later if needed (see e.g. hg rename).
+        os.unlink(dst)
+        os.rename(src, dst)
+
+def rename(src, dst):
+    """Atomic rename that works on windows."""
+    if sys.platform == "win32":
+        return win32_rename(src, dst)
+    else:
+        return os.rename(src, dst)
 
 def safe_write(target, writer, mode="wt"):
     """a 'safe' way to write to files.
@@ -35,7 +61,7 @@ def safe_write(target, writer, mode="wt"):
         writer(f)
     finally:
         f.close()
-    os.rename(tmp_target, target)
+    rename(tmp_target, target)
 
 def pkg_config_dir(prefix):
     """Return the full path of the pkgconfig directory for the given prefix."""

@@ -21,6 +21,14 @@ class TestSafeWrite(unittest.TestCase):
         with open(name) as fp:
             self.assertEqual(fp.read(), "foo")
 
+    def test_already_exists(self):
+        """Test whether safe_write works when the target already exists."""
+        safe_write(self.filename, "foo")
+        safe_write(self.filename, "foo")
+
+        with open(self.filename) as fp:
+            self.assertEqual(fp.read(), "foo")
+
     def test_simple_callable(self):
         """Test whether the file content is correctly written when using callable."""
         name = self.filename
