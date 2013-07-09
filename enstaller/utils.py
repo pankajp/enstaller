@@ -2,6 +2,9 @@ import sys
 import hashlib
 from os.path import abspath, expanduser, getmtime, getsize, isdir, isfile, join
 
+import urllib
+import urlparse
+
 from verlib import NormalizedVersion, IrrationalVersionError
 
 
@@ -157,3 +160,24 @@ def exit_if_sudo_on_venv(prefix):
           'Please run it as a normal user'
 
     sys.exit(1)
+
+def path_to_uri(path):
+    """Convert the given path string to a valid URI.
+
+    It produces URI that are recognized by the windows
+    shell API on windows, e.g. 'C:\\foo.txt' will be
+    'file:///C:/foo.txt'"""
+    return urlparse.urljoin("file:", urllib.pathname2url(path))
+
+def uri_to_path(uri):
+    """Convert a valid file uri scheme string to a native
+    path.
+
+    The returned path should be recognized by the OS and
+    the native path functions, but is not guaranteed to use
+    the native path separator (e.g. it could be C:/foo.txt
+    on windows instead of C:\\foo.txt)."""
+    res = urlparse.urlparse(uri)
+    if not res.scheme == "file":
+        raise ValueError("Invalid file uri: {0}".format(uri))
+    return res.path.lstrip("/")

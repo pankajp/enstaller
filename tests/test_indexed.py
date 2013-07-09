@@ -1,3 +1,4 @@
+import posixpath
 import sys
 import unittest
 from os.path import abspath, dirname
@@ -8,6 +9,7 @@ import enstaller.indexed_repo.requirement as requirement
 from enstaller.indexed_repo.requirement import (Req, dist_as_req,
                                                 add_Reqs_to_spec)
 
+from enstaller.utils import path_to_uri
 
 class TestDistNaming(unittest.TestCase):
 
@@ -172,7 +174,8 @@ class TestChain0(unittest.TestCase):
 
     c = Chain(verbose=0)
     for fn in ['index-add.txt', 'index-5.1.txt', 'index-5.0.txt']:
-        c.add_repo('file://%s/' % abspath(dirname(__file__)), fn)
+        repo = "{0}/".format(path_to_uri(dirname(__file__)))
+        c.add_repo(repo, fn)
 
     def test_25(self):
         requirement.PY_VER = '2.5'
@@ -203,7 +206,9 @@ class TestChain1(unittest.TestCase):
     repos = {None: None}
     c = Chain(verbose=0)
     for name in 'epd', 'gpl':
-        repo = 'file://%s/%s/' % (abspath(dirname(__file__)), name)
+        # XXX: relying on having a '/' is horrible, but that assumption is made
+        # in enough places through the code that we don't want to change it.
+        repo = "{0}/".format(path_to_uri(posixpath.join(dirname(__file__), name)))
         c.add_repo(repo, 'index-7.1.txt')
         repos[name] = repo
 
@@ -263,7 +268,7 @@ class TestChain2(unittest.TestCase):
     repos = {}
     c = Chain(verbose=0)
     for name in 'open', 'runner', 'epd':
-        repo = 'file://%s/%s/' % (abspath(dirname(__file__)), name)
+        repo = "{0}/".format(path_to_uri(posixpath.join(dirname(__file__), name)))
         c.add_repo(repo, 'index-7.1.txt')
         repos[name] = repo
 
