@@ -44,28 +44,19 @@ class TestUtils(unittest.TestCase):
 
 
 class TestUri(unittest.TestCase):
-    def test_posix_path_to_uri_simple(self):
-        """Ensure path to uri conversion works for posix paths."""
-        r_uri = "file:///home/vagrant/yo"
-
-        uri = path_to_uri("/home/vagrant/yo")
-        self.assertEqual(r_uri, uri)
-
-    def test_win32_path_to_uri_simple(self):
-        """Ensure path to uri conversion works for win32 paths."""
-        r_uri = "file:///C:/Users/vagrant/yo"
-
-        uri = path_to_uri("C:\\Users\\vagrant\\yo")
-        self.assertEqual(r_uri, uri)
-
-        ## XXX: C:/Users get translated to file:///C://Users. This smells like a
-        ## bug in python pathname2url ?
-        #uri = path_to_uri("C:/Users/vagrant/yo")
-        #self.assertEqual(r_uri, uri)
-
-    def test_uri_to_path_simple(self):
+    def test_path_to_uri_simple(self):
+        """Ensure path to uri conversion works."""
         # XXX: this is a bit ugly, but urllib does not allow to select which OS
         # we want (there is no 'nturllib' or 'posixurllib' as there is for path.
+        if sys.platform == "win32":
+            r_uri = "file:///C:/Users/vagrant/yo"
+            uri = path_to_uri("C:\\Users\\vagrant\\yo")
+        else:
+            r_uri = "file:///home/vagrant/yo"
+            uri = path_to_uri("/home/vagrant/yo")
+        self.assertEqual(r_uri, uri)
+
+    def test_uri_to_path_simple(self):
         if sys.platform == "win32":
             r_path = "C:\\Users\\vagrant\\yo"
             uri = "file:///C:/Users/vagrant/yo"
