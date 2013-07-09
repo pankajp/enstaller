@@ -1,8 +1,9 @@
 import random
+import sys
 import unittest
 
 from egginst.main import name_version_fn
-from enstaller.utils import canonical, comparable_version
+from enstaller.utils import canonical, comparable_version, path_to_uri, uri_to_path
 
 
 class TestUtils(unittest.TestCase):
@@ -40,6 +41,40 @@ class TestUtils(unittest.TestCase):
             random.shuffle(versions)
             versions.sort(key=comparable_version)
             self.assertEqual(versions, org)
+
+
+class TestUri(unittest.TestCase):
+    def test_posix_path_to_uri_simple(self):
+        """Ensure path to uri conversion works for posix paths."""
+        r_uri = "file:///home/vagrant/yo"
+
+        uri = path_to_uri("/home/vagrant/yo")
+        self.assertEqual(r_uri, uri)
+
+    def test_win32_path_to_uri_simple(self):
+        """Ensure path to uri conversion works for win32 paths."""
+        r_uri = "file:///C:/Users/vagrant/yo"
+
+        uri = path_to_uri("C:\\Users\\vagrant\\yo")
+        self.assertEqual(r_uri, uri)
+
+        ## XXX: C:/Users get translated to file:///C://Users. This smells like a
+        ## bug in python pathname2url ?
+        #uri = path_to_uri("C:/Users/vagrant/yo")
+        #self.assertEqual(r_uri, uri)
+
+    def test_uri_to_path_simple(self):
+        # XXX: this is a bit ugly, but urllib does not allow to select which OS
+        # we want (there is no 'nturllib' or 'posixurllib' as there is for path.
+        if sys.platform == "win32":
+            r_path = "C:\\Users\\vagrant\\yo"
+            uri = "file:///C:/Users/vagrant/yo"
+        else:
+            r_path = "/home/vagrant/yo"
+            uri = "file:///home/vagrant/yo"
+
+        path = uri_to_path(uri)
+        self.assertEqual(r_path, path)
 
 
 if __name__ == '__main__':

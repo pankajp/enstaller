@@ -177,7 +177,8 @@ def uri_to_path(uri):
     the native path functions, but is not guaranteed to use
     the native path separator (e.g. it could be C:/foo.txt
     on windows instead of C:\\foo.txt)."""
-    res = urlparse.urlparse(uri)
-    if not res.scheme == "file":
+    urlpart = urlparse.urlparse(uri)
+    if urlpart.scheme == "file":
+        return urllib.url2pathname(urlpart.path)
+    else:
         raise ValueError("Invalid file uri: {0}".format(uri))
-    return res.path.lstrip("/")
