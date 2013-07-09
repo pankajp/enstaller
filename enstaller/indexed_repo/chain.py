@@ -9,7 +9,7 @@ from egginst.utils import human_bytes
 
 from enstaller.store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
 
-from enstaller.utils import comparable_version, md5_file
+from enstaller.utils import comparable_version, md5_file, uri_to_path
 import metadata
 import dist_naming
 from requirement import Req, add_Reqs_to_spec
@@ -79,7 +79,8 @@ class Chain(object):
             return self.repo_objs[repo]
 
         if repo.startswith('file://'):
-            r = LocalIndexedStore(repo[7:])
+            repo_path = uri_to_path(repo)
+            r = LocalIndexedStore(repo_path)
             r.connect()
 
         elif repo.startswith(('http://', 'https://')):
@@ -101,12 +102,13 @@ class Chain(object):
         if self.verbose:
             print "Adding repository:"
             print "   URL:", repo
+
         repo = dist_naming.cleanup_reponame(repo)
         self.repos.append(repo)
 
         if index_fn: # for running the tests locally
-            assert repo.startswith('file://')
-            index_data = open(repo[7:] + index_fn).read()
+            repo_path = uri_to_path(repo)
+            index_data = open(join(repo_path, index_fn)).read()
             new_index = metadata.parse_depend_index(index_data)
 
         else:
