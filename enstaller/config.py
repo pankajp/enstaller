@@ -170,7 +170,8 @@ def write(username=None, password=None, proxy=None):
     if proxy:
         proxy_line = 'proxy = %r' % proxy
     else:
-        proxy_line = '#proxy = <proxy string>  # e.g. "123.0.1.2:8080"'
+        proxy_line = ('#proxy = <proxy string>  '
+                      '# e.g. "http://<user>:<passwd>@123.0.1.2:8080"')
 
     fo = open(path, 'w')
     fo.write(RC_TMPL % locals())
