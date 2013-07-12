@@ -20,7 +20,13 @@ class FetchAPI(object):
     def path(self, fn):
         return join(self.local_dir, fn)
 
-    def fetch(self, key):
+    def fetch(self, key, abort_now=None):
+        """ Fetch the given key.
+
+        abort_now: a callable that is called before downloading every chunk to check
+                   if fetching should be stopped or not
+                   If `abort_now` returns True, fetching is aborted.
+        """
         path = self.path(key)
         fi, info = self.remote.get(key)
 
@@ -55,6 +61,8 @@ class FetchAPI(object):
         with progress:
             with open(pp, 'wb') as fo:
                 while True:
+                    if abort_now and abort_now():
+                        return
                     chunk = fi.read(buffsize)
                     if not chunk:
                         break
@@ -108,10 +116,11 @@ class FetchAPI(object):
                     super_id=getattr(self, 'super_id', None))
         return True
 
-    def fetch_egg(self, egg, force=False):
+    def fetch_egg(self, egg, force=False, abort_now=None):
         """
         fetch an egg, i.e. copy or download the distribution into local dir
         force: force download or copy if MD5 mismatches
+        abort_now: callable to determine whether fetching should be aborted or not
         """
         if not isdir(self.local_dir):
             os.makedirs(self.local_dir)
@@ -134,7 +143,7 @@ class FetchAPI(object):
         if not force and self.patch_egg(egg):
             return
 
-        self.fetch(egg)
+        self.fetch(egg, abort_now)
 
 
 def main():

@@ -3,6 +3,7 @@ import warnings
 from uuid import uuid4
 from os.path import isdir, isfile, join
 import os
+import threading
 
 import enstaller
 
@@ -241,6 +242,7 @@ class Enpkg(object):
         This method is only meant to be called with actions created by the
         *_actions methods below.
         """
+        self._abort_now = False
         if self.verbose:
             print "Enpkg.execute:", len(actions)
             for item in actions:
@@ -271,7 +273,10 @@ class Enpkg(object):
             with progress:
                 for n, (opcode, egg) in enumerate(actions):
                     if opcode.startswith('fetch_'):
-                        self.fetch(egg, force=int(opcode[-1]))
+                        self.fetch(egg, force=int(opcode[-1]), 
+                                   abort_now=lambda : self._abort_now)
+                        if self._abort_now:
+                            break
                     elif opcode == 'remove':
                         self.ec.remove(egg)
                     elif opcode == 'install':
@@ -287,6 +292,12 @@ class Enpkg(object):
         self.super_id = None
         for c in self.ec.collections:
             c.super_id = self.super_id
+
+    def abort_execution(self):
+        l = threading.Lock()
+        l.acquire()
+        self._abort_now = True
+        l.release()
 
     def _install_actions_enstaller(self, installed_version=None):
         # installed_version is only useful for testing
@@ -439,12 +450,12 @@ class Enpkg(object):
                 index[key] = info
         return index.iteritems()
 
-    def fetch(self, egg, force=False):
+    def fetch(self, egg, force=False, abort_now=None):
         self._connect()
         f = FetchAPI(self.remote, self.local_dir, self.evt_mgr)
         f.super_id = getattr(self, 'super_id', None)
         f.verbose = self.verbose
-        f.fetch_egg(egg, force)
+        f.fetch_egg(egg, force, abort_now)
 
 
 if __name__ == '__main__':
