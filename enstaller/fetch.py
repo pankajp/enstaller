@@ -61,7 +61,7 @@ class FetchAPI(object):
         with progress:
             with open(pp, 'wb') as fo:
                 while True:
-                    if abort_now and abort_now():
+                    if abort_now is not None and abort_now():
                         return
                     chunk = fi.read(buffsize)
                     if not chunk:

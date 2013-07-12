@@ -272,11 +272,11 @@ class Enpkg(object):
         with History(None if self.hook else self.prefixes[0]):
             with progress:
                 for n, (opcode, egg) in enumerate(actions):
+                    if self._abort_now:
+                        break
                     if opcode.startswith('fetch_'):
                         self.fetch(egg, force=int(opcode[-1]), 
                                    abort_now=lambda : self._abort_now)
-                        if self._abort_now:
-                            break
                     elif opcode == 'remove':
                         self.ec.remove(egg)
                     elif opcode == 'install':
