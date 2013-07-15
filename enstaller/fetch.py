@@ -20,7 +20,12 @@ class FetchAPI(object):
     def path(self, fn):
         return join(self.local_dir, fn)
 
-    def fetch(self, key):
+    def fetch(self, key, execution_aborted=None):
+        """ Fetch the given key.
+
+        execution_aborted: a threading.Event object which signals when the execution 
+            needs to be aborted, or None, if we don't want to abort the fetching at all.
+        """
         path = self.path(key)
         fi, info = self.remote.get(key)
 
@@ -55,6 +60,9 @@ class FetchAPI(object):
         with progress:
             with open(pp, 'wb') as fo:
                 while True:
+                    if execution_aborted is not None and execution_aborted.is_set():
+                        fi.close()
+                        return
                     chunk = fi.read(buffsize)
                     if not chunk:
                         break
@@ -108,10 +116,12 @@ class FetchAPI(object):
                     super_id=getattr(self, 'super_id', None))
         return True
 
-    def fetch_egg(self, egg, force=False):
+    def fetch_egg(self, egg, force=False, execution_aborted=None):
         """
         fetch an egg, i.e. copy or download the distribution into local dir
         force: force download or copy if MD5 mismatches
+        execution_aborted: a threading.Event object which signals when the execution 
+            needs to be aborted, or None, if we don't want to abort the fetching at all.
         """
         if not isdir(self.local_dir):
             os.makedirs(self.local_dir)
@@ -134,7 +144,7 @@ class FetchAPI(object):
         if not force and self.patch_egg(egg):
             return
 
-        self.fetch(egg)
+        self.fetch(egg, execution_aborted)
 
 
 def main():

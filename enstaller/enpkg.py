@@ -3,6 +3,7 @@ import warnings
 from uuid import uuid4
 from os.path import isdir, isfile, join
 import os
+import threading
 
 import enstaller
 
@@ -167,6 +168,7 @@ class Enpkg(object):
                 EggCollection(prefix, self.hook, self.evt_mgr)
                 for prefix in self.prefixes])
         self._connected = False
+        self._execution_aborted = threading.Event()
 
     # ============= methods which relate to remove store =================
 
@@ -270,6 +272,9 @@ class Enpkg(object):
         with History(None if self.hook else self.prefixes[0]):
             with progress:
                 for n, (opcode, egg) in enumerate(actions):
+                    if self._execution_aborted.is_set():
+                        self._execution_aborted.clear()
+                        break
                     if opcode.startswith('fetch_'):
                         self.fetch(egg, force=int(opcode[-1]))
                     elif opcode == 'remove':
@@ -287,6 +292,9 @@ class Enpkg(object):
         self.super_id = None
         for c in self.ec.collections:
             c.super_id = self.super_id
+
+    def abort_execution(self):
+        self._execution_aborted.set()
 
     def _install_actions_enstaller(self, installed_version=None):
         # installed_version is only useful for testing
@@ -444,7 +452,7 @@ class Enpkg(object):
         f = FetchAPI(self.remote, self.local_dir, self.evt_mgr)
         f.super_id = getattr(self, 'super_id', None)
         f.verbose = self.verbose
-        f.fetch_egg(egg, force)
+        f.fetch_egg(egg, force, self._execution_aborted)
 
 
 if __name__ == '__main__':
