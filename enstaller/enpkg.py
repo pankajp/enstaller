@@ -168,6 +168,7 @@ class Enpkg(object):
                 EggCollection(prefix, self.hook, self.evt_mgr)
                 for prefix in self.prefixes])
         self._connected = False
+        self._execution_aborted = threading.Event()
 
     # ============= methods which relate to remove store =================
 
@@ -242,7 +243,6 @@ class Enpkg(object):
         This method is only meant to be called with actions created by the
         *_actions methods below.
         """
-        self._abort_now = False
         if self.verbose:
             print "Enpkg.execute:", len(actions)
             for item in actions:
@@ -272,11 +272,11 @@ class Enpkg(object):
         with History(None if self.hook else self.prefixes[0]):
             with progress:
                 for n, (opcode, egg) in enumerate(actions):
-                    if self._abort_now:
+                    if self._execution_aborted.is_set():
+                        self._execution_aborted.clear()
                         break
                     if opcode.startswith('fetch_'):
-                        self.fetch(egg, force=int(opcode[-1]), 
-                                   abort_now=lambda : self._abort_now)
+                        self.fetch(egg, force=int(opcode[-1]))
                     elif opcode == 'remove':
                         self.ec.remove(egg)
                     elif opcode == 'install':
@@ -294,10 +294,7 @@ class Enpkg(object):
             c.super_id = self.super_id
 
     def abort_execution(self):
-        l = threading.Lock()
-        l.acquire()
-        self._abort_now = True
-        l.release()
+        self._execution_aborted.set()
 
     def _install_actions_enstaller(self, installed_version=None):
         # installed_version is only useful for testing
@@ -450,12 +447,12 @@ class Enpkg(object):
                 index[key] = info
         return index.iteritems()
 
-    def fetch(self, egg, force=False, abort_now=None):
+    def fetch(self, egg, force=False):
         self._connect()
         f = FetchAPI(self.remote, self.local_dir, self.evt_mgr)
         f.super_id = getattr(self, 'super_id', None)
         f.verbose = self.verbose
-        f.fetch_egg(egg, force, abort_now)
+        f.fetch_egg(egg, force, self._execution_aborted)
 
 
 if __name__ == '__main__':
