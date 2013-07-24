@@ -32,13 +32,9 @@ def create_joined_store(urls):
     return JoinedStore(stores)
 
 
-def get_default_url():
-    import plat
-    return 'https://api.enthought.com/eggs/%s/' % plat.custom_plat
-
-
 def get_default_kvs():
-    return RemoteHTTPIndexedStore(get_default_url())
+    url = enstaller.config.read()['webservice_entry_point']
+    return RemoteHTTPIndexedStore(url)
 
 
 def req_from_anything(arg):
@@ -107,8 +103,9 @@ class EnpkgError(Exception):
 
 
 def get_default_remote(prefixes):
+    url = enstaller.config.read()['webservice_entry_point']
     local_dir = get_writable_local_dir(prefixes[0])
-    return RemoteHTTPIndexedStore(get_default_url(), local_dir)
+    return RemoteHTTPIndexedStore(url, local_dir)
 
 
 class Enpkg(object):

@@ -133,6 +133,7 @@ def fill_url(url):
 
     url = url.replace('{ARCH}', plat.arch)
     url = url.replace('{SUBDIR}', plat.subdir)
+    url = url.replace('{PLATFORM}', plat.custom_plat)
     return cleanup_url(url)
 
 def exit_if_sudo_on_venv(prefix):
