@@ -527,6 +527,9 @@ def main():
 
     args = p.parse_args()
 
+    if args.sys_config:                           # --sys-config
+        config.get_path = lambda: config.system_config_path
+
     # Check for incompatible actions and options
     # Action options which take no package name pattern:
     simple_standalone_actions = (args.config, args.env, args.userpass,
@@ -592,9 +595,6 @@ def main():
         h.update()
         h.print_log()
         return
-
-    if args.sys_config:                           # --sys-config
-        config.get_path = lambda: config.system_config_path
 
     if args.list:                                 # --list
         list_option(prefixes, args.hook, pat)
