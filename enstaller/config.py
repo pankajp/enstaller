@@ -36,6 +36,10 @@ config_fn = ".enstaller4rc"
 home_config_path = abs_expanduser("~/" + config_fn)
 system_config_path = join(sys.prefix, config_fn)
 
+def get_default_url():
+    import plat
+    return 'https://api.enthought.com/eggs/%s/' % plat.custom_plat
+
 default = dict(
     prefix=sys.prefix,
     proxy=None,
@@ -46,8 +50,8 @@ default = dict(
     use_webservice=True,
     autoupdate = True,
     IndexedRepos=[],
+    webservice_entry_point=get_default_url(),
 )
-
 
 def get_path():
     """
@@ -95,6 +99,11 @@ RC_TMPL = """\
 # eggs.  Uncommenting changes this behavior to using the explicit
 # IndexedRepos listed below.
 #use_webservice = False
+
+# When use_webservice is True, one can control the webservice entry point enpkg
+# will talk to. If not specified, a default will be used. Mostly useful for
+# testing
+#webservice_entry_point = "https://acme.com/api/{PLATFORM}/"
 
 # The enpkg command searches for eggs in the list `IndexedRepos` defined
 # below.  When enpkg searches for an egg, it tries each repository in
@@ -437,6 +446,8 @@ def read():
             read.cache[k] = [fill_url(url) for url in v]
         elif k in ('prefix', 'local'):
             read.cache[k] = abs_expanduser(v)
+        elif k == 'webservice_entry_point':
+            read.cache[k] = fill_url(v)
     return read.cache
 
 
