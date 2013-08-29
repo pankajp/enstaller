@@ -17,6 +17,8 @@ from fetch import FetchAPI
 from egg_meta import is_valid_eggname, split_eggname
 from history import History
 
+# Included for backward compatibility
+from enstaller.config import get_default_url
 
 def create_joined_store(urls):
     stores = []
