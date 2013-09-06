@@ -89,19 +89,9 @@ class RemoteHTTPIndexedStore(IndexedStore):
 
     def __init__(self, url, cache_dir=None):
         self.root = url
-
-        # Use handlers from urllib2's default opener, since we already
-        # added our proxy handler to it.
-        opener = urllib2._opener
-        http_handlers = [urllib2.HTTPHandler, urllib2.HTTPSHandler]
-        handlers = opener.handlers if opener is not None else http_handlers
-
-        # Add our handlers to the default handlers.
         if cache_dir is None:
             cache_dir = config.get('local')
-        handlers_ = [CompressedHandler, CachedHandler(cache_dir)] + handlers
-
-        self.opener = urllib2.build_opener(*handlers_)
+        self.cache_dir = cache_dir
 
     def info(self):
         return dict(root=self.root)
@@ -136,3 +126,17 @@ class RemoteHTTPIndexedStore(IndexedStore):
             raise KeyError("%s: %s" % (e, url))
         except urllib2.URLError as e:
             raise Exception("Could not connect to %s" %(host,))
+
+    @property
+    def opener(self):
+        """ Create custom urlopener with Compression and Caching handlers. """
+        # Use handlers from urllib2's default opener, since we already
+        # added our proxy handler to it.
+        opener = urllib2._opener
+        http_handlers = [urllib2.HTTPHandler, urllib2.HTTPSHandler]
+        handlers = opener.handlers if opener is not None else http_handlers
+
+        # Add our handlers to the default handlers.
+        handlers_ = [CompressedHandler, CachedHandler(self.cache_dir)] + handlers
+
+        return urllib2.build_opener(*handlers_)
