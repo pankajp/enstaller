@@ -6,6 +6,7 @@ import StringIO
 import sys
 import tempfile
 import unittest
+import zipfile
 
 import os.path as op
 
@@ -14,8 +15,10 @@ import mock
 from egginst import exe_data
 
 from egginst.main import EggInst
-from egginst.scripts import create, fix_script, get_executable
+from egginst.scripts import create, create_proxies, fix_script, get_executable
 from enstaller.utils import md5_file
+
+DUMMY_EGG_WITH_PROXY = op.join(op.dirname(__file__), "data", "dummy_with_proxy-1.0.0-1.egg")
 
 @contextlib.contextmanager
 def mkdtemp():
@@ -223,3 +226,47 @@ dummy-gui = dummy:main_gui
                                  hashlib.md5(exe_data.cli).hexdigest())
                 self.assertEqual(md5_file(op.join(egginst.bin_dir, "dummy-gui.exe")),
                                  hashlib.md5(exe_data.gui).hexdigest())
+
+class TestProxy(unittest.TestCase):
+    @mock.patch("sys.platform", "win32")
+    @mock.patch("egginst.main.bin_dir_name", "Scripts")
+    @mock.patch("egginst.utils.on_win", True)
+    def test_proxy(self):
+        r_python_proxy_data_template = """\
+#!"{executable}"
+# This proxy was created by egginst from an egg with special instructions
+#
+import sys
+import subprocess
+
+src = '{prefix}/EGG-INFO/dummy_with_proxy/usr/swig.exe'
+
+sys.exit(subprocess.call([src] + sys.argv[1:]))
+"""
+
+        with mkdtemp() as prefix:
+            with mock.patch("sys.executable", op.join(prefix, "python.exe")):
+                r_python_proxy_data = r_python_proxy_data_template.format(
+                        executable=op.join(prefix, "python.exe"),
+                        prefix=prefix)
+
+                egginst = EggInst(DUMMY_EGG_WITH_PROXY, prefix)
+                with zipfile.ZipFile(egginst.path) as zp:
+                    egginst.z = zp
+                    egginst.arcnames = zp.namelist()
+                    create_proxies(egginst)
+
+                    python_proxy = op.join(prefix, "Scripts", "swig-script.py")
+                    coff_proxy = op.join(prefix, "Scripts", "swig.exe")
+
+                    self.assertTrue(op.exists(python_proxy))
+                    self.assertTrue(op.exists(coff_proxy))
+
+                    self.assertTrue(md5_file(coff_proxy),
+                                    hashlib.md5(exe_data.cli).hexdigest())
+
+                    with open(python_proxy) as fp:
+                        python_proxy_data = fp.read()
+                        self.assertMultiLineEqual(
+                                python_proxy_data,
+                                r_python_proxy_data)
