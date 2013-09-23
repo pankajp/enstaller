@@ -1,5 +1,8 @@
+import ConfigParser
 import contextlib
+import hashlib
 import shutil
+import StringIO
 import sys
 import tempfile
 import unittest
@@ -8,7 +11,11 @@ import os.path as op
 
 import mock
 
-from egginst.scripts import fix_script, get_executable
+from egginst import exe_data
+
+from egginst.main import EggInst
+from egginst.scripts import create, fix_script, get_executable
+from enstaller.utils import md5_file
 
 @contextlib.contextmanager
 def mkdtemp():
@@ -107,3 +114,112 @@ if __name__ == '__main__':
 
             with open(path, "rt") as fp:
                 self.assertEqual(fp.read(), r_egginst_script)
+
+class TestCreateScript(unittest.TestCase):
+    @mock.patch("egginst.utils.on_win", False)
+    def test_simple(self):
+        r_cli_entry_point = """\
+#!{executable}
+# This script was created by egginst when installing:
+#
+#   dummy.egg
+#
+if __name__ == '__main__':
+    import sys
+    from dummy import main_cli
+
+    sys.exit(main_cli())
+""".format(executable=sys.executable)
+
+        entry_points = """\
+[console_scripts]
+dummy = dummy:main_cli
+
+[gui_scripts]
+dummy-gui = dummy:main_gui
+"""
+        s = StringIO.StringIO(entry_points)
+        config = ConfigParser.ConfigParser()
+        config.readfp(s)
+
+        with mkdtemp() as d:
+            egginst = EggInst("dummy.egg", d)
+            create(egginst, config)
+
+            entry_point = op.join(egginst.bin_dir, "dummy")
+            self.assertTrue(op.exists(entry_point))
+
+            with open(entry_point, "rt") as fp:
+                cli_entry_point = fp.read()
+                self.assertMultiLineEqual(cli_entry_point, r_cli_entry_point)
+
+    @mock.patch("egginst.scripts.on_win", True)
+    @mock.patch("egginst.main.bin_dir_name", "Scripts")
+    def test_simple_windows(self):
+        python_executable = "C:\\Python27\\python.exe"
+        pythonw_executable = "C:\\Python27\\pythonw.exe"
+
+        r_cli_entry_point = """\
+#!"{executable}"
+# This script was created by egginst when installing:
+#
+#   dummy.egg
+#
+if __name__ == '__main__':
+    import sys
+    from dummy import main_cli
+
+    sys.exit(main_cli())
+""".format(executable=python_executable)
+
+        r_gui_entry_point = """\
+#!"{executable}"
+# This script was created by egginst when installing:
+#
+#   dummy.egg
+#
+if __name__ == '__main__':
+    import sys
+    from dummy import main_gui
+
+    sys.exit(main_gui())
+""".format(executable=pythonw_executable)
+
+        entry_points = """\
+[console_scripts]
+dummy = dummy:main_cli
+
+[gui_scripts]
+dummy-gui = dummy:main_gui
+"""
+        s = StringIO.StringIO(entry_points)
+        config = ConfigParser.ConfigParser()
+        config.readfp(s)
+
+        with mock.patch("sys.executable", python_executable):
+            with mkdtemp() as d:
+                egginst = EggInst("dummy.egg", d)
+                create(egginst, config)
+
+                cli_entry_point_path = op.join(egginst.bin_dir, "dummy-script.py")
+                gui_entry_point_path = op.join(egginst.bin_dir, "dummy-gui-script.pyw")
+                entry_points = [
+                        op.join(egginst.bin_dir, "dummy.exe"),
+                        op.join(egginst.bin_dir, "dummy-gui.exe"),
+                        cli_entry_point_path, gui_entry_point_path,
+                ]
+                for entry_point in entry_points:
+                    self.assertTrue(op.exists(entry_point))
+
+                with open(cli_entry_point_path, "rt") as fp:
+                    cli_entry_point = fp.read()
+                    self.assertMultiLineEqual(cli_entry_point, r_cli_entry_point)
+
+                with open(gui_entry_point_path, "rt") as fp:
+                    gui_entry_point = fp.read()
+                    self.assertMultiLineEqual(gui_entry_point, r_gui_entry_point)
+
+                self.assertEqual(md5_file(op.join(egginst.bin_dir, "dummy.exe")),
+                                 hashlib.md5(exe_data.cli).hexdigest())
+                self.assertEqual(md5_file(op.join(egginst.bin_dir, "dummy-gui.exe")),
+                                 hashlib.md5(exe_data.gui).hexdigest())
