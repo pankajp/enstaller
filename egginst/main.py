@@ -381,7 +381,10 @@ def print_installed(prefix=sys.prefix):
         print fmt % name_version_fn(fn)
 
 
-def main():
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+
     from optparse import OptionParser
 
     p = OptionParser(usage="usage: %prog [options] [EGGS ...]",
@@ -418,7 +421,7 @@ def main():
     p.add_option('-v', "--verbose", action="store_true")
     p.add_option('--version', action="store_true")
 
-    opts, args = p.parse_args()
+    opts, args = p.parse_args(argv)
     if opts.version:
         from enstaller import __version__
         print "enstaller version:", __version__
@@ -432,13 +435,7 @@ def main():
         print_installed(prefix)
         return
 
-    if 0:
-        from encore.events.api import EventManager
-        from encore.terminal.api import ProgressDisplay
-        evt_mgr = EventManager()
-        display = ProgressDisplay(evt_mgr)
-    else:
-        evt_mgr = None
+    evt_mgr = None
 
     for path in args:
         ei = EggInst(path, prefix, opts.hook, opts.pkgs_dir, evt_mgr,
