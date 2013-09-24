@@ -7,12 +7,14 @@ Our egg format is an extension of the existing setuptools's egg.
 A few notations:
 
     - $PREFIX: is understood as the prefix of the current python. In a standard
-      install, $PREFIX/bin/python will contain python on unix,
+      install, $PREFIX/bin/python will be the python binary on unix,
       $PREFIX/python.exe on windows.
-    - $BINDIR: where 'binaries' are installed. Generally $PREFIX/bin on unix,
+    - $BINDIR: where 'binaries' are installed. Generally $PREFIX/bin on Unix,
       $PREFIX\\Scripts on windows.
     - $METADIR: package-specific directory where files/metadata get installed.
       Generally $PREFIX/EGG-INFO/$package_name
+    - basename(path): the basename of that path (as computed by
+      os.path.basename)
 
 Metadata
 ========
@@ -20,7 +22,7 @@ Metadata
 All the metadata are contained within the EGG-INFO subdirectory.
 
 This subdirectory contains all the metadata needed by egginst to install an egg
-properly. It contains various text files with ad-hoc, poorly specified format:
+properly. Those are set within different free-format text files:
 
         - EGG-INFO/info.json
         - EGG-INFO/inst/appinst.dat
@@ -57,7 +59,7 @@ Entries may also look as follows::
      EGG-INFO/usr/bin/xslt-config                       False
 
 This does not define a link to False, but instead tells egginst to ignore this
-entry. Don't ask me why the entry is there in the first place...
+entry.
 
 A third format only encountered on windows' eggs::
 
@@ -75,7 +77,7 @@ following:
           TARGET_NO_EXTENSION = basename(splitext({TARGET}))
 
     - Anything else: understood as a directory. In that case, {TARGET} will be
-      copied into $ROOT\\{ACTION}\\basename({TARGET})
+      copied into $PREFIX\\{ACTION}\\basename({TARGET})
 
 A PROXY example::
 
@@ -96,7 +98,7 @@ A non-PROXY example::
 Egginst will create the following::
    
     # A copy of EGG-INFO/usr/bin/ar.exe
-    $METADIR\\usr\\i686-w64-mingw32\\bin.ar.exe
+    $METADIR\\usr\\i686-w64-mingw32\\bin\\ar.exe
 
 appinst.dat
 ~~~~~~~~~~~
@@ -106,7 +108,7 @@ generally defined in the recipe files directory (as appinst.dat), and
 explicitly included in our eggs through
 workbench.eggcreator.EggCreator.add_appinst_dat()
 
-Seems to be mostly used for setting up application shortcuts.
+Mostly used for setting up application shortcuts.
 
 Misc
 ~~~~
@@ -130,8 +132,8 @@ depend
 
 This file contains all the metadata required to solve dependencies.
 
-It is a python script, which hopefully only defining variables, and is exec'ed
-by egginst/enstaller to get the actual data (see egginst.eggmeta.parse_rawspec).
+It is a python script, and is exec'ed by egginst/enstaller to get the actual
+data (see egginst.eggmeta.parse_rawspec).
 
 It is generally written by various functions in workbench.spec.
 
@@ -153,17 +155,17 @@ Typical format::
 Regarding the content:
 
     - metadata_version is only used in our old style, obsolete (?) repo in
-      enstaller.indexed_repo. It needs to be > '1.1' (yes, as a string, this is
-      not a typo).
+      enstaller.indexed_repo. It needs to be >= '1.1' (indeed as a string, this
+      is not a typo).
     - name: this is the name of the package. May use upper-case (e.g. for PIL,
       name will be 'PIL'). This is the name defined in our recipe.
     - version: the upstream version
     - build: the build #, as defined in the recipe.
     - arch/platform/osdist: should be one of the value in the corresponding
-      attributes of epd_repo.platforms.Platform instances.  Note: those are set
-      in a particularly convoluted way, as they are guessed from the egg
-      content.  (See the code in workbench.spec.update_egg to get your mind
-      blown away). I don't know what osdist is used for, and it can be None.
+      attributes of epd_repo.platforms.Platform instances.  Note: those are
+      guessed from the egg content.  (See the code in
+      workbench.spec.update_egg).  I don't know what osdist is used for, and it
+      can be None.
     - python: the python version, or None. As for arch/platform/osdist, this is
       not set directly, but guessed by looking into the .pyc code inside the
       egg. Unless you define that field explicitly that is (see greenlet recipe
