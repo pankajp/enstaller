@@ -1,3 +1,7 @@
+====================
+Enstaller egg format
+====================
+
 Our egg format is an extension of the existing setuptools's egg.
 
 A few notations:
@@ -10,14 +14,23 @@ A few notations:
     - $METADIR: package-specific directory where files/metadata get installed.
       Generally $PREFIX/EGG-INFO/$package_name
 
-EGG-INFO subdirectory
-=====================
+Metadata
+========
+
+All the metadata are contained within the EGG-INFO subdirectory.
 
 This subdirectory contains all the metadata needed by egginst to install an egg
-properly. It contains various text files with ad-hoc, poorly specified format.
+properly. It contains various text files with ad-hoc, poorly specified format:
 
-EGG-INFO/inst
--------------
+        - EGG-INFO/info.json
+        - EGG-INFO/inst/appinst.dat
+        - EGG-INFO/inst/files_to_install.txt
+        - EGG-INFO/spec/depend
+        - EGG-INFO/spec/lib-depend
+        - EGG-INFO/spec/lib-provide
+
+inst subdirectory
+-----------------
 
 files_to_install.txt
 ~~~~~~~~~~~~~~~~~~~~
@@ -84,3 +97,110 @@ Egginst will create the following::
    
     # A copy of EGG-INFO/usr/bin/ar.exe
     $METADIR\\usr\\i686-w64-mingw32\\bin.ar.exe
+
+appinst.dat
+~~~~~~~~~~~
+
+A python script that is used by 'applications' during the install process. Is
+generally defined in the recipe files directory (as appinst.dat), and
+explicitly included in our eggs through
+workbench.eggcreator.EggCreator.add_appinst_dat()
+
+Seems to be mostly used for setting up application shortcuts.
+
+Misc
+~~~~
+
+I have seen a few other files in EGG-INFO/inst that seem bogus:
+
+    - install_path.dat (in the sip-4.8.2-1.egg only), refer to some
+      machine-specific installation path ?
+    - app_install.py and app_uninstall.py. Coming from the obsolete enpisi (see
+      buildsystem commit eb83c96aa2e1ccca78329faa0d7ddbca6da4a631). I am not
+      sure whether enstaller is doing anything with them anymore
+
+Icons may be found there as well, installed manually from recipes (see e.g.
+idle-2.7.3 recipe).
+
+spec subdirectory
+-----------------
+
+depend
+~~~~~~
+
+This file contains all the metadata required to solve dependencies.
+
+It is a python script, which hopefully only defining variables, and is exec'ed
+by egginst/enstaller to get the actual data (see egginst.eggmeta.parse_rawspec).
+
+It is generally written by various functions in workbench.spec.
+
+Typical format::
+
+    metadata_version = '1.1'
+    name = 'numpy'
+    version = '1.7.1'
+    build = 3
+
+    arch = 'x86'
+    platform = 'linux2'
+    osdist = 'RedHat_5'
+    python = '2.7'
+    packages = [
+      'MKL 10.3-1',
+    ]
+
+Regarding the content:
+
+    - metadata_version is only used in our old style, obsolete (?) repo in
+      enstaller.indexed_repo. It needs to be > '1.1' (yes, as a string, this is
+      not a typo).
+    - name: this is the name of the package. May use upper-case (e.g. for PIL,
+      name will be 'PIL'). This is the name defined in our recipe.
+    - version: the upstream version
+    - build: the build #, as defined in the recipe.
+    - arch/platform/osdist: should be one of the value in the corresponding
+      attributes of epd_repo.platforms.Platform instances.  Note: those are set
+      in a particularly convoluted way, as they are guessed from the egg
+      content.  (See the code in workbench.spec.update_egg to get your mind
+      blown away). I don't know what osdist is used for, and it can be None.
+    - python: the python version, or None. As for arch/platform/osdist, this is
+      not set directly, but guessed by looking into the .pyc code inside the
+      egg. Unless you define that field explicitly that is (see greenlet recipe
+      for an example of this technique).
+    - packages: a list of dependencies, as defined in the PISI pspec.xml file.
+      Note that if the platform is not correctly guessed, the dependencies will
+      be silently ignoring the platform label. You will also note that name and
+      version are space separated. The version part is actually optional.
+
+summary
+~~~~~~~
+
+A copy of the Summary field in our pspec.xml. The code writing this is also in
+workbench.spec.
+
+lib-depend
+~~~~~~~~~~
+
+Free-form text format, contains the consolidated output of ldd or otool -L of
+each library/python extension.
+
+lib-provide
+~~~~~~~~~~~
+
+Free-form text format, contains the list of provided libraries in that egg.
+While lib-depend unzip the egg to look for files, lib-provide uses the list of
+files in files_to_install.txt and do a simple pattern matching to find out what
+to write.
+
+info.json
+----------
+
+Only eggs from pypi seem to contain that file. Looks like an aborted attempt of
+using an existing file format to write our metadata.
+
+The code to write this file is in endist.build_egg, and used in the
+buildware/pypi package.
+
+Note: if both this file and EGG-INFO/spec/depend are present, then info.json
+overrides the attributes set in spec/depend (see egginst.eggmeta.info_from_z).
