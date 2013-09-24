@@ -11,7 +11,7 @@ import os.path as op
 from egginst.main import EggInst, main
 from egginst.utils import makedirs, zip_write_symlink
 
-SUPPORT_SYMLINK = hasattr(os, "symlink")
+from .common import SUPPORT_SYMLINK
 
 DUMMY_EGG = op.join(op.dirname(__file__), "data", "dummy-1.0.0-1.egg")
 DUMMY_EGG_WITH_ENTRY_POINTS = op.join(op.dirname(__file__), "data", "dummy_with_entry_points-1.0.0-1.egg")

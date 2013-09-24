@@ -1,10 +1,7 @@
 import ConfigParser
-import contextlib
 import hashlib
-import shutil
 import StringIO
 import sys
-import tempfile
 import unittest
 import zipfile
 
@@ -18,14 +15,10 @@ from egginst.main import EggInst
 from egginst.scripts import create, create_proxies, fix_script, get_executable
 from enstaller.utils import md5_file
 
+from .common import mkdtemp
+
 DUMMY_EGG_WITH_PROXY = op.join(op.dirname(__file__), "data", "dummy_with_proxy-1.0.0-1.egg")
 DUMMY_EGG_WITH_PROXY_SCRIPTS = op.join(op.dirname(__file__), "data", "dummy_with_proxy_scripts-1.0.0-1.egg")
-
-@contextlib.contextmanager
-def mkdtemp():
-    d = tempfile.mkdtemp()
-    yield d
-    shutil.rmtree(d)
 
 class TestScripts(unittest.TestCase):
     def test_get_executable(self):
