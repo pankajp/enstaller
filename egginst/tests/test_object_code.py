@@ -10,7 +10,7 @@ from machotools.dependency import dependencies
 from machotools.rpath import list_rpaths
 
 from egginst.main import EggInst
-from egginst.object_code import find_lib, fix_object_code, get_object_type
+from egginst.object_code import find_lib, fix_object_code, get_object_type, macho_add_rpaths_to_file
 
 from .common import DUMMY_EGG_WITH_INST_TARGETS, FILE_TO_RPATHS, \
     LEGACY_PLACEHOLD_FILE, NOLEGACY_RPATH_FILE, MACHO_ARCH_TO_FILE, \
@@ -96,3 +96,17 @@ class TestObjectCode(unittest.TestCase):
 
                 path = "libfoo.dylib"
                 self.assertEqual(find_lib(path), op.join(d, "lib", "foo-4.2", path))
+
+class TestMachoAddRpathsToFile(unittest.TestCase):
+    def test_legacy_placehold_lib(self):
+        with mkdtemp() as d:
+            new_rpaths = ["@loader_path/..", "dummy"]
+
+            copy = op.join(d, op.basename(LEGACY_PLACEHOLD_FILE))
+            shutil.copy(LEGACY_PLACEHOLD_FILE, copy)
+
+            macho_add_rpaths_to_file(copy, new_rpaths)
+
+            rpaths = list_rpaths(copy)[0]
+
+            self.assertEqual(rpaths, new_rpaths)
