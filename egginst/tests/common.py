@@ -13,6 +13,9 @@ MACHO_DIRECTORY = op.join(op.dirname(__file__), "data", "macho")
 LEGACY_PLACEHOLD_FILE = op.join(MACHO_DIRECTORY, "foo_legacy_placehold.dylib")
 NOLEGACY_RPATH_FILE = op.join(MACHO_DIRECTORY, "foo_rpath.dylib")
 
+PYEXT_WITH_LEGACY_PLACEHOLD_DEPENDENCY = op.join(MACHO_DIRECTORY, "foo.so")
+PYEXT_DEPENDENCY = op.join(MACHO_DIRECTORY, "libfoo.dylib")
+
 FILE_TO_RPATHS = {
     NOLEGACY_RPATH_FILE: ["@loader_path/../lib"],
     LEGACY_PLACEHOLD_FILE: ["/PLACEHOLD" * 20],
