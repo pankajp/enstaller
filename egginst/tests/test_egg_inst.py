@@ -8,10 +8,10 @@ import zipfile
 
 import os.path as op
 
-from egginst.main import EggInst, main
+from egginst.main import EggInst, get_installed, main
 from egginst.utils import makedirs, zip_write_symlink
 
-from .common import PYTHON_VERSION, SUPPORT_SYMLINK
+from .common import PYTHON_VERSION, SUPPORT_SYMLINK, mkdtemp
 
 DUMMY_EGG = op.join(op.dirname(__file__), "data", "dummy-1.0.0-1.egg")
 DUMMY_EGG_WITH_ENTRY_POINTS = op.join(op.dirname(__file__), "data", "dummy_with_entry_points-1.0.0-1.egg")
@@ -51,7 +51,42 @@ class TestEggInst(unittest.TestCase):
 
 class TestEggInstMain(unittest.TestCase):
     def test_print_version(self):
+        # XXX: this is lousy test: we'd like to at least ensure we're printing
+        # the correct version, but capturing the stdout is a bit tricky. Once
+        # we replace print by proper logging, we should be able to do better.
         main(["--version"])
+
+    def test_list(self):
+        # XXX: this is lousy test: we'd like to at least ensure we're printing
+        # the correct packages, but capturing the stdout is a bit tricky. Once
+        # we replace print by proper logging, we should be able to do better.
+        main(["--list"])
+
+    def test_install_simple(self):
+        with mkdtemp() as d:
+            main([DUMMY_EGG, "--prefix={0}".format(d)])
+
+            self.assertTrue(op.basename(DUMMY_EGG) in list(get_installed(d)))
+
+            main(["-r", DUMMY_EGG, "--prefix={0}".format(d)])
+
+            self.assertFalse(op.basename(DUMMY_EGG) in list(get_installed(d)))
+
+    def test_get_installed(self):
+        r_installed_eggs = sorted([
+            op.basename(DUMMY_EGG),
+            op.basename(DUMMY_EGG_WITH_ENTRY_POINTS),
+        ])
+
+        with mkdtemp() as d:
+            egginst = EggInst(DUMMY_EGG, d)
+            egginst.install()
+
+            egginst = EggInst(DUMMY_EGG_WITH_ENTRY_POINTS, d)
+            egginst.install()
+
+            installed_eggs = list(get_installed(d))
+            self.assertEqual(installed_eggs, r_installed_eggs)
 
 class TestEggInstInstall(unittest.TestCase):
     def setUp(self):
