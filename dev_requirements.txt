@@ -1,0 +1,4 @@
+coverage
+-e git+https://github.com/enthought/machotools#egg=machotools
+mock
+nose
