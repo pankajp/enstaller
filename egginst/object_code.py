@@ -128,11 +128,14 @@ def fix_object_code(path):
         print "Fixing placeholders in:", path
     for m in matches:
         rest = m.group(1)
+        original_r = rest
         while rest.startswith('/PLACEHOLD'):
             rest = rest[10:]
 
         if tp.startswith('MachO-') and rest.startswith('/'):
             # deprecated: because we now use rpath on OSX as well
+            if verbose:
+                print "deprecated"
             r = find_lib(rest[1:])
         else:
             assert rest == '' or rest.startswith(':')
@@ -142,6 +145,8 @@ def fix_object_code(path):
             rpaths.extend(p for p in rest.split(':') if p)
             r = ':'.join(rpaths)
 
+        if verbose:
+            print "replacing rpath {} with {}".format(original_r, r)
         if alt_replace_func is not None:
             r = alt_replace_func(r)
 

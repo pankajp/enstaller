@@ -20,7 +20,7 @@ class TestObjectCode(unittest.TestCase):
         self.assertEqual(get_object_type("dummy_no_exist"), None)
         self.assertEqual(get_object_type(__file__), None)
 
-    def test_fix_object_code_legacy(self):
+    def test_fix_object_code_legacy_macho(self):
         """
         Test that we handle correctly our legacy egg with the /PLACHOLD * 20 hack.
         """
@@ -34,7 +34,7 @@ class TestObjectCode(unittest.TestCase):
 
                 self.assertEqual(rpaths[0], [d])
 
-    def test_fix_object_code_wo_legacy(self):
+    def test_fix_object_code_wo_legacy_macho(self):
         """
         Test that we handle correctly egg *without* the /PLACHOLD (i.e. we
         don't touch them).
