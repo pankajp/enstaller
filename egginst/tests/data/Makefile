@@ -1,5 +1,13 @@
 default: foo_x86 foo_amd64
 
+foo_rpath.dylib: src/foo.c
+	$(CC) $< -o $@ -shared -install_name $@
+	install_name_tool -add_rpath @loader_path/../lib $@
+
+foo_legacy_placehold.dylib: src/foo.c
+	$(CC) $< -o $@ -shared -install_name $@
+	install_name_tool -add_rpath /PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD $@
+
 foo_x86: src/empty_main.c
 	$(CC) $< -o $@ -arch i386
 

@@ -9,10 +9,12 @@ SUPPORT_SYMLINK = hasattr(os, "symlink")
 
 DYLIB_DIRECTORY = op.join(op.dirname(__file__), "data")
 
-FILE_TO_RPATH = {
-    op.join(DYLIB_DIRECTORY, "foo.dylib"): [],
-    op.join(DYLIB_DIRECTORY, "foo_rpath.dylib"): ["@loader_path/../lib"],
-    op.join(DYLIB_DIRECTORY, "foo_rpath_legacy_plahold.dylib"): ["/PLACEHOLD" * 20],
+LEGACY_PLACEHOLD_FILE = op.join(DYLIB_DIRECTORY, "foo_legacy_placehold.dylib")
+NOLEGACY_RPATH_FILE = op.join(DYLIB_DIRECTORY, "foo_rpath.dylib")
+
+FILE_TO_RPATHS = {
+    NOLEGACY_RPATH_FILE: ["@loader_path/../lib"],
+    LEGACY_PLACEHOLD_FILE: ["/PLACEHOLD" * 20],
 }
 
 MACHO_ARCH_TO_FILE = {
