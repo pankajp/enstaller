@@ -11,12 +11,10 @@ import os.path as op
 from egginst.main import EggInst, main
 from egginst.utils import makedirs, zip_write_symlink
 
-from .common import SUPPORT_SYMLINK
+from .common import PYTHON_VERSION, SUPPORT_SYMLINK
 
 DUMMY_EGG = op.join(op.dirname(__file__), "data", "dummy-1.0.0-1.egg")
 DUMMY_EGG_WITH_ENTRY_POINTS = op.join(op.dirname(__file__), "data", "dummy_with_entry_points-1.0.0-1.egg")
-
-PYTHON_VERSION = ".".join(str(i) for i in sys.version_info[:2])
 
 def _create_egg_with_symlink(filename, name):
     with zipfile.ZipFile(filename, "w") as fp:

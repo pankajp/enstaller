@@ -8,9 +8,12 @@ import mock
 
 from machotools.rpath import list_rpaths
 
-from egginst.object_code import fix_object_code, get_object_type
+from egginst.main import EggInst
+from egginst.object_code import find_lib, fix_object_code, get_object_type
 
-from .common import FILE_TO_RPATHS, LEGACY_PLACEHOLD_FILE, NOLEGACY_RPATH_FILE, MACHO_ARCH_TO_FILE, mkdtemp
+from .common import DUMMY_EGG_WITH_INST_TARGETS, FILE_TO_RPATHS, \
+    LEGACY_PLACEHOLD_FILE, NOLEGACY_RPATH_FILE, MACHO_ARCH_TO_FILE, \
+    PYTHON_VERSION, mkdtemp
 
 class TestObjectCode(unittest.TestCase):
     def test_get_object_type(self):
@@ -49,3 +52,15 @@ class TestObjectCode(unittest.TestCase):
                 rpaths = list_rpaths(copy)[0]
 
                 self.assertEqual(rpaths, r_rpaths)
+
+    def test_find_lib_with_targets(self):
+        """
+        Test we handle the targets.dat hack correctly in find_lib.
+        """
+        with mkdtemp() as d:
+            with mock.patch("egginst.object_code._targets", []):
+                egg_inst = EggInst(DUMMY_EGG_WITH_INST_TARGETS, d)
+                egg_inst.install()
+
+                path = "libfoo.dylib"
+                self.assertEqual(find_lib(path), op.join(d, "lib", "foo-4.2", path))

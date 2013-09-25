@@ -1,6 +1,7 @@
 import contextlib
 import os
 import shutil
+import sys
 import tempfile
 
 import os.path as op
@@ -21,6 +22,10 @@ MACHO_ARCH_TO_FILE = {
     "x86": op.join(MACHO_DIRECTORY, "foo_x86"),
     "amd64": op.join(MACHO_DIRECTORY, "foo_amd64"),
 }
+
+PYTHON_VERSION = ".".join(str(i) for i in sys.version_info[:2])
+
+DUMMY_EGG_WITH_INST_TARGETS = op.join(MACHO_DIRECTORY, "dummy_with_target_dat-1.0.0-1.egg")
 
 @contextlib.contextmanager
 def mkdtemp():

@@ -14,6 +14,12 @@ foo_x86: src/empty_main.c
 foo_amd64: src/empty_main.c
 	$(CC) $< -o $@ -arch x86_64
 
+libfoo.dylib: src/foo.c
+	$(CC) $< -o $@ -shared -install_name /PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/PLACEHOLD/libfoo.dylib
+
+foo.so: src/empty.c
+	$(CC) $< -o $@ -bundle -L. -lfoo
+
 clean:
 	rm -f foo_x86
 	rm -f foo_amd64
