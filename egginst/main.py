@@ -11,6 +11,7 @@ import os
 import sys
 import re
 import json
+import warnings
 import zipfile
 from uuid import uuid4
 from os.path import abspath, basename, dirname, join, isdir, isfile, sep
@@ -55,15 +56,8 @@ class EggInst(object):
         if self.prefix != abspath(sys.prefix):
             scripts.executable = get_executable(self.prefix)
 
-        if self.hook:
-            if pkgs_dir:
-                self.pkgs_dir = abspath(pkgs_dir)
-            else:
-                self.pkgs_dir = join(self.prefix, 'pkgs')
-            self.pkg_dir = join(self.pkgs_dir, self.cname + '-' + version)
-            self.pyloc = self.pkg_dir
-            self.meta_dir = join(self.pkg_dir, 'EGG-INFO')
-            self.registry_txt = join(self.meta_dir, 'registry.txt')
+        if self.hook or pkgs_dir is not None:
+            warnings.warn("Hook feature not supported anymore", DeprecationWarning)
         else:
             self.site_packages = join(self.prefix, rel_site_packages)
             self.pyloc = self.site_packages
@@ -93,8 +87,7 @@ class EggInst(object):
             links.create(self)
             object_code.fix_files(self)
 
-        if not self.hook:
-            self.entry_points()
+        self.entry_points()
         if ('EGG-INFO/spec/depend' in self.arcnames  or
             'EGG-INFO/info.json' in self.arcnames):
             import eggmeta
@@ -103,14 +96,9 @@ class EggInst(object):
             info = {}
         self.z.close()
 
-        if not self.hook:
-            scripts.fix_scripts(self)
-            self.install_app()
+        scripts.fix_scripts(self)
+        self.install_app()
         self.write_meta()
-
-        if self.hook:
-            import registry
-            registry.create_file(self)
 
         if info.get('app'):
             import app_entry
@@ -194,8 +182,7 @@ class EggInst(object):
 
 
     def get_dst(self, arcname):
-        if (not self.hook and arcname == 'EGG-INFO/PKG-INFO' and
-                      self.path.endswith('.egg')):
+        if (arcname == 'EGG-INFO/PKG-INFO' and self.path.endswith('.egg')):
             return join(self.site_packages, self.fn + '-info')
 
         for start, cond, dst_dir in [
@@ -333,18 +320,12 @@ class EggInst(object):
                 n += 1
                 progress(step=n)
 
-                if self.hook and not p.startswith(self.pkgs_dir):
-                    continue
-
                 rm_rf(p)
                 if p.endswith('.py'):
                     rm_rf(p + 'c')
             self.rm_dirs()
             rm_rf(self.meta_dir)
-            if self.hook:
-                rm_empty_dir(self.pkg_dir)
-            else:
-                rm_empty_dir(self.egginfo_dir)
+            rm_empty_dir(self.egginfo_dir)
 
 
 def read_meta(meta_dir):
@@ -406,12 +387,12 @@ def main(argv=None):
 
     p.add_option("--hook",
                  action="store_true",
-                 help="don't install into site-packages (experimental)",
+                 help="Do nothing, kept for backward compatibility.",
                  metavar='PATH')
 
     p.add_option("--pkgs-dir",
                  action="store",
-                 help="packages directories (works only with --hook)",
+                 help="Do nothing, kept for backward compatibility.",
                  metavar='PATH')
 
     p.add_option('-r', "--remove",
