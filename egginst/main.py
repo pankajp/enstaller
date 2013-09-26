@@ -91,18 +91,12 @@ class EggInst(object):
         if ('EGG-INFO/spec/depend' in self.arcnames  or
             'EGG-INFO/info.json' in self.arcnames):
             import eggmeta
-            info = eggmeta.create_info(self, extra_info)
-        else:
-            info = {}
+            eggmeta.create_info(self, extra_info)
         self.z.close()
 
         scripts.fix_scripts(self)
         self.install_app()
         self.write_meta()
-
-        if info.get('app'):
-            import app_entry
-            app_entry.create_entry(self, info)
 
         self.run('post_egginst.py')
 
