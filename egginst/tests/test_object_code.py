@@ -6,8 +6,7 @@ import os.path as op
 
 import mock
 
-from machotools.dependency import dependencies
-from machotools.rpath import list_rpaths
+from machotools import rewriter_factory
 
 from egginst.main import EggInst
 from egginst.object_code import find_lib, fix_object_code, get_object_type, macho_add_rpaths_to_file
@@ -35,9 +34,9 @@ class TestObjectCode(unittest.TestCase):
 
             with mock.patch("egginst.object_code._targets", [d]):
                 fix_object_code(copy)
-                rpaths = list_rpaths(copy)
+                rpaths = rewriter_factory(copy).rpaths
 
-                self.assertEqual(rpaths[0], [d])
+                self.assertEqual(rpaths, [d])
 
     def test_fix_object_code_wo_legacy_macho(self):
         """
@@ -51,7 +50,7 @@ class TestObjectCode(unittest.TestCase):
 
             with mock.patch("egginst.object_code._targets", [d]):
                 fix_object_code(copy)
-                rpaths = list_rpaths(copy)[0]
+                rpaths = rewriter_factory(copy).rpaths
 
                 self.assertEqual(rpaths, r_rpaths)
 
@@ -81,7 +80,7 @@ class TestObjectCode(unittest.TestCase):
                 shutil.copy(PYEXT_DEPENDENCY, installed_pyext_dependency_dir)
 
                 fix_object_code(installed_pyext)
-                deps = set(dependencies(installed_pyext)[0])
+                deps = set(rewriter_factory(installed_pyext).dependencies)
 
                 self.assertTrue(installed_pyext_dependency in deps)
 
@@ -107,6 +106,6 @@ class TestMachoAddRpathsToFile(unittest.TestCase):
 
             macho_add_rpaths_to_file(copy, new_rpaths)
 
-            rpaths = list_rpaths(copy)[0]
+            rpaths = rewriter_factory(copy).rpaths
 
             self.assertEqual(rpaths, new_rpaths)
