@@ -1,2 +1,3 @@
 [report]
 omit = enstaller/argparse*
+       egginst/macho/*

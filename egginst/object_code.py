@@ -128,13 +128,16 @@ def fix_object_code(path):
         print "Fixing placeholders in:", path
     for m in matches:
         rest = m.group(1)
+        original_r = rest
         while rest.startswith('/PLACEHOLD'):
             rest = rest[10:]
 
         if tp.startswith('MachO-') and rest.startswith('/'):
-            # deprecated: because we now use rpath on OSX as well
+            # If the /PLACEHOLD is found in a LC_LOAD_DYLIB command
             r = find_lib(rest[1:])
         else:
+            # If the /PLACEHOLD is found in a LC_RPATH command (Mach-O) or in
+            # R(UN)PATH on ELF
             assert rest == '' or rest.startswith(':')
             rpaths = list(_targets)
             # extend the list with rpath which were already in the binary,
@@ -142,6 +145,8 @@ def fix_object_code(path):
             rpaths.extend(p for p in rest.split(':') if p)
             r = ':'.join(rpaths)
 
+        if verbose:
+            print "replacing rpath {} with {}".format(original_r, r)
         if alt_replace_func is not None:
             r = alt_replace_func(r)
 
