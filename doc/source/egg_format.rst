@@ -31,8 +31,54 @@ properly. Those are set within different free-format text files:
         - EGG-INFO/spec/lib-depend
         - EGG-INFO/spec/lib-provide
 
+info.json
+----------
+
+Only eggs built through build-egg (in endist) contain that file.
+
+The code to write this file is in endist.build_egg, and used to build pypi eggs
+as well.
+
+The following fields *may* be present:
+
+    - name: the package name
+    - version: the version string
+    - build: the build # (as an int). Must be >= 0.
+    - arch: string or null. Seems to be only 'x86', 'amd64' or null, although
+      this is not currently enforced.
+    - platform: string or null. Seems to be only sys.platform or null, although
+      this is not currently enforced.
+    - osdist: string or null. The string can be a bit of anything, you should
+      not rely on it.
+    - python: string or null. major.minor format (e.g. '2.7'), though not
+      enforced either.
+    - packages: a list of dependencies. Name and version are *space* separated.
+      The version part is actually optional.
+
+Also enapp-related metadata (also optional):
+
+    - app: boolean. Used by egginst to determine whether to deal with enapp
+      features or not.
+    - app_entry: string. Used by egginst to create entry points. Not sure what
+      happens when this conflicts with setuptools entry point.
+    - app_icon_data: ?
+    - app_icon_data: string. The filename of the icon (the icon is expected to be in $METADIR)
+
+Note: if both this file and EGG-INFO/spec/depend are present, then info.json
+overrides the attributes set in spec/depend (see egginst.eggmeta.info_from_z).
+
 inst subdirectory
 -----------------
+
+appinst.dat
+~~~~~~~~~~~
+
+A python script that is used by 'applications' during the install process. Is
+generally defined in the recipe files directory (as appinst.dat), and
+explicitly included in our eggs through
+workbench.eggcreator.EggCreator.add_appinst_dat()
+
+Mostly used for setting up application shortcuts.
 
 files_to_install.txt
 ~~~~~~~~~~~~~~~~~~~~
@@ -99,16 +145,6 @@ Egginst will create the following::
    
     # A copy of EGG-INFO/usr/bin/ar.exe
     $METADIR\\usr\\i686-w64-mingw32\\bin\\ar.exe
-
-appinst.dat
-~~~~~~~~~~~
-
-A python script that is used by 'applications' during the install process. Is
-generally defined in the recipe files directory (as appinst.dat), and
-explicitly included in our eggs through
-workbench.eggcreator.EggCreator.add_appinst_dat()
-
-Mostly used for setting up application shortcuts.
 
 Misc
 ~~~~
@@ -194,15 +230,3 @@ Free-form text format, contains the list of provided libraries in that egg.
 While lib-depend unzip the egg to look for files, lib-provide uses the list of
 files in files_to_install.txt and do a simple pattern matching to find out what
 to write.
-
-info.json
-----------
-
-Only eggs from pypi seem to contain that file. Looks like an aborted attempt of
-using an existing file format to write our metadata.
-
-The code to write this file is in endist.build_egg, and used in the
-buildware/pypi package.
-
-Note: if both this file and EGG-INFO/spec/depend are present, then info.json
-overrides the attributes set in spec/depend (see egginst.eggmeta.info_from_z).
