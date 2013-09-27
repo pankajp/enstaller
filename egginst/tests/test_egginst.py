@@ -8,10 +8,13 @@ import zipfile
 
 import os.path as op
 
+import mock
+
+from egginst.eggmeta import APPINST_PATH
 from egginst.main import EggInst, get_installed, main
 from egginst.utils import makedirs, zip_write_symlink
 
-from .common import PYTHON_VERSION, SUPPORT_SYMLINK, mkdtemp
+from .common import DUMMY_EGG_WITH_APPINST, PYTHON_VERSION, SUPPORT_SYMLINK, mkdtemp
 
 DUMMY_EGG = op.join(op.dirname(__file__), "data", "dummy-1.0.0-1.egg")
 DUMMY_EGG_WITH_ENTRY_POINTS = op.join(op.dirname(__file__), "data", "dummy_with_entry_points-1.0.0-1.egg")
@@ -103,6 +106,8 @@ class TestEggInstInstall(unittest.TestCase):
             self.executable = op.join(self.base_dir, "bin", "python")
             self.site_packages = op.join(self.base_dir, "lib", "python" + PYTHON_VERSION, "site-packages")
 
+        self.meta_dir = op.join(self.base_dir, "EGG-INFO")
+
     def tearDown(self):
         shutil.rmtree(self.base_dir)
 
@@ -128,3 +133,21 @@ class TestEggInstInstall(unittest.TestCase):
         egginst.remove()
         self.assertFalse(op.exists(op.join(self.site_packages, "dummy.py")))
         self.assertFalse(op.exists(op.join(self.bindir, "dummy")))
+
+    def test_appinst(self):
+        """
+        Test we install appinst bits correctly.
+        """
+        egg_path = DUMMY_EGG_WITH_APPINST
+        appinst_path = op.join(self.meta_dir, "dummy_with_appinst", APPINST_PATH)
+
+        egginst = EggInst(egg_path, self.base_dir)
+
+        mocked_appinst = mock.Mock()
+        with mock.patch("appinst.install_from_dat", mocked_appinst.install_from_dat):
+            egginst.install()
+            mocked_appinst.install_from_dat.assert_called_with(appinst_path, self.base_dir)
+
+        with mock.patch("appinst.uninstall_from_dat", mocked_appinst.uninstall_from_dat):
+            egginst.remove()
+            mocked_appinst.install_from_dat.assert_called_with(appinst_path, self.base_dir)

@@ -1,4 +1,5 @@
 coverage
 -e git+https://github.com/enthought/machotools#egg=machotools
+-e git+https://github.com/enthought/appinst#egg=appinst
 mock
 nose

@@ -2,6 +2,9 @@ import json
 import time
 from os.path import join
 
+# Path relative to EGG-INFO in egg, or $RPPT/EGG-INFO/$package_name when
+# installed
+APPINST_PATH = join("inst", "appinst.dat")
 
 def parse_rawspec(data):
     spec = {}

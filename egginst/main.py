@@ -20,6 +20,8 @@ from utils import (on_win, bin_dir_name, rel_site_packages, human_bytes,
                    rm_empty_dir, rm_rf, get_executable, makedirs, is_zipinfo_symlink)
 import scripts
 
+from .eggmeta import APPINST_PATH
+
 
 NS_PKG_PAT = re.compile(
     r'\s*__import__\([\'"]pkg_resources[\'"]\)\.declare_namespace'
@@ -245,7 +247,7 @@ class EggInst(object):
         if self.noapp:
             return
 
-        path = join(self.meta_dir, 'inst', 'appinst.dat')
+        path = join(self.meta_dir, APPINST_PATH)
         if not isfile(path):
             return
 

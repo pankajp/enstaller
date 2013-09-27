@@ -29,6 +29,7 @@ MACHO_ARCH_TO_FILE = {
 PYTHON_VERSION = ".".join(str(i) for i in sys.version_info[:2])
 
 DUMMY_EGG_WITH_INST_TARGETS = op.join(MACHO_DIRECTORY, "dummy_with_target_dat-1.0.0-1.egg")
+DUMMY_EGG_WITH_APPINST = op.join(op.dirname(__file__), "data", "dummy_with_appinst-1.0.0-1.egg")
 
 @contextlib.contextmanager
 def mkdtemp():
