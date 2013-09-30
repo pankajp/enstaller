@@ -58,7 +58,7 @@ class EggInst(object):
         if self.prefix != abspath(sys.prefix):
             scripts.executable = get_executable(self.prefix)
 
-        if self.hook or pkgs_dir is not None:
+        if self.hook:
             warnings.warn("Hook feature not supported anymore", DeprecationWarning)
         else:
             self.site_packages = join(self.prefix, rel_site_packages)
