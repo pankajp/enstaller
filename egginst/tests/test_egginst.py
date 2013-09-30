@@ -94,7 +94,7 @@ class TestEggInstMain(unittest.TestCase):
 class TestEggInstInstall(unittest.TestCase):
     def setUp(self):
         self.base_dir = tempfile.mkdtemp()
-        cmd = ["virtualenv", "-p", sys.executable, self.base_dir]
+        cmd = ["venv", "-s", self.base_dir]
         subprocess.check_call(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         if sys.platform == "win32":
