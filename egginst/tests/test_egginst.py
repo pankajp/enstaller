@@ -7,6 +7,7 @@ import unittest
 import zipfile
 
 import os.path as op
+import os
 
 import mock
 
@@ -94,7 +95,10 @@ class TestEggInstMain(unittest.TestCase):
 class TestEggInstInstall(unittest.TestCase):
     def setUp(self):
         self.base_dir = tempfile.mkdtemp()
-        cmd = ["venv", "-s", self.base_dir]
+        if os.environ.get("TEST_USE_VENV", None):
+            cmd = ["venv", "-s", self.base_dir]
+        else:
+            cmd = ["virtualenv", "-p", sys.executable, self.base_dir]
         subprocess.check_call(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         if sys.platform == "win32":
