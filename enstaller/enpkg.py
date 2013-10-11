@@ -18,7 +18,7 @@ from egg_meta import is_valid_eggname, split_eggname
 from history import History
 
 # Included for backward compatibility
-from enstaller.config import get_default_url
+from enstaller.config import get_default_url, get_repository_cache
 
 def create_joined_store(urls):
     stores = []
@@ -81,7 +81,7 @@ def check_prefixes(prefixes):
             warnings.warn("Order of path prefixes doesn't match PYTHONPATH")
 
 def get_writable_local_dir(prefix):
-    local_dir = join(prefix, 'LOCAL-REPO')
+    local_dir = get_repository_cache(prefix)
     if not os.access(local_dir, os.F_OK):
         try:
             os.makedirs(local_dir)
