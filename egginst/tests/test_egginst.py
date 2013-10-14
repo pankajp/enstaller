@@ -95,7 +95,7 @@ class TestEggInstMain(unittest.TestCase):
 class TestEggInstInstall(unittest.TestCase):
     def setUp(self):
         self.base_dir = tempfile.mkdtemp()
-        if os.environ.get("TEST_USE_VENV", None):
+        if os.environ.get("ENSTALLER_TEST_USE_VENV", None):
             cmd = ["venv", "-s", self.base_dir]
         else:
             cmd = ["virtualenv", "-p", sys.executable, self.base_dir]
