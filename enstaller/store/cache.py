@@ -16,6 +16,10 @@ class CacheStore(AbstractStore):
     def connect(self, auth=None):
         pass
 
+    @property
+    def is_connected(self):
+        return True
+
     def _copy_if_necessary(self, key):
         if not self.local.exists(key):
             self.local.set(key, self.remote.get(key))

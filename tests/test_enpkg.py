@@ -40,9 +40,11 @@ class DummyStore(IndexedStore):
     def __init__(self, metadata):
         self._metadata = metadata
         self.name = self.__class__.__name__
+        super(DummyStore, self).__init__()
 
     def connect(self, auth=None):
         self._index = dict((v.eggname, v.to_spec()) for v in self._metadata)
+        self._connected = True
         for spec in self._index.itervalues():
             spec['name'] = spec['name'].lower()
             spec['type'] = 'egg'

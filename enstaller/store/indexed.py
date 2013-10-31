@@ -12,13 +12,15 @@ from enstaller import config
 
 class IndexedStore(AbstractStore):
 
+    def __init__(self):
+        super(IndexedStore, self).__init__()
+        self._connected = False
+
     def connect(self, userpass=None):
         self.userpass = userpass  # tuple(username, password)
 
         self._index = self.get_index()
-
-        #for k, v in self._index.iteritems():
-        #    print k, v
+        self._connected = True
 
         for info in self._index.itervalues():
             info['store_location'] = self.info().get('root')
@@ -30,6 +32,10 @@ class IndexedStore(AbstractStore):
         self._groups = defaultdict(list)
         for key, info in self._index.iteritems():
             self._groups[info['name']].append(key)
+
+    @property
+    def is_connected(self):
+        return self._connected
 
     def get_index(self):
         fp = self.get_data('index.json')
@@ -73,7 +79,9 @@ class IndexedStore(AbstractStore):
 class LocalIndexedStore(IndexedStore):
 
     def __init__(self, root_dir):
+        super(LocalIndexedStore, self).__init__()
         self.root = root_dir
+
 
     def info(self):
         return dict(root=self.root)
@@ -88,6 +96,7 @@ class LocalIndexedStore(IndexedStore):
 class RemoteHTTPIndexedStore(IndexedStore):
 
     def __init__(self, url, cache_dir=None):
+        super(RemoteHTTPIndexedStore, self).__init__()
         self.root = url
         if cache_dir is None:
             cache_dir = config.get('local')

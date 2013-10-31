@@ -15,6 +15,10 @@ class LocalStore(AbstractStore):
     def connect(self, auth=None):
         pass
 
+    @property
+    def is_connected(self):
+        return True
+
     def get(self, key):
         return self.get_data(key), self.get_metadata(key)
 
