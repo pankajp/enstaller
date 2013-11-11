@@ -456,7 +456,10 @@ def update_enstaller(enpkg, opts):
     return updated
 
 
-def main():
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+
     try:
         user_base = site.USER_BASE
     except AttributeError:
@@ -525,7 +528,7 @@ def main():
     p.add_argument("--whats-new", action="store_true",
                    help="display available updates for installed packages")
 
-    args = p.parse_args()
+    args = p.parse_args(argv)
 
     if args.sys_config:                           # --sys-config
         config.get_path = lambda: config.system_config_path
