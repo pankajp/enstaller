@@ -607,13 +607,7 @@ def main():
     else:
         setup_proxy()
 
-    if 0: # for testing event manager only
-        from encore.events.api import EventManager
-        from encore.terminal.api import ProgressDisplay
-        evt_mgr = EventManager()
-        display = ProgressDisplay(evt_mgr)
-    else:
-        evt_mgr = None
+    evt_mgr = None
 
     if config.get('use_webservice'):
         remote = None # Enpkg will create the default
