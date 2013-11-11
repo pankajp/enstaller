@@ -1,3 +1,4 @@
+import os
 import unittest
 from collections import defaultdict
 from os.path import abspath, dirname, join
@@ -10,7 +11,7 @@ from enstaller.resolve import Resolve, Req
 from enstaller.indexed_repo.metadata import parse_depend_index
 
 
-this_dir = abspath(dirname(__file__))
+INDEX_REPO_DIR = abspath(join(dirname(__file__), os.pardir, "indexed_repo", "tests"))
 
 
 class DummyStore(IndexedStore):
@@ -112,7 +113,7 @@ class TestReq(unittest.TestCase):
 class TestChain0(unittest.TestCase):
 
     r = JoinedStore([
-           DummyStore(join(this_dir, fn))
+           DummyStore(join(INDEX_REPO_DIR, fn))
            for fn in ['index-add.txt', 'index-5.1.txt', 'index-5.0.txt', 'index-cycle.txt']])
     r.connect()
     c = Resolve(r)
@@ -144,7 +145,7 @@ class TestChain0(unittest.TestCase):
 class TestChain1(unittest.TestCase):
 
     r = JoinedStore([
-            DummyStore(join(this_dir, name, 'index-7.1.txt'), name)
+            DummyStore(join(INDEX_REPO_DIR, name, 'index-7.1.txt'), name)
             for name in ('epd', 'gpl')])
     r.connect()
     c = Resolve(r)
@@ -207,7 +208,7 @@ class TestChain1(unittest.TestCase):
 class TestChain2(unittest.TestCase):
 
     r = JoinedStore([
-            DummyStore(join(this_dir, name, 'index-7.1.txt'), name)
+            DummyStore(join(INDEX_REPO_DIR, name, 'index-7.1.txt'), name)
             for name in ('open', 'runner', 'epd')])
     r.connect()
     c = Resolve(r)
@@ -234,10 +235,10 @@ class TestChain2(unittest.TestCase):
 
 class TestCycle(unittest.TestCase):
     """Avoid an infinite recursion when the dependencies contain a cycle."""
-    
+
     def setUp(self):
         self.r = JoinedStore([
-                DummyStore(join(this_dir, 'index-cycle.txt'))])
+                DummyStore(join(INDEX_REPO_DIR, 'index-cycle.txt'))])
         self.r.connect()
         self.c = Resolve(self.r)
 
