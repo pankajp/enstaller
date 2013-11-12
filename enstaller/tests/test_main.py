@@ -44,9 +44,7 @@ class TestEnstallerUpdate(unittest.TestCase):
         enpkg = Enpkg()
         self.assertFalse(update_enstaller(enpkg, {}))
 
-    @mock.patch("enstaller.config.read", lambda: patched_read(autoupdate=True))
-    def test_update_enstaller(self):
-        low_version, high_version = "1.0.0", "666.0.0"
+    def _test_update_enstaller(self, low_version, high_version):
         enstaller_eggs = [
             EnpkgS3IndexEntry(product="free", build=1,
                               egg_basename="enstaller", version=low_version,
@@ -61,4 +59,13 @@ class TestEnstallerUpdate(unittest.TestCase):
                 enpkg = Enpkg(remote=store)
                 opts = mock.Mock()
                 opts.no_deps = False
-                self.assertTrue(update_enstaller(enpkg, opts))
+                return update_enstaller(enpkg, opts)
+    @mock.patch("enstaller.config.read", lambda: patched_read(autoupdate=True))
+    def test_update_enstaller_higher_available(self):
+        low_version, high_version = "1.0.0", "666.0.0"
+        self.assertTrue(self._test_update_enstaller(low_version, high_version))
+
+    @mock.patch("enstaller.config.read", lambda: patched_read(autoupdate=True))
+    def test_update_enstaller_higher_unavailable(self):
+        low_version, high_version = "1.0.0", "2.0.0"
+        self.assertFalse(self._test_update_enstaller(low_version, high_version))
