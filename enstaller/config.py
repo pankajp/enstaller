@@ -31,6 +31,7 @@ except (ImportError, KeyError):
     keyring = None
 
 KEYRING_SERVICE_NAME = 'Enthought.com'
+REPOSITORY_CACHE_CONFIG_NAME = "repository_cache"
 
 config_fn = ".enstaller4rc"
 home_config_path = abs_expanduser("~/" + config_fn)
@@ -448,8 +449,12 @@ def read():
             read.cache[k] = abs_expanduser(v)
         elif k == 'webservice_entry_point':
             read.cache[k] = fill_url(v)
+        elif k == REPOSITORY_CACHE_CONFIG_NAME:
+            read.cache[k] = v
     return read.cache
 
+def get_repository_cache(prefix):
+    return get(REPOSITORY_CACHE_CONFIG_NAME, join(prefix, "LOCAL-REPO"))
 
 def get(key, default=None):
     return read().get(key, default)
