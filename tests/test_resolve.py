@@ -18,9 +18,11 @@ class DummyStore(IndexedStore):
     def __init__(self, index_path, name=None):
         self.index_path = index_path
         self.name = name
+        super(DummyStore, self).__init__()
 
     def connect(self, auth=None):
         index_data = open(self.index_path).read()
+        self._connected = True
         self._index = parse_depend_index(index_data)
         for spec in self._index.itervalues():
             spec['name'] = spec['name'].lower()

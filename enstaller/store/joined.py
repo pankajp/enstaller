@@ -10,6 +10,10 @@ class JoinedStore(AbstractStore):
         for repo in self.repos:
             repo.connect(auth)
 
+    @property
+    def is_connected(self):
+        return all(repo.is_connected for repo in self.repos)
+
     def info(self):
         pass
 

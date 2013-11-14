@@ -9,6 +9,11 @@ class AbstractStore(object):
     def connect(self, authentication=None):
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def is_connected(self):
+        raise NotImplementedError
+
     def info(self):
         raise NotImplementedError
 
@@ -46,7 +51,6 @@ class AbstractStore(object):
     @abstractmethod
     def query(self, select=None, **kwargs):
         raise NotImplementedError
-
 
     def query_keys(self, **kwargs):
         return self.query(**kwargs).keys()

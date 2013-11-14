@@ -166,7 +166,6 @@ class Enpkg(object):
         self.ec = JoinedEggCollection([
                 EggCollection(prefix, self.hook, self.evt_mgr)
                 for prefix in self.prefixes])
-        self._connected = False
         self._execution_aborted = threading.Event()
 
     # ============= methods which relate to remove store =================
@@ -176,16 +175,13 @@ class Enpkg(object):
         Normally it is not necessary to call this method, it is only there
         to offer a convenient way to (re)connect the key-value store.
         This is necessary to update to changes which have occured in the
-        store, as the remove store might create a cache during connecting.
+        store, as the remote store might create a cache during connecting.
         """
-        self._connected = False
-        self._connect()
+        self._connect(force=True)
 
-    def _connect(self):
-        if self._connected:
-            return
-        self.remote.connect(self.userpass)
-        self._connected = True
+    def _connect(self, force=False):
+        if not self.remote.is_connected or force:
+            self.remote.connect(self.userpass)
 
     def query_remote(self, **kwargs):
         """
@@ -279,7 +275,7 @@ class Enpkg(object):
                     elif opcode == 'remove':
                         self.ec.remove(egg)
                     elif opcode == 'install':
-                        if self._connected:
+                        if self.remote.is_connected:
                             extra_info = self.remote.get_metadata(egg)
                         else:
                             extra_info = None
