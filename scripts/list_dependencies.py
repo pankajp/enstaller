@@ -1,8 +1,6 @@
 import argparse
 import sys
 
-from collections import defaultdict
-
 import enstaller.plat
 
 from enstaller import config
@@ -31,7 +29,7 @@ def main(argv=None):
     p.add_argument("--platform",
             help="Platform to consider (default: %(default)s)",
             default=plat)
-                  
+
     namespace = p.parse_args(argv)
 
     remote = get_default_remote([sys.prefix], namespace.platform)
@@ -49,8 +47,8 @@ def main(argv=None):
             egg = resolver.get_egg(r)
             print_level(egg, level)
 
-    print req
     root = resolver.get_egg(req)
+    print("Resolving dependencies for {}: latest egg is {}".format(req, root))
     print_level(root)
 
 if __name__ == "__main__":
