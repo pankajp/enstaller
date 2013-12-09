@@ -9,6 +9,11 @@ _EGGINST_COMMON_DATA = op.join(op.dirname(__file__), os.pardir, os.pardir, os.pa
                                "egginst", "tests", "data")
 DUMMY_EGG = op.join(_EGGINST_COMMON_DATA, "dummy-1.0.0-1.egg")
 
+__st = os.stat(DUMMY_EGG)
+DUMMY_EGG_MTIME = __st.st_mtime
+DUMMY_EGG_SIZE = __st.st_size
+DUMMY_EGG_MD5 = "561dd1eb5b26fa20df6279c4f3ed1f51"
+
 class DummyIndexedStore(LocalIndexedStore):
     """
     A simple store implementation where entries are given at creation time.

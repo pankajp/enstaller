@@ -1,10 +1,18 @@
 import random
 import sys
+import tempfile
 import unittest
 
-from egginst.main import name_version_fn
-from enstaller.utils import canonical, comparable_version, path_to_uri, uri_to_path
+import os.path as op
 
+import mock
+
+from egginst.main import name_version_fn
+from enstaller.utils import canonical, comparable_version, path_to_uri, \
+    uri_to_path, info_file, cleanup_url, exit_if_sudo_on_venv
+
+from enstaller.store.tests.common import DUMMY_EGG_SIZE, DUMMY_EGG, \
+    DUMMY_EGG_MTIME, DUMMY_EGG_MD5
 
 class TestUtils(unittest.TestCase):
 
@@ -42,6 +50,76 @@ class TestUtils(unittest.TestCase):
             versions.sort(key=comparable_version)
             self.assertEqual(versions, org)
 
+    def test_info_file(self):
+        r_info = {
+                "size": DUMMY_EGG_SIZE,
+                "mtime": DUMMY_EGG_MTIME,
+                "md5": DUMMY_EGG_MD5
+        }
+
+        info = info_file(DUMMY_EGG)
+        self.assertEqual(info, r_info)
+
+    def test_cleanup_url(self):
+        r_data = [
+            ("http://www.acme.com/", "http://www.acme.com/"),
+            ("http://www.acme.com", "http://www.acme.com/"),
+            ("file:///foo/bar", "file:///foo/bar/"),
+        ]
+
+        for url, r_url in r_data:
+            self.assertEqual(cleanup_url(url), r_url)
+
+    def test_cleanup_url_dir(self):
+        r_url = "file://{}/".format(op.abspath(op.expanduser("~")))
+
+        url = "~"
+
+        self.assertEqual(cleanup_url(url), r_url)
+        self.assertRaises(Exception, lambda: cleanup_url("/fofo/nar/does_not_exist"))
+
+    @unittest.expectedFailure
+    def test_cleanup_url_relative_path(self):
+        url, r_url = "file://foo/bar", "file://foo/bar/"
+
+        self.assertEqual(cleanup_url(url), r_url)
+
+    def test_cleanup_url_wrong_behavior(self):
+        """This behavior is a consequence of the buggy behavior in
+        cleanup_url."""
+        url, r_url = "file://foo/bar", "file://foo/bar\\"
+
+        self.assertEqual(cleanup_url(url), r_url)
+
+class TestExitIfSudoOnVenv(unittest.TestCase):
+    @mock.patch("enstaller.utils.sys.platform", "win32")
+    def test_windows(self):
+        exit_if_sudo_on_venv("some_prefix")
+
+    @mock.patch("enstaller.utils.sys.platform", "linux")
+    @mock.patch("os.getuid", lambda: 0)
+    def test_no_venv(self):
+        exit_if_sudo_on_venv("some_prefix")
+
+    @mock.patch("enstaller.utils.sys.platform", "linux")
+    @mock.patch("os.getuid", lambda: 0)
+    def test_venv_sudo(self):
+        d = tempfile.mkdtemp()
+        pyvenv = op.join(d, "pyvenv.cfg")
+        with open(pyvenv, "wt") as fp:
+            fp.write("")
+
+        self.assertRaises(SystemExit, lambda: exit_if_sudo_on_venv(d))
+
+    @mock.patch("enstaller.utils.sys.platform", "linux")
+    @mock.patch("os.getuid", lambda: 1)
+    def test_venv_no_sudo(self):
+        d = tempfile.mkdtemp()
+        pyvenv = op.join(d, "pyvenv.cfg")
+        with open(pyvenv, "wt") as fp:
+            fp.write("")
+
+        exit_if_sudo_on_venv(d)
 
 class TestUri(unittest.TestCase):
     def test_path_to_uri_simple(self):
