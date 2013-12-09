@@ -12,7 +12,7 @@ from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 from egginst.testing_utils import network
 from enstaller.store.indexed import RemoteHTTPIndexedStore
 
-from enstaller.tests.common import DUMMY_EGG
+from .common import DUMMY_EGG
 
 DUMMY_URL = "http://example.com"
 API_URL = "http://api.enthought.com/eggs/rh5-64"

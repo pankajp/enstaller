@@ -8,7 +8,7 @@ import enstaller.config
 
 from enstaller.enpkg import Enpkg
 from enstaller.main import main, update_enstaller
-from enstaller.tests.common import DummyIndexedStore
+from enstaller.store.tests.common import DummyIndexedStore
 
 def patched_read(**kw):
     config = {}

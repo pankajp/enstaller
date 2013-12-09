@@ -9,7 +9,7 @@ from enstaller.store.indexed import IndexedStore
 
 from enstaller.main import _create_enstaller_update_enpkg
 
-from enstaller.tests.common import DummyIndexedStore
+from enstaller.store.tests.common import DummyIndexedStore
 
 def dummy_enpk_entry_factory(name, version, build):
     data = {"egg_basename": name, "packages": [], "python": "2.7",
