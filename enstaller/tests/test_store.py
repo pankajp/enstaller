@@ -12,12 +12,10 @@ from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 from egginst.testing_utils import network
 from enstaller.store.indexed import RemoteHTTPIndexedStore
 
+from enstaller.tests.common import DUMMY_EGG
+
 DUMMY_URL = "http://example.com"
 API_URL = "http://api.enthought.com/eggs/rh5-64"
-
-_EGGINST_COMMON_DATA = op.join(op.dirname(__file__), os.pardir, os.pardir,
-                               "egginst", "tests", "data")
-DUMMY_EGG = op.join(_EGGINST_COMMON_DATA, "dummy-1.0.0-1.egg")
 
 class TestRemoteHTTPStore(unittest.TestCase):
     def setUp(self):
