@@ -4,7 +4,7 @@ python:
 install:
    - pip install -r dev_requirements.txt
 script:
-  - nosetests --with-coverage --cover-package=egginst,enstaller tests enstaller egginst
+  - nosetests --with-coverage --cover-package=egginst,enstaller enstaller egginst
 notifications:
   email:
     - davidc@enthought.com
