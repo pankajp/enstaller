@@ -60,6 +60,7 @@ class TestEnstallerUpdate(unittest.TestCase):
                 opts = mock.Mock()
                 opts.no_deps = False
                 return update_enstaller(enpkg, opts)
+
     @mock.patch("enstaller.config.read", lambda: patched_read(autoupdate=True))
     def test_update_enstaller_higher_available(self):
         low_version, high_version = "1.0.0", "666.0.0"
