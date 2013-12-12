@@ -63,10 +63,12 @@ class TestEnstallerUpdate(unittest.TestCase):
 
     @mock.patch("enstaller.config.read", lambda: patched_read(autoupdate=True))
     def test_update_enstaller_higher_available(self):
+        # low/high versions are below/above any realistic enstaller version
         low_version, high_version = "1.0.0", "666.0.0"
         self.assertTrue(self._test_update_enstaller(low_version, high_version))
 
     @mock.patch("enstaller.config.read", lambda: patched_read(autoupdate=True))
     def test_update_enstaller_higher_unavailable(self):
+        # both low/high versions are below current enstaller version
         low_version, high_version = "1.0.0", "2.0.0"
         self.assertFalse(self._test_update_enstaller(low_version, high_version))
