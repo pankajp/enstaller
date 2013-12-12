@@ -30,8 +30,6 @@ class IndexedStore(AbstractStore):
 
     def get_index(self):
         fp = self.get_data('index.json')
-        if fp is None:
-            raise Exception("could not connect")
         return json.load(fp)
 
     def _location(self, key):
@@ -95,8 +93,6 @@ class RemoteHTTPIndexedStore(IndexedStore):
 
     def get_index(self):
         fp = self.get_data('index.json?pypi=true')
-        if fp is None:
-            raise Exception("could not connect")
         return json.load(fp)
 
     def get_data(self, key):

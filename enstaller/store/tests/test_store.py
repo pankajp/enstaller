@@ -5,6 +5,8 @@ import tempfile
 import unittest
 import uuid
 
+from cStringIO import StringIO
+
 import os.path as op
 
 import mock
@@ -49,6 +51,59 @@ class TestRemoteHTTPStore(unittest.TestCase):
         result = list(store.query(name="numpy"))
 
         self.assertTrue(len(result) > 1)
+
+    def test_get_data_no_auth_in_url(self):
+        """
+        Check that auth information passed to store.connect is properly
+        encoded in request header.
+        """
+        auth = ("john", "doe")
+        r_headers = {"User-agent": "enstaller"}
+        r_unredirected_headers = {"Authorization": "Basic {}". \
+                                  format(":".join(auth).encode("base64").strip())}
+
+        store = RemoteHTTPIndexedStore(API_URL, self.d)
+
+        build_opener = mock.Mock()
+
+        def dummy_index_open(request):
+            return StringIO("{}")
+        build_opener.open = dummy_index_open
+
+        with mock.patch("enstaller.store.indexed.RemoteHTTPIndexedStore.opener",
+                        build_opener):
+            store.connect(auth)
+
+            def dummy_open(request):
+                self.assertEqual(request.headers, r_headers)
+                self.assertEqual(request.unredirected_hdrs,
+                                 r_unredirected_headers)
+            build_opener.open = dummy_open
+            store.get_data("")
+
+    def test_get_data_opener_errors(self):
+        store = RemoteHTTPIndexedStore(API_URL, self.d)
+
+        build_opener = mock.Mock()
+
+        def dummy_index_open(request):
+            return StringIO("{}")
+        build_opener.open = dummy_index_open
+
+        with mock.patch("enstaller.store.indexed.RemoteHTTPIndexedStore.opener",
+                        build_opener):
+            store.connect()
+            import urllib2
+
+            def http_error_open(request):
+                raise urllib2.HTTPError(1, 2, 3, 4, StringIO())
+            build_opener.open = http_error_open
+            self.assertRaises(KeyError, lambda: store.get_data(""))
+
+            def url_error_open(request):
+                raise urllib2.URLError("yeah")
+            build_opener.open = url_error_open
+            self.assertRaises(Exception, lambda: store.get_data(""))
 
 class TestLocalIndexedStore(unittest.TestCase):
     def setUp(self):
