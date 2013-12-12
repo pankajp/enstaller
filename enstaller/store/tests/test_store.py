@@ -136,7 +136,7 @@ class TestJoinedStore(unittest.TestCase):
         metadata = store.get_metadata("dummy")
         metadata.pop("store_location")
 
-        self.assertEqual(metadata, dummy_entry.to_dict())
+        self.assertEqual(metadata, r_dummy_metadata)
 
     def test_exists(self):
         dummy_entry = EnpkgS3IndexEntry.from_egg(DUMMY_EGG, "free", True)
