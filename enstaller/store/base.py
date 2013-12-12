@@ -7,46 +7,85 @@ class AbstractStore(object):
 
     @abstractmethod
     def connect(self, authentication=None):
-        raise NotImplementedError
+        """Connect the client to the configured store
+
+        Parameters
+        ----------
+        authentication: pair
+            (username, password) pair
+        """
 
     def info(self):
-        raise NotImplementedError
+        """Return some info about the store (url, name, etc...)."""
 
     @abstractmethod
     def get(self, key):
-        raise NotImplementedError
+        """Return both data and metadata of the given key.
+
+        Parameters
+        ----------
+        key: str
+            The key of the value to retrieve.
+        """
 
     def set(self, key, value, buffer_size=1048576):
-        raise NotImplementedError
+        """Set the value at the given key.
+
+        Parameters
+        ----------
+        key: str
+            The key to be set
+        value: buffer
+            The value to be set
+        """
 
     def delete(self, key):
-        raise NotImplementedError
+        """Delete the value at the given key.
+
+        Parameters
+        ----------
+        key: str
+            The key to be deleted
+        """
 
     @abstractmethod
     def get_data(self, key):
-        raise NotImplementedError
+        """Return the data associated to the given key."""
 
     @abstractmethod
     def get_metadata(self, key, select=None):
-        raise NotImplementedError
+        """Return the data associated to the given key."""
 
     def set_data(self, key, data):
-        raise NotImplementedError
+        """Set the data at the given key."""
 
     def set_metadata(self, key, metadata):
-        raise NotImplementedError
+        """Set the metadata at the given key."""
 
     def update_metadata(self, key, metadata):
-        raise NotImplementedError
+        """Update the metadata of the given key."""
 
     @abstractmethod
     def exists(self, key):
-        raise NotImplementedError
+        """Returns True if the given key exists in the store."""
 
     @abstractmethod
     def query(self, select=None, **kwargs):
-        raise NotImplementedError
+        """Query the store with the given parameters.
 
+        Parameters
+        -----------
+        select:
+        **kwargs:
+            Pairs of (name, value) defining the query, e.g. {'type': 'egg'}
+            will return all the values where metadata['type'] == 'egg'.
+
+        Returns
+        -------
+        result: list, generator
+            Iterator over pairs (key, metadata)
+        """
 
     def query_keys(self, **kwargs):
+        """Like query_keys, but returns only the keys."""
         return self.query(**kwargs).keys()
