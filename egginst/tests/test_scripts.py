@@ -17,7 +17,7 @@ from enstaller.utils import md5_file
 
 from .common import mkdtemp
 
-DUMMY_EGG_WITH_PROXY = op.join(op.dirname(__file__), "data", "dummy_with_proxy-1.0.0-1.egg")
+DUMMY_EGG_WITH_PROXY = op.join(op.dirname(__file__), "data", "dummy_with_proxy-1.3.40-3.egg")
 DUMMY_EGG_WITH_PROXY_SCRIPTS = op.join(op.dirname(__file__), "data", "dummy_with_proxy_scripts-1.0.0-1.egg")
 
 class TestScripts(unittest.TestCase):

@@ -60,7 +60,7 @@ class TestLocalIndexedStore(unittest.TestCase):
     def test_simple_query(self):
         dummy_entry = EnpkgS3IndexEntry.from_egg(DUMMY_EGG, "free", True)
         dummy_index = {
-            dummy_entry.egg_basename: dummy_entry.to_dict()
+            dummy_entry.s3index_key: dummy_entry.s3index_data
         }
 
         with open(op.join(self.d, "index.json"), "wt") as fp:
@@ -72,11 +72,11 @@ class TestLocalIndexedStore(unittest.TestCase):
         params = {"type": "egg"}
         result = list(store.query(**params))
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0][0], "dummy")
+        self.assertEqual(result[0][0], "dummy-1.0.1-1.egg")
 
         result = list(store.query_keys(**params))
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], "dummy")
+        self.assertEqual(result[0], "dummy-1.0.1-1.egg")
 
         params = {"type": "fubar"}
         result = list(store.query(**params))
@@ -99,8 +99,9 @@ def _local_store_factory(entries, basedir):
     os.makedirs(d)
 
     dummy_index = {}
-    for entry in entries:
-        dummy_index[entry.egg_basename] = entry.to_dict()
+    for egg, entry in entries:
+        shutil.copy(egg, d)
+        dummy_index[entry.s3index_key] = entry.s3index_data
 
     with open(op.join(d, "index.json"), "wt") as fp:
         json.dump(dummy_index, fp)
@@ -111,6 +112,17 @@ class TestJoinedStore(unittest.TestCase):
     def setUp(self):
         self.d = tempfile.mkdtemp()
         self.maxDiff = None
+
+        dummy_entry = EnpkgS3IndexEntry.from_egg(DUMMY_EGG, "free", True)
+        dummy_with_proxy_entry = EnpkgS3IndexEntry.from_egg(DUMMY_WITH_PROXY_EGG, "free", True)
+
+        store = self._build_simple_joined_store([(DUMMY_EGG, dummy_entry)],
+                                                [(DUMMY_WITH_PROXY_EGG, dummy_with_proxy_entry)])
+        store.connect()
+
+        self.dummy_entry = dummy_entry
+        self.dummy_with_proxy_entry = dummy_with_proxy_entry
+        self.store = store
 
     def tearDown(self):
         shutil.rmtree(self.d)
@@ -125,26 +137,45 @@ class TestJoinedStore(unittest.TestCase):
         return store
 
     def test_simple_query(self):
-        dummy_entry = EnpkgS3IndexEntry.from_egg(DUMMY_EGG, "free", True)
-        dummy_with_proxy_entry = EnpkgS3IndexEntry.from_egg(DUMMY_WITH_PROXY_EGG, "free", True)
+        r_dummy_metadata = self.dummy_entry.s3index_data
 
-        r_dummy_metadata = dummy_entry.to_dict()
-
-        store = self._build_simple_joined_store([dummy_entry], [dummy_with_proxy_entry])
-        store.connect()
-
-        metadata = store.get_metadata("dummy")
+        metadata = self.store.get_metadata("dummy-1.0.1-1.egg")
         metadata.pop("store_location")
 
         self.assertEqual(metadata, r_dummy_metadata)
 
     def test_exists(self):
-        dummy_entry = EnpkgS3IndexEntry.from_egg(DUMMY_EGG, "free", True)
-        dummy_with_proxy_entry = EnpkgS3IndexEntry.from_egg(DUMMY_WITH_PROXY_EGG, "free", True)
+        store = self.store
 
-        store = self._build_simple_joined_store([dummy_entry], [dummy_with_proxy_entry])
-        store.connect()
-
-        self.assertTrue(store.exists(dummy_entry.egg_basename))
-        self.assertTrue(store.exists(dummy_with_proxy_entry.egg_basename))
+        self.assertTrue(store.exists(self.dummy_entry.s3index_key))
+        self.assertTrue(store.exists(self.dummy_with_proxy_entry.s3index_key))
         self.assertFalse(store.exists("floupiga"))
+
+    def test_non_existing_key(self):
+        self.assertRaises(KeyError, lambda: self.store.get_metadata("floupiga"))
+        self.assertRaises(KeyError, lambda: self.store.get_data("floupiga"))
+        self.assertRaises(KeyError, lambda: self.store.get("floupiga"))
+
+    def test_get_data(self):
+        store = self.store
+        key = self.dummy_with_proxy_entry.s3index_key
+
+        fp = store.get_data(key)
+        try:
+            self.assertEqual(op.basename(fp.name), op.basename(DUMMY_WITH_PROXY_EGG))
+        finally:
+            fp.close()
+
+    def test_get(self):
+        store = self.store
+        key = self.dummy_with_proxy_entry.s3index_key
+        r_metadata = self.dummy_with_proxy_entry.s3index_data
+
+        fp, metadata = store.get(key)
+        try:
+            self.assertEqual(op.basename(fp.name), op.basename(DUMMY_WITH_PROXY_EGG))
+
+            metadata.pop("store_location")
+            self.assertEqual(metadata, r_metadata)
+        finally:
+            fp.close()
