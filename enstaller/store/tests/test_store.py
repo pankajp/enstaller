@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 import unittest
+import urlparse
 import uuid
 
 from cStringIO import StringIO
@@ -73,6 +74,43 @@ class TestRemoteHTTPStore(unittest.TestCase):
         with mock.patch("enstaller.store.indexed.RemoteHTTPIndexedStore.opener",
                         build_opener):
             store.connect(auth)
+
+            def dummy_open(request):
+                self.assertEqual(request.headers, r_headers)
+                self.assertEqual(request.unredirected_hdrs,
+                                 r_unredirected_headers)
+            build_opener.open = dummy_open
+            store.get_data("")
+
+    def test_get_data_auth_in_url(self):
+        """
+        Check that auth information in the URL is properly encoded in request
+        header.
+        """
+        auth = ("john", "doe")
+        r_headers = {"User-agent": "enstaller"}
+        r_unredirected_headers = {"Authorization": "Basic {}". \
+                                  format(":".join(auth).encode("base64").strip())}
+
+        def _inject_user_pass_in_url(url, auth):
+            scheme, netloc, path, params, query, fragment = urlparse.urlparse(API_URL)
+            netloc = "{user}:{password}@{netloc}".format(user=auth[0],
+                                                         password=auth[1],
+                                                         netloc=netloc)
+            return urlparse.urlunparse((scheme, netloc, path, params, query, fragment))
+
+        url = _inject_user_pass_in_url(API_URL, auth)
+        store = RemoteHTTPIndexedStore(url, self.d)
+
+        build_opener = mock.Mock()
+
+        def dummy_index_open(request):
+            return StringIO("{}")
+        build_opener.open = dummy_index_open
+
+        with mock.patch("enstaller.store.indexed.RemoteHTTPIndexedStore.opener",
+                        build_opener):
+            store.connect()
 
             def dummy_open(request):
                 self.assertEqual(request.headers, r_headers)
