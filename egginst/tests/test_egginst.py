@@ -3,8 +3,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import unittest
-import zipfile
+
+if sys.version_info[:2] < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 
 import os.path as op
 import os
@@ -13,7 +16,7 @@ import mock
 
 from egginst.eggmeta import APPINST_PATH
 from egginst.main import EggInst, get_installed, main
-from egginst.utils import makedirs, zip_write_symlink
+from egginst.utils import makedirs, zip_write_symlink, ZipFile
 
 from .common import DUMMY_EGG_WITH_APPINST, PYTHON_VERSION, SUPPORT_SYMLINK, mkdtemp
 
@@ -21,7 +24,7 @@ DUMMY_EGG = op.join(op.dirname(__file__), "data", "dummy-1.0.0-1.egg")
 DUMMY_EGG_WITH_ENTRY_POINTS = op.join(op.dirname(__file__), "data", "dummy_with_entry_points-1.0.0-1.egg")
 
 def _create_egg_with_symlink(filename, name):
-    with zipfile.ZipFile(filename, "w") as fp:
+    with ZipFile(filename, "w") as fp:
         fp.writestr("EGG-INFO/usr/include/foo.h", "/* header */")
         zip_write_symlink(fp, "EGG-INFO/usr/HEADERS", "include")
 

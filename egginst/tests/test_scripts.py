@@ -2,8 +2,11 @@ import ConfigParser
 import hashlib
 import StringIO
 import sys
-import unittest
-import zipfile
+
+if sys.version_info[:2] < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 
 import os.path as op
 
@@ -13,6 +16,7 @@ from egginst import exe_data
 
 from egginst.main import EggInst
 from egginst.scripts import create, create_proxies, fix_script, get_executable
+from egginst.utils import ZipFile
 from enstaller.utils import md5_file
 
 from .common import mkdtemp
@@ -248,7 +252,7 @@ sys.exit(subprocess.call([src] + sys.argv[1:]))
                         prefix=prefix)
 
                 egginst = EggInst(DUMMY_EGG_WITH_PROXY, prefix)
-                with zipfile.ZipFile(egginst.path) as zp:
+                with ZipFile(egginst.path) as zp:
                     egginst.z = zp
                     egginst.arcnames = zp.namelist()
                     create_proxies(egginst)
@@ -278,7 +282,7 @@ sys.exit(subprocess.call([src] + sys.argv[1:]))
         with mkdtemp() as prefix:
             with mock.patch("sys.executable", op.join(prefix, "python.exe")):
                 egginst = EggInst(DUMMY_EGG_WITH_PROXY_SCRIPTS, prefix)
-                with zipfile.ZipFile(egginst.path) as zp:
+                with ZipFile(egginst.path) as zp:
                     egginst.z = zp
                     egginst.arcnames = zp.namelist()
                     create_proxies(egginst)

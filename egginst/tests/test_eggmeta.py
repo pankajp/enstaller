@@ -1,8 +1,8 @@
 import StringIO
 import unittest
-import zipfile
 
 from egginst.eggmeta import info_from_z, parse_rawspec
+from egginst.utils import ZipFile
 
 NUMPY_1_4_0_WIN32 = """\
 metadata_version = '1.1'
@@ -32,7 +32,7 @@ packages = []
 
 def _create_inmemory_egg(archives):
     s = StringIO.StringIO()
-    with zipfile.ZipFile(s, "w") as z:
+    with ZipFile(s, "w") as z:
         for arcname, data in archives.items():
             z.writestr(arcname, data)
     s.seek(0)
@@ -72,7 +72,7 @@ class TestInfoFromZ(unittest.TestCase):
         }
 
         s = _create_inmemory_egg({"EGG-INFO/spec/depend": NUMPY_1_4_0_WIN32})
-        with zipfile.ZipFile(s) as z:
+        with ZipFile(s) as z:
             metadata = info_from_z(z)
             self.assertEqual(metadata, r_metadata)
 
@@ -90,6 +90,6 @@ class TestInfoFromZ(unittest.TestCase):
         }
 
         s = _create_inmemory_egg({"EGG-INFO/spec/depend": PIL_1_1_7_WIN32})
-        with zipfile.ZipFile(s) as z:
+        with ZipFile(s) as z:
             metadata = info_from_z(z)
             self.assertEqual(metadata, r_metadata)

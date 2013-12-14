@@ -411,7 +411,7 @@ def _create_enstaller_update_enpkg(enpkg, version=None):
                     "build": 1,
                     "python": pyver,
                     "packages": []}
-            self._index = {"enstaller-{}-1.egg".format(version): spec}
+            self._index = {"enstaller-{0}-1.egg".format(version): spec}
             self._connected = True
 
             self._groups = collections.defaultdict(list)

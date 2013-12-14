@@ -1,7 +1,13 @@
 import os
-import unittest
+import sys
+
 from collections import defaultdict
 from os.path import abspath, dirname, join
+
+if sys.version_info[:2] < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 
 from enstaller.store.indexed import IndexedStore
 from enstaller.store.joined import JoinedStore

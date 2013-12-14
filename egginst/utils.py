@@ -7,6 +7,15 @@ import zipfile
 
 from os.path import basename, isdir, isfile, islink, join
 
+if sys.version_info[:2] < (2, 7):
+    class ZipFile(zipfile.ZipFile):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            self.close()
+else:
+    ZipFile = zipfile.ZipFile
 
 on_win = bool(sys.platform == 'win32')
 

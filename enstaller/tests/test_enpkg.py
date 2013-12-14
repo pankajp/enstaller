@@ -34,7 +34,7 @@ class PackageMetadata(object):
 
     @property
     def eggname(self):
-        return "{}-{}-{}.egg".format(self.name, self.version, self.build)
+        return "{0}-{1}-{2}.egg".format(self.name, self.version, self.build)
 
 class DummyStore(IndexedStore):
     def __init__(self, metadata):
