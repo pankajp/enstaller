@@ -13,7 +13,7 @@ DUMMY_WITH_PROXY_EGG = op.join(_EGGINST_COMMON_DATA, "dummy_with_proxy-1.3.40-3.
 __st = os.stat(DUMMY_EGG)
 DUMMY_EGG_MTIME = __st.st_mtime
 DUMMY_EGG_SIZE = __st.st_size
-DUMMY_EGG_MD5 = "561dd1eb5b26fa20df6279c4f3ed1f51"
+DUMMY_EGG_MD5 = "1ec1f69526c55db7420b0d480c9b955e"
 
 class DummyIndexedStore(LocalIndexedStore):
     """
