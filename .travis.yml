@@ -4,9 +4,9 @@ python:
    - 2.7
 install:
    - if [ "${TRAVIS_PYTHON_VERSION}" == "2.6" ]; then
-       pip install -r dev_requirements26.txt
+       pip install -r dev_requirements26.txt;
        else
-       pip install -r dev_requirements.txt
+       pip install -r dev_requirements.txt;
        fi
 script:
   - nosetests --with-coverage --cover-package=egginst,enstaller enstaller egginst
