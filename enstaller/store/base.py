@@ -17,6 +17,7 @@ class AbstractStore(object):
 
     def info(self):
         """Return some info about the store (url, name, etc...)."""
+        raise NotImplementedError()
 
     @abstractmethod
     def get(self, key):
@@ -38,6 +39,7 @@ class AbstractStore(object):
         value: buffer
             The value to be set
         """
+        raise NotImplementedError()
 
     def delete(self, key):
         """Delete the value at the given key.
@@ -47,6 +49,7 @@ class AbstractStore(object):
         key: str
             The key to be deleted
         """
+        raise NotImplementedError()
 
     @abstractmethod
     def get_data(self, key):
@@ -58,12 +61,15 @@ class AbstractStore(object):
 
     def set_data(self, key, data):
         """Set the data at the given key."""
+        raise NotImplementedError()
 
     def set_metadata(self, key, metadata):
         """Set the metadata at the given key."""
+        raise NotImplementedError()
 
     def update_metadata(self, key, metadata):
         """Update the metadata of the given key."""
+        raise NotImplementedError()
 
     @abstractmethod
     def exists(self, key):
