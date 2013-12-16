@@ -7,6 +7,8 @@ import os.path as op
 
 import mock
 
+from encore.events.event_manager import EventManager
+
 from egginst.tests.common import mkdtemp
 from enstaller.fetch import FetchAPI
 from enstaller.store.indexed import LocalIndexedStore
@@ -174,3 +176,19 @@ class TestFetchAPI(unittest.TestCase):
             fetch_api.fetch_egg(egg, force=True)
 
             self.assertEqual(md5_file(target), fp.md5)
+
+    def test_encore_event_manager(self):
+        with mkdtemp() as d:
+            with mock.patch.object(EventManager, "emit"):
+                event_manager = EventManager()
+
+                egg = "yoyo-1.0.0-1.egg"
+                fp = MockedFailingFile(1024 * 32)
+
+                remote = DummyRepository(d, [Entry(egg, fp)])
+                remote.connect()
+
+                fetch_api = FetchAPI(remote, d, event_manager)
+                fetch_api.fetch_egg(egg)
+
+                self.assertTrue(event_manager.emit.called)
