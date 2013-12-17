@@ -130,7 +130,7 @@ class RemoteHTTPIndexedStore(IndexedStore):
         except urllib2.HTTPError as e:
             raise KeyError("%s: %s" % (e, url))
         except urllib2.URLError as e:
-            raise Exception("Could not connect to %s" %(host,))
+            raise Exception("Could not connect to %s (reason: %s / %s)" % (host, e.reason, e.args))
 
     @property
     def opener(self):
