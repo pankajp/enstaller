@@ -15,19 +15,45 @@ class AbstractEggCollection(object):
 
     @abstractmethod
     def find(self, egg):
-        raise NotImplementedError
+        """Look for the given egg in this collection.
+
+        Parameters
+        ----------
+        egg: str
+            The egg filename
+
+        Returns
+        -------
+        Egg dict info if found, None otherwise.
+        """
 
     @abstractmethod
     def query(self, **kwargs):
-        raise NotImplementedError
+        """Iterate (name, info) pairs for each egg satisfying the given query
+        in this collection.
+        """
 
     @abstractmethod
     def install(self, egg, dir_path):
-        raise NotImplementedError
+        """Install the given egg from the given directory
+
+        Parameters
+        ----------
+        egg: str
+            Egg filename
+        dir_path: str
+            Directory where to look for the egg
+        """
 
     @abstractmethod
     def remove(self, egg):
-        raise NotImplementedError
+        """Remove the given egg
+
+        Parameters
+        ----------
+        egg: str
+            Egg filename
+        """
 
 
 def info_from_metadir(meta_dir):
