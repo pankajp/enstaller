@@ -11,3 +11,5 @@ enstaller.egg-info/entry_points.txt
 enstaller.egg-info/info.json
 enstaller.egg-info/spec/
 enstaller.egg-info/top_level.txt
+
+enstaller/_version.py
