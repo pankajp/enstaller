@@ -8,6 +8,7 @@ install:
        else
        pip install -r dev_requirements.txt;
        fi
+   - python setup.py develop
 script:
   - nosetests --with-coverage --cover-package=egginst,enstaller enstaller egginst
 notifications:
