@@ -18,6 +18,7 @@ from argparse import ArgumentParser
 from os.path import isfile, join
 
 from enstaller import __version__ as __ENSTALLER_VERSION__
+from enstaller._version import is_released as IS_RELEASED
 from egginst.utils import bin_dir_name, rel_site_packages
 from enstaller import __version__
 import enstaller.config as config
@@ -441,6 +442,8 @@ def update_enstaller(enpkg, opts):
     updated = False
     # exit early if autoupdate=False
     if not config.get('autoupdate', True):
+        return updated
+    if not IS_RELEASED:
         return updated
     try:
         # Ugly: we create a new enpkg class to merge a
