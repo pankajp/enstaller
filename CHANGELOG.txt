@@ -1,3 +1,12 @@
+2013-12-16   4.6.3:
+-------------------
+
+No significant new features:
+
+  * Add support for cancellation in fetch API
+  * Unused hook feature has been removed from egginst
+  * Significantly improve test coverage of both egginst and enstaller
+
 2013-04-04   4.6.1:
 -------------------
   * Fix bugs in --update-all and --revert
