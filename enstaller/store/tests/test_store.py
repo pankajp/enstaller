@@ -60,7 +60,7 @@ class TestRemoteHTTPStore(unittest.TestCase):
         """
         auth = ("john", "doe")
         r_headers = {"User-agent": "enstaller"}
-        r_unredirected_headers = {"Authorization": "Basic {}". \
+        r_unredirected_headers = {"Authorization": "Basic {0}". \
                                   format(":".join(auth).encode("base64").strip())}
 
         store = RemoteHTTPIndexedStore(API_URL, self.d)
@@ -89,7 +89,7 @@ class TestRemoteHTTPStore(unittest.TestCase):
         """
         auth = ("john", "doe")
         r_headers = {"User-agent": "enstaller"}
-        r_unredirected_headers = {"Authorization": "Basic {}". \
+        r_unredirected_headers = {"Authorization": "Basic {0}". \
                                   format(":".join(auth).encode("base64").strip())}
 
         def _inject_user_pass_in_url(url, auth):

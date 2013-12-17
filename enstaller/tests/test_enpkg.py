@@ -11,8 +11,10 @@ from enstaller.main import _create_enstaller_update_enpkg
 
 from enstaller.store.tests.common import DummyIndexedStore
 
+PYVER = ".".join(str(i) for i in sys.version_info[:2])
+
 def dummy_enpk_entry_factory(name, version, build):
-    data = {"egg_basename": name, "packages": [], "python": "2.7",
+    data = {"egg_basename": name, "packages": [], "python": PYVER,
             "size": 1024, "version": version, "build": build,
             "available": True}
     return EnpkgS3IndexEntry.from_data(data)

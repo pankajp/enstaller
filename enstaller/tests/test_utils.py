@@ -1,7 +1,11 @@
 import random
 import sys
 import tempfile
-import unittest
+
+if sys.version_info[:2] < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 
 import os.path as op
 
@@ -71,7 +75,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(cleanup_url(url), r_url)
 
     def test_cleanup_url_dir(self):
-        r_url = "file://{}/".format(op.abspath(op.expanduser("~")))
+        r_url = "file://{0}/".format(op.abspath(op.expanduser("~")))
 
         url = "~"
 

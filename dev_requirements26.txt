@@ -1,4 +1,5 @@
 coverage
+encore >= 0.4.0
 -e git+https://github.com/enthought/machotools#egg=machotools
 -e git+https://github.com/enthought/appinst#egg=appinst
 -e git+https://github.com/enthought/okonomiyaki#egg=okonomiyaki
