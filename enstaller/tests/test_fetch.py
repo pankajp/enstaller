@@ -15,6 +15,19 @@ from enstaller.store.indexed import LocalIndexedStore
 from enstaller.utils import md5_file
 
 class MockedFailingFile(object):
+    """
+    A file object-like which read may abort when some Thread.Event is set.
+
+    Parameters
+    ----------
+    size: int
+        How large the fake file is
+    event: threading.Event
+        Instance will be set when abort_threshold will be reached
+    abort_threshold: float
+        when the internal read pointer reaches abort_threshold * total size,
+        event.set() will be called
+    """
     def __init__(self, size, event=None, abort_threshold=0):
         self._read_pos = 0
         self.size = size
@@ -115,6 +128,7 @@ class TestFetchAPI(unittest.TestCase):
             fetch_api.fetch(filename, event)
 
             target = op.join(d, filename)
+            self.assertTrue(event.is_set())
             self.assertFalse(op.exists(target))
 
     def test_fetch_egg_simple(self):
