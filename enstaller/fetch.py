@@ -23,7 +23,7 @@ class FetchAPI(object):
     def fetch(self, key, execution_aborted=None):
         """ Fetch the given key.
 
-        execution_aborted: a threading.Event object which signals when the execution 
+        execution_aborted: a threading.Event object which signals when the execution
             needs to be aborted, or None, if we don't want to abort the fetching at all.
         """
         path = self.path(key)
@@ -120,7 +120,7 @@ class FetchAPI(object):
         """
         fetch an egg, i.e. copy or download the distribution into local dir
         force: force download or copy if MD5 mismatches
-        execution_aborted: a threading.Event object which signals when the execution 
+        execution_aborted: a threading.Event object which signals when the execution
             needs to be aborted, or None, if we don't want to abort the fetching at all.
         """
         if not isdir(self.local_dir):
