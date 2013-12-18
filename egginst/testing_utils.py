@@ -1,5 +1,7 @@
+import copy
 import functools
 import httplib
+import os
 
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
@@ -150,3 +152,58 @@ def slow(t):
         return t(*args, **kwargs)
 
     return slow_wrapper
+
+class ControlledEnv(object):
+    """
+    A special os.environ that can be used for mocking os.environ.
+
+    Beyond avoiding modifying os.environ directly, this class allows some keys
+    to be ignored
+
+    Parameters
+    ----------
+    ignored_keys: list
+        If specified, list of keys that will be ignored.
+    environ: dict
+        If specified, the dictionary to use for underlying data. Default is to
+        use os.environ. In both cases, the dict is copied.
+
+    Examples
+    --------
+    >>> env = ControlledEnv(["USERNAME"])
+    >>> "USERNAME" in env:
+    False
+    """
+
+    def __init__(self, ignored_keys=None, environ=None):
+        if ignored_keys is None:
+            ignored_keys = {}
+        self._ignored_keys = ignored_keys
+
+        if environ is None:
+            environ = os.environ
+        self._data = copy.copy(environ)
+
+    def __getitem__(self, name):
+        if name in self._ignored_keys:
+            raise KeyError("Cannot access key {0}".format(name))
+        else:
+            return self._data[name]
+
+    def get(self, name, default=None):
+        if name in self._data and not name in self._ignored_keys:
+            return self._data[name]
+        else:
+            return default
+
+    def keys(self):
+        return [k for k in self._data if not k in self._ignored_keys]
+
+    def __setitem__(self, name, value):
+        self._data[name] = value
+
+    def __delitem__(self, name):
+        del self._data[name]
+
+    def __iter__(self):
+        return iter((k, v) for k, v in self._data.iteritems() if not k in self._ignored_keys)
