@@ -1,4 +1,6 @@
+bsdiff4
 coverage
+encore
 -e git+https://github.com/enthought/machotools#egg=machotools
 -e git+https://github.com/enthought/appinst#egg=appinst
 -e git+https://github.com/enthought/okonomiyaki#egg=okonomiyaki

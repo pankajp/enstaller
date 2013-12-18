@@ -23,7 +23,7 @@ class FetchAPI(object):
     def fetch(self, key, execution_aborted=None):
         """ Fetch the given key.
 
-        execution_aborted: a threading.Event object which signals when the execution 
+        execution_aborted: a threading.Event object which signals when the execution
             needs to be aborted, or None, if we don't want to abort the fetching at all.
         """
         path = self.path(key)
@@ -120,7 +120,7 @@ class FetchAPI(object):
         """
         fetch an egg, i.e. copy or download the distribution into local dir
         force: force download or copy if MD5 mismatches
-        execution_aborted: a threading.Event object which signals when the execution 
+        execution_aborted: a threading.Event object which signals when the execution
             needs to be aborted, or None, if we don't want to abort the fetching at all.
         """
         if not isdir(self.local_dir):
@@ -145,47 +145,3 @@ class FetchAPI(object):
             return
 
         self.fetch(egg, execution_aborted)
-
-
-def main():
-    from optparse import OptionParser
-    import store.indexed as indexed
-    from egg_meta import is_valid_eggname
-
-    p = OptionParser(usage="usage: %prog [options] ROOT_URL [EGG ...]",
-                     description="simple interface to fetch eggs")
-    p.add_option("--auth",
-                 action="store",
-                 help="username:password")
-    p.add_option("--dst",
-                 action="store",
-                 help="destination directory",
-                 default=os.getcwd(),
-                 metavar='PATH')
-    p.add_option("--force",
-                 action="store_true")
-    p.add_option('-v', "--verbose", action="store_true")
-
-    opts, args = p.parse_args()
-
-    if len(args) < 1:
-        p.error('at least one argument (the repo root URL) expected, try -h')
-
-    repo_url = args[0]
-    if repo_url.startswith(('http://', 'https://')):
-        store = indexed.RemoteHTTPIndexedStore(repo_url)
-    else:
-        store = indexed.LocalIndexedStore(repo_url)
-
-    store.connect(tuple(opts.auth.split(':', 1)) if opts.auth else None)
-
-    f = FetchAPI(store, opts.dst)
-    f.verbose = opts.verbose
-    for fn in args[1:]:
-        if not is_valid_eggname(fn):
-            raise Exception('Error: invalid egg name: %r' % fn)
-        f.fetch_egg(fn, opts.force)
-
-
-if __name__ == '__main__':
-    main()
