@@ -206,3 +206,21 @@ class TestFetchAPI(unittest.TestCase):
                 fetch_api.fetch_egg(egg)
 
                 self.assertTrue(event_manager.emit.called)
+
+    def test_progress_manager(self):
+        """
+        Ensure that the progress manager __call__ is called inside the fetch
+        loop.
+        """
+        with mkdtemp() as d:
+            with mock.patch("egginst.console.ProgressManager") as m:
+                egg = "yoyo-1.0.0-1.egg"
+                fp = MockedFailingFile(1024 * 32)
+
+                remote = DummyRepository(d, [Entry(egg, fp)])
+                remote.connect()
+
+                fetch_api = FetchAPI(remote, d)
+                fetch_api.fetch_egg(egg)
+
+                self.assertTrue(m.called)
