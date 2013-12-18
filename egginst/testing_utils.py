@@ -128,3 +128,25 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
                 runs += 1
 
     return network_wrapper
+
+def slow(t):
+    """
+    Label a test as slow.
+
+    Parameters
+    ----------
+    t : callable
+        The test requiring network connectivity.
+
+    Returns
+    -------
+    t : callable
+        The decorated test `t`.
+    """
+    t.slow = True
+
+    @functools.wraps(t)
+    def slow_wrapper(*args, **kwargs):
+        return t(*args, **kwargs)
+
+    return slow_wrapper

@@ -16,6 +16,7 @@ import mock
 
 from egginst.eggmeta import APPINST_PATH
 from egginst.main import EggInst, get_installed, main
+from egginst.testing_utils import slow
 from egginst.utils import makedirs, zip_write_symlink, ZipFile
 
 from .common import DUMMY_EGG_WITH_APPINST, PYTHON_VERSION, SUPPORT_SYMLINK, mkdtemp
@@ -37,6 +38,7 @@ class TestEggInst(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.base_dir)
 
+    @slow
     @unittest.skipIf(not SUPPORT_SYMLINK, "this platform does not support symlink")
     def test_symlink(self):
         """Test installing an egg with softlink in it."""
@@ -118,6 +120,7 @@ class TestEggInstInstall(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.base_dir)
 
+    @slow
     def test_simple(self):
         egginst = EggInst(DUMMY_EGG, self.base_dir)
 
@@ -127,6 +130,7 @@ class TestEggInstInstall(unittest.TestCase):
         egginst.remove()
         self.assertFalse(op.exists(op.join(self.site_packages, "dummy.py")))
 
+    @slow
     def test_entry_points(self):
         """
         Test we install console entry points correctly.
@@ -141,6 +145,7 @@ class TestEggInstInstall(unittest.TestCase):
         self.assertFalse(op.exists(op.join(self.site_packages, "dummy.py")))
         self.assertFalse(op.exists(op.join(self.bindir, "dummy")))
 
+    @slow
     def test_appinst(self):
         """
         Test we install appinst bits correctly.
