@@ -1,3 +1,4 @@
+import os.path
 import random
 import sys
 import tempfile
@@ -6,8 +7,6 @@ if sys.version_info[:2] < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
-
-import os.path as op
 
 import mock
 
@@ -75,7 +74,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(cleanup_url(url), r_url)
 
     def test_cleanup_url_dir(self):
-        r_url = "file://{0}/".format(op.abspath(op.expanduser("~")))
+        r_url = "file://{0}/".format(os.path.abspath(os.path.expanduser("~")))
 
         url = "~"
 
@@ -109,7 +108,7 @@ class TestExitIfSudoOnVenv(unittest.TestCase):
     @mock.patch("os.getuid", lambda: 0)
     def test_venv_sudo(self):
         d = tempfile.mkdtemp()
-        pyvenv = op.join(d, "pyvenv.cfg")
+        pyvenv = os.path.join(d, "pyvenv.cfg")
         with open(pyvenv, "wt") as fp:
             fp.write("")
 
@@ -119,7 +118,7 @@ class TestExitIfSudoOnVenv(unittest.TestCase):
     @mock.patch("os.getuid", lambda: 1)
     def test_venv_no_sudo(self):
         d = tempfile.mkdtemp()
-        pyvenv = op.join(d, "pyvenv.cfg")
+        pyvenv = os.path.join(d, "pyvenv.cfg")
         with open(pyvenv, "wt") as fp:
             fp.write("")
 

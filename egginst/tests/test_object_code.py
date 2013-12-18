@@ -29,7 +29,7 @@ class TestObjectCode(unittest.TestCase):
         Test that we handle correctly our legacy egg with the /PLACHOLD * 20 hack.
         """
         with mkdtemp() as d:
-            copy = op.join(d, "foo.dylib")
+            copy = os.path.join(d, "foo.dylib")
             shutil.copy(LEGACY_PLACEHOLD_FILE, copy)
 
             with mock.patch("egginst.object_code._targets", [d]):
@@ -45,7 +45,7 @@ class TestObjectCode(unittest.TestCase):
         """
         r_rpaths = FILE_TO_RPATHS[NOLEGACY_RPATH_FILE]
         with mkdtemp() as d:
-            copy = op.join(d, "foo.dylib")
+            copy = os.path.join(d, "foo.dylib")
             shutil.copy(NOLEGACY_RPATH_FILE, copy)
 
             with mock.patch("egginst.object_code._targets", [d]):
@@ -67,13 +67,13 @@ class TestObjectCode(unittest.TestCase):
         # targets.dat hack is handled in the function that expects an egg, but
         # we don't want to deal with an egg. Instead, we emulate the
         # targets.dat hack by patching object_code._targets with mock
-        pyext_dependency_dir = op.join("lib", "foo-4.2")
+        pyext_dependency_dir = os.path.join("lib", "foo-4.2")
 
         with mkdtemp() as d:
-            installed_pyext_dependency = op.join(d, pyext_dependency_dir, op.basename(PYEXT_DEPENDENCY))
-            installed_pyext_dependency_dir = op.dirname(installed_pyext_dependency)
+            installed_pyext_dependency = os.path.join(d, pyext_dependency_dir, os.path.basename(PYEXT_DEPENDENCY))
+            installed_pyext_dependency_dir = os.path.dirname(installed_pyext_dependency)
             with mock.patch("egginst.object_code._targets", [d, installed_pyext_dependency_dir]):
-                installed_pyext = op.join(d, op.basename(PYEXT_WITH_LEGACY_PLACEHOLD_DEPENDENCY))
+                installed_pyext = os.path.join(d, os.path.basename(PYEXT_WITH_LEGACY_PLACEHOLD_DEPENDENCY))
                 shutil.copy(PYEXT_WITH_LEGACY_PLACEHOLD_DEPENDENCY, installed_pyext)
 
                 os.makedirs(installed_pyext_dependency_dir)
@@ -94,14 +94,14 @@ class TestObjectCode(unittest.TestCase):
                 egg_inst.install()
 
                 path = "libfoo.dylib"
-                self.assertEqual(find_lib(path), op.join(d, "lib", "foo-4.2", path))
+                self.assertEqual(find_lib(path), os.path.join(d, "lib", "foo-4.2", path))
 
 class TestMachoAddRpathsToFile(unittest.TestCase):
     def test_legacy_placehold_lib(self):
         with mkdtemp() as d:
             new_rpaths = ["@loader_path/..", "dummy"]
 
-            copy = op.join(d, op.basename(LEGACY_PLACEHOLD_FILE))
+            copy = os.path.join(d, os.path.basename(LEGACY_PLACEHOLD_FILE))
             shutil.copy(LEGACY_PLACEHOLD_FILE, copy)
 
             macho_add_rpaths_to_file(copy, new_rpaths)

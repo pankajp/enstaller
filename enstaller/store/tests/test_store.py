@@ -156,7 +156,7 @@ class TestLocalIndexedStore(unittest.TestCase):
             dummy_entry.s3index_key: dummy_entry.s3index_data
         }
 
-        with open(op.join(self.d, "index.json"), "wt") as fp:
+        with open(os.path.join(self.d, "index.json"), "wt") as fp:
             json.dump(dummy_index, fp)
 
         store = LocalIndexedStore(self.d)
@@ -179,7 +179,7 @@ class TestLocalIndexedStore(unittest.TestCase):
         self.assertEqual(len(result), 0)
 
     def test_get_data_missing_key(self):
-        with open(op.join(self.d, "index.json"), "wt") as fp:
+        with open(os.path.join(self.d, "index.json"), "wt") as fp:
             json.dump({}, fp)
 
         store = LocalIndexedStore(self.d)
@@ -188,7 +188,7 @@ class TestLocalIndexedStore(unittest.TestCase):
         self.assertRaises(KeyError, lambda: store.get_data("dummy_key"))
 
 def _local_store_factory(entries, basedir):
-    d = op.join(basedir, str(uuid.uuid4())[:8])
+    d = os.path.join(basedir, str(uuid.uuid4())[:8])
     os.makedirs(d)
 
     dummy_index = {}
@@ -196,7 +196,7 @@ def _local_store_factory(entries, basedir):
         shutil.copy(egg, d)
         dummy_index[entry.s3index_key] = entry.s3index_data
 
-    with open(op.join(d, "index.json"), "wt") as fp:
+    with open(os.path.join(d, "index.json"), "wt") as fp:
         json.dump(dummy_index, fp)
 
     return LocalIndexedStore(d)
@@ -255,7 +255,7 @@ class TestJoinedStore(unittest.TestCase):
 
         fp = store.get_data(key)
         try:
-            self.assertEqual(op.basename(fp.name), op.basename(DUMMY_WITH_PROXY_EGG))
+            self.assertEqual(os.path.basename(fp.name), os.path.basename(DUMMY_WITH_PROXY_EGG))
         finally:
             fp.close()
 
@@ -266,7 +266,7 @@ class TestJoinedStore(unittest.TestCase):
 
         fp, metadata = store.get(key)
         try:
-            self.assertEqual(op.basename(fp.name), op.basename(DUMMY_WITH_PROXY_EGG))
+            self.assertEqual(os.path.basename(fp.name), os.path.basename(DUMMY_WITH_PROXY_EGG))
 
             metadata.pop("store_location")
             self.assertEqual(metadata, r_metadata)

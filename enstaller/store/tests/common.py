@@ -5,10 +5,10 @@ import os.path as op
 
 from enstaller.store.indexed import LocalIndexedStore
 
-_EGGINST_COMMON_DATA = op.join(op.dirname(__file__), os.pardir, os.pardir, os.pardir,
+_EGGINST_COMMON_DATA = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir,
                                "egginst", "tests", "data")
-DUMMY_EGG = op.join(_EGGINST_COMMON_DATA, "dummy-1.0.0-1.egg")
-DUMMY_WITH_PROXY_EGG = op.join(_EGGINST_COMMON_DATA, "dummy_with_proxy-1.3.40-3.egg")
+DUMMY_EGG = os.path.join(_EGGINST_COMMON_DATA, "dummy-1.0.0-1.egg")
+DUMMY_WITH_PROXY_EGG = os.path.join(_EGGINST_COMMON_DATA, "dummy_with_proxy-1.3.40-3.egg")
 
 __st = os.stat(DUMMY_EGG)
 DUMMY_EGG_MTIME = __st.st_mtime

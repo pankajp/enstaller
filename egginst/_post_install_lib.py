@@ -65,7 +65,7 @@ def safe_write(target, writer, mode="wt"):
 
 def pkg_config_dir(prefix):
     """Return the full path of the pkgconfig directory for the given prefix."""
-    return op.join(prefix, "lib", "pkgconfig")
+    return os.path.join(prefix, "lib", "pkgconfig")
 
 def update_pkg_config_prefix(pc_file, prefix):
     """Overwrite the prefix variable for the given .pc pkg-config file with the
@@ -73,11 +73,11 @@ def update_pkg_config_prefix(pc_file, prefix):
 
     The .pc file is written in-place
     """
-    if not op.isabs(pc_file):
-        pc_file = op.join(pkg_config_dir(prefix), pc_file)
+    if not os.path.isabs(pc_file):
+        pc_file = os.path.join(pkg_config_dir(prefix), pc_file)
 
     pat = re.compile(r"^prefix=(.*)$", re.M)
-    if op.exists(pc_file):
+    if os.path.exists(pc_file):
         with open(pc_file) as fp:
             data = fp.read()
             data = pat.sub("prefix={0}".format(prefix), data)

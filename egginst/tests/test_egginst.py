@@ -21,8 +21,8 @@ from egginst.utils import makedirs, zip_write_symlink, ZipFile
 
 from .common import DUMMY_EGG_WITH_APPINST, PYTHON_VERSION, SUPPORT_SYMLINK, mkdtemp
 
-DUMMY_EGG = op.join(op.dirname(__file__), "data", "dummy-1.0.0-1.egg")
-DUMMY_EGG_WITH_ENTRY_POINTS = op.join(op.dirname(__file__), "data", "dummy_with_entry_points-1.0.0-1.egg")
+DUMMY_EGG = os.path.join(os.path.dirname(__file__), "data", "dummy-1.0.0-1.egg")
+DUMMY_EGG_WITH_ENTRY_POINTS = os.path.join(os.path.dirname(__file__), "data", "dummy_with_entry_points-1.0.0-1.egg")
 
 def _create_egg_with_symlink(filename, name):
     with ZipFile(filename, "w") as fp:
@@ -33,7 +33,7 @@ class TestEggInst(unittest.TestCase):
     def setUp(self):
         self.base_dir = tempfile.mkdtemp()
         makedirs(self.base_dir)
-        self.prefix = op.join(self.base_dir, "prefix")
+        self.prefix = os.path.join(self.base_dir, "prefix")
 
     def tearDown(self):
         shutil.rmtree(self.base_dir)
@@ -42,21 +42,21 @@ class TestEggInst(unittest.TestCase):
     @unittest.skipIf(not SUPPORT_SYMLINK, "this platform does not support symlink")
     def test_symlink(self):
         """Test installing an egg with softlink in it."""
-        egg_filename = op.join(self.base_dir, "foo-1.0.egg")
+        egg_filename = os.path.join(self.base_dir, "foo-1.0.egg")
         _create_egg_with_symlink(egg_filename, "foo")
 
         installer = EggInst(egg_filename, prefix=self.prefix)
         installer.install()
 
-        incdir = op.join(self.prefix, "include")
-        header = op.join(incdir, "foo.h")
-        link = op.join(self.prefix, "HEADERS")
+        incdir = os.path.join(self.prefix, "include")
+        header = os.path.join(incdir, "foo.h")
+        link = os.path.join(self.prefix, "HEADERS")
 
-        self.assertTrue(op.exists(header))
-        self.assertTrue(op.exists(link))
-        self.assertTrue(op.islink(link))
+        self.assertTrue(os.path.exists(header))
+        self.assertTrue(os.path.exists(link))
+        self.assertTrue(os.path.islink(link))
         self.assertEqual(os.readlink(link), "include")
-        self.assertTrue(op.exists(op.join(link, "foo.h")))
+        self.assertTrue(os.path.exists(os.path.join(link, "foo.h")))
 
 class TestEggInstMain(unittest.TestCase):
     def test_print_version(self):
@@ -75,16 +75,16 @@ class TestEggInstMain(unittest.TestCase):
         with mkdtemp() as d:
             main([DUMMY_EGG, "--prefix={0}".format(d)])
 
-            self.assertTrue(op.basename(DUMMY_EGG) in list(get_installed(d)))
+            self.assertTrue(os.path.basename(DUMMY_EGG) in list(get_installed(d)))
 
             main(["-r", DUMMY_EGG, "--prefix={0}".format(d)])
 
-            self.assertFalse(op.basename(DUMMY_EGG) in list(get_installed(d)))
+            self.assertFalse(os.path.basename(DUMMY_EGG) in list(get_installed(d)))
 
     def test_get_installed(self):
         r_installed_eggs = sorted([
-            op.basename(DUMMY_EGG),
-            op.basename(DUMMY_EGG_WITH_ENTRY_POINTS),
+            os.path.basename(DUMMY_EGG),
+            os.path.basename(DUMMY_EGG_WITH_ENTRY_POINTS),
         ])
 
         with mkdtemp() as d:
@@ -107,15 +107,15 @@ class TestEggInstInstall(unittest.TestCase):
         subprocess.check_call(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         if sys.platform == "win32":
-            self.bindir = op.join(self.base_dir, "Scripts")
-            self.executable = op.join(self.base_dir, "python")
-            self.site_packages = op.join(self.base_dir, "lib", "site-packages")
+            self.bindir = os.path.join(self.base_dir, "Scripts")
+            self.executable = os.path.join(self.base_dir, "python")
+            self.site_packages = os.path.join(self.base_dir, "lib", "site-packages")
         else:
-            self.bindir = op.join(self.base_dir, "bin")
-            self.executable = op.join(self.base_dir, "bin", "python")
-            self.site_packages = op.join(self.base_dir, "lib", "python" + PYTHON_VERSION, "site-packages")
+            self.bindir = os.path.join(self.base_dir, "bin")
+            self.executable = os.path.join(self.base_dir, "bin", "python")
+            self.site_packages = os.path.join(self.base_dir, "lib", "python" + PYTHON_VERSION, "site-packages")
 
-        self.meta_dir = op.join(self.base_dir, "EGG-INFO")
+        self.meta_dir = os.path.join(self.base_dir, "EGG-INFO")
 
     def tearDown(self):
         shutil.rmtree(self.base_dir)
@@ -125,10 +125,10 @@ class TestEggInstInstall(unittest.TestCase):
         egginst = EggInst(DUMMY_EGG, self.base_dir)
 
         egginst.install()
-        self.assertTrue(op.exists(op.join(self.site_packages, "dummy.py")))
+        self.assertTrue(os.path.exists(os.path.join(self.site_packages, "dummy.py")))
 
         egginst.remove()
-        self.assertFalse(op.exists(op.join(self.site_packages, "dummy.py")))
+        self.assertFalse(os.path.exists(os.path.join(self.site_packages, "dummy.py")))
 
     @slow
     def test_entry_points(self):
@@ -138,12 +138,12 @@ class TestEggInstInstall(unittest.TestCase):
         egginst = EggInst(DUMMY_EGG_WITH_ENTRY_POINTS, self.base_dir)
 
         egginst.install()
-        self.assertTrue(op.exists(op.join(self.site_packages, "dummy.py")))
-        self.assertTrue(op.exists(op.join(self.bindir, "dummy")))
+        self.assertTrue(os.path.exists(os.path.join(self.site_packages, "dummy.py")))
+        self.assertTrue(os.path.exists(os.path.join(self.bindir, "dummy")))
 
         egginst.remove()
-        self.assertFalse(op.exists(op.join(self.site_packages, "dummy.py")))
-        self.assertFalse(op.exists(op.join(self.bindir, "dummy")))
+        self.assertFalse(os.path.exists(os.path.join(self.site_packages, "dummy.py")))
+        self.assertFalse(os.path.exists(os.path.join(self.bindir, "dummy")))
 
     @slow
     def test_appinst(self):
@@ -151,7 +151,7 @@ class TestEggInstInstall(unittest.TestCase):
         Test we install appinst bits correctly.
         """
         egg_path = DUMMY_EGG_WITH_APPINST
-        appinst_path = op.join(self.meta_dir, "dummy_with_appinst", APPINST_PATH)
+        appinst_path = os.path.join(self.meta_dir, "dummy_with_appinst", APPINST_PATH)
 
         egginst = EggInst(egg_path, self.base_dir)
 

@@ -15,7 +15,7 @@ from egginst.main import EggInst
 
 from .common import mkdtemp, SUPPORT_SYMLINK
 
-DUMMY_EGG_WITH_PROXY_SOFTLINK = op.join(op.dirname(__file__), "data",
+DUMMY_EGG_WITH_PROXY_SOFTLINK = os.path.join(os.path.dirname(__file__), "data",
                                         "dummy_with_proxy_softlink-1.0.0-1.egg")
 
 class TestLinks(unittest.TestCase):
@@ -28,9 +28,9 @@ class TestLinks(unittest.TestCase):
             egginst = EggInst(DUMMY_EGG_WITH_PROXY_SOFTLINK, d)
             egginst.install()
 
-            link = op.join(d, "lib", r_link)
-            source = op.join(d, "lib", r_source)
-            self.assertTrue(op.exists(link))
-            self.assertTrue(op.exists(source))
-            self.assertTrue(op.islink(link))
-            self.assertEqual(os.readlink(link), op.basename(source))
+            link = os.path.join(d, "lib", r_link)
+            source = os.path.join(d, "lib", r_source)
+            self.assertTrue(os.path.exists(link))
+            self.assertTrue(os.path.exists(source))
+            self.assertTrue(os.path.islink(link))
+            self.assertEqual(os.readlink(link), os.path.basename(source))

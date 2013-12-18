@@ -15,7 +15,7 @@ from enstaller.eggcollect import EggCollection, JoinedEggCollection
 # eggs...
 def _dummy_installed_info(prefix):
     return {
-        u'meta_dir': op.join(prefix, "EGG-INFO", "dummy"),
+        u'meta_dir': os.path.join(prefix, "EGG-INFO", "dummy"),
         u'ctime': time.ctime(),
         u'name': u'dummy',
         u'platform': u'linux2',
@@ -41,13 +41,13 @@ def _install_eggs_set(eggs, prefix):
 class TestEggCollection(unittest.TestCase):
     def test_find_simple(self):
         with mkdtemp() as d:
-            prefix = op.join(d, "env")
+            prefix = os.path.join(d, "env")
 
             _install_eggs_set([DUMMY_EGG], prefix)
 
             ec = EggCollection(prefix, False)
 
-            info = ec.find(op.basename(DUMMY_EGG))
+            info = ec.find(os.path.basename(DUMMY_EGG))
             self.assertEqual(info, _dummy_installed_info(prefix))
 
             info = ec.find("dummy-1.eggg")
@@ -56,7 +56,7 @@ class TestEggCollection(unittest.TestCase):
     def test_query_simple(self):
         with mkdtemp() as d:
             egg = DUMMY_EGG
-            prefix = op.join(d, "env")
+            prefix = os.path.join(d, "env")
 
             _install_eggs_set([egg], prefix)
 
@@ -65,7 +65,7 @@ class TestEggCollection(unittest.TestCase):
             index = list(ec.query(name="dummy"))
             self.assertEqual(len(index), 1)
             self.assertEqual(index[0],
-                             (op.basename(egg), _dummy_installed_info(prefix)))
+                             (os.path.basename(egg), _dummy_installed_info(prefix)))
 
             index = list(ec.query(name="yummy"))
             self.assertEqual(index, [])
@@ -73,16 +73,16 @@ class TestEggCollection(unittest.TestCase):
     def test_install_remove_simple(self):
         with mkdtemp() as d:
             egg = DUMMY_EGG
-            egg_basename = op.basename(egg)
-            prefix = op.join(d, "prefix")
+            egg_basename = os.path.basename(egg)
+            prefix = os.path.join(d, "prefix")
 
             ec = EggCollection(prefix, False)
             self.assertTrue(ec.find(egg_basename) is None)
 
-            ec.install(op.basename(egg), op.dirname(egg))
+            ec.install(os.path.basename(egg), os.path.dirname(egg))
             self.assertTrue(ec.find(egg_basename) is not None)
 
-            ec.remove(op.basename(egg))
+            ec.remove(os.path.basename(egg))
             self.assertTrue(ec.find(egg_basename) is None)
 
 def _create_joined_collection(prefixes, eggs):
@@ -90,7 +90,7 @@ def _create_joined_collection(prefixes, eggs):
     for i, prefix in enumerate(prefixes):
         ec = EggCollection(prefix, False)
         for egg in eggs[i]:
-            ec.install(op.basename(egg), op.dirname(egg))
+            ec.install(os.path.basename(egg), os.path.dirname(egg))
         ecs.append(ec)
     return JoinedEggCollection(ecs)
 
@@ -98,9 +98,9 @@ class TestJoinedEggCollection(unittest.TestCase):
     def test_find_simple(self):
         with mkdtemp() as d:
             egg = DUMMY_EGG
-            egg_basename = op.basename(egg)
-            prefix0 = op.join(d, "prefix0")
-            prefix1 = op.join(d, "prefix1")
+            egg_basename = os.path.basename(egg)
+            prefix0 = os.path.join(d, "prefix0")
+            prefix1 = os.path.join(d, "prefix1")
 
             eggs = [[egg], [egg]]
             store = _create_joined_collection((prefix0, prefix1), eggs)
@@ -113,8 +113,8 @@ class TestJoinedEggCollection(unittest.TestCase):
         with mkdtemp() as d:
             egg = DUMMY_EGG
 
-            prefix0 = op.join(d, "prefix0")
-            prefix1 = op.join(d, "prefix1")
+            prefix0 = os.path.join(d, "prefix0")
+            prefix1 = os.path.join(d, "prefix1")
 
             eggs = [[egg], [egg]]
             store = _create_joined_collection((prefix0, prefix1), eggs)
@@ -123,7 +123,7 @@ class TestJoinedEggCollection(unittest.TestCase):
 
             self.assertEqual(len(info), 1)
             entry = info[0]
-            self.assertEqual(entry[0], op.basename(egg))
+            self.assertEqual(entry[0], os.path.basename(egg))
             self.assertEqual(entry[1], _dummy_installed_info(prefix0))
 
     def test_query_precedence_lower_version_on_top(self):
@@ -135,8 +135,8 @@ class TestJoinedEggCollection(unittest.TestCase):
             nose_1_2_1 = NOSE_1_2_1
             nose_1_3_0 = NOSE_1_3_0
 
-            prefix0 = op.join(d, "prefix0")
-            prefix1 = op.join(d, "prefix1")
+            prefix0 = os.path.join(d, "prefix0")
+            prefix1 = os.path.join(d, "prefix1")
 
             eggs = [[nose_1_2_1], [nose_1_3_0]]
             store = _create_joined_collection((prefix0, prefix1), eggs)
@@ -145,7 +145,7 @@ class TestJoinedEggCollection(unittest.TestCase):
 
             self.assertEqual(len(info), 1)
             entry = info[0]
-            self.assertEqual(entry[0], op.basename(nose_1_2_1))
+            self.assertEqual(entry[0], os.path.basename(nose_1_2_1))
             self.assertEqual(entry[1]["version"], "1.2.1")
 
     def test_query_precedence_higher_version_on_top(self):
@@ -153,8 +153,8 @@ class TestJoinedEggCollection(unittest.TestCase):
             nose_1_2_1 = NOSE_1_2_1
             nose_1_3_0 = NOSE_1_3_0
 
-            prefix0 = op.join(d, "prefix0")
-            prefix1 = op.join(d, "prefix1")
+            prefix0 = os.path.join(d, "prefix0")
+            prefix1 = os.path.join(d, "prefix1")
 
             eggs = [[nose_1_3_0], [nose_1_2_1]]
             store = _create_joined_collection((prefix0, prefix1), eggs)
@@ -163,7 +163,7 @@ class TestJoinedEggCollection(unittest.TestCase):
 
             self.assertEqual(len(info), 1)
             entry = info[0]
-            self.assertEqual(entry[0], op.basename(nose_1_3_0))
+            self.assertEqual(entry[0], os.path.basename(nose_1_3_0))
             self.assertEqual(entry[1]["version"], "1.3.0")
 
     def test_install_simple(self):
@@ -172,15 +172,15 @@ class TestJoinedEggCollection(unittest.TestCase):
         """
         with mkdtemp() as d:
             egg = DUMMY_EGG
-            egg_basename = op.basename(egg)
+            egg_basename = os.path.basename(egg)
 
-            prefix0 = op.join(d, "prefix0")
-            prefix1 = op.join(d, "prefix1")
+            prefix0 = os.path.join(d, "prefix0")
+            prefix1 = os.path.join(d, "prefix1")
 
             eggs = [[], []]
 
             store = _create_joined_collection((prefix0, prefix1), eggs)
-            store.install(op.basename(egg), op.dirname(egg))
+            store.install(os.path.basename(egg), os.path.dirname(egg))
 
             ec0 = EggCollection(prefix0, False)
             ec1 = EggCollection(prefix1, False)
@@ -194,10 +194,10 @@ class TestJoinedEggCollection(unittest.TestCase):
         """
         with mkdtemp() as d:
             egg = DUMMY_EGG
-            egg_basename = op.basename(egg)
+            egg_basename = os.path.basename(egg)
 
-            prefix0 = op.join(d, "prefix0")
-            prefix1 = op.join(d, "prefix1")
+            prefix0 = os.path.join(d, "prefix0")
+            prefix1 = os.path.join(d, "prefix1")
 
             eggs = [[egg], []]
 

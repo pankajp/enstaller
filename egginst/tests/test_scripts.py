@@ -1,5 +1,6 @@
 import ConfigParser
 import hashlib
+import os.path
 import StringIO
 import sys
 
@@ -7,8 +8,6 @@ if sys.version_info[:2] < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
-
-import os.path as op
 
 import mock
 
@@ -21,8 +20,8 @@ from enstaller.utils import md5_file
 
 from .common import mkdtemp
 
-DUMMY_EGG_WITH_PROXY = op.join(op.dirname(__file__), "data", "dummy_with_proxy-1.3.40-3.egg")
-DUMMY_EGG_WITH_PROXY_SCRIPTS = op.join(op.dirname(__file__), "data", "dummy_with_proxy_scripts-1.0.0-1.egg")
+DUMMY_EGG_WITH_PROXY = os.path.join(os.path.dirname(__file__), "data", "dummy_with_proxy-1.3.40-3.egg")
+DUMMY_EGG_WITH_PROXY_SCRIPTS = os.path.join(os.path.dirname(__file__), "data", "dummy_with_proxy_scripts-1.0.0-1.egg")
 
 class TestScripts(unittest.TestCase):
     def test_get_executable(self):
@@ -67,7 +66,7 @@ if __name__ == '__main__':
 """
 
         with mkdtemp() as d:
-            path = op.join(d, "script")
+            path = os.path.join(d, "script")
             with open(path, "wt") as fp:
                 fp.write(simple_script)
 
@@ -107,7 +106,7 @@ if __name__ == '__main__':
 """.format(prefix=sys.executable)
 
         with mkdtemp() as d:
-            path = op.join(d, "script")
+            path = os.path.join(d, "script")
             with open(path, "wt") as fp:
                 fp.write(setuptools_script)
 
@@ -147,8 +146,8 @@ dummy-gui = dummy:main_gui
             egginst = EggInst("dummy.egg", d)
             create(egginst, config)
 
-            entry_point = op.join(egginst.bin_dir, "dummy")
-            self.assertTrue(op.exists(entry_point))
+            entry_point = os.path.join(egginst.bin_dir, "dummy")
+            self.assertTrue(os.path.exists(entry_point))
 
             with open(entry_point, "rt") as fp:
                 cli_entry_point = fp.read()
@@ -202,15 +201,15 @@ dummy-gui = dummy:main_gui
                 egginst = EggInst("dummy.egg", d)
                 create(egginst, config)
 
-                cli_entry_point_path = op.join(egginst.bin_dir, "dummy-script.py")
-                gui_entry_point_path = op.join(egginst.bin_dir, "dummy-gui-script.pyw")
+                cli_entry_point_path = os.path.join(egginst.bin_dir, "dummy-script.py")
+                gui_entry_point_path = os.path.join(egginst.bin_dir, "dummy-gui-script.pyw")
                 entry_points = [
-                        op.join(egginst.bin_dir, "dummy.exe"),
-                        op.join(egginst.bin_dir, "dummy-gui.exe"),
+                        os.path.join(egginst.bin_dir, "dummy.exe"),
+                        os.path.join(egginst.bin_dir, "dummy-gui.exe"),
                         cli_entry_point_path, gui_entry_point_path,
                 ]
                 for entry_point in entry_points:
-                    self.assertTrue(op.exists(entry_point))
+                    self.assertTrue(os.path.exists(entry_point))
 
                 with open(cli_entry_point_path, "rt") as fp:
                     cli_entry_point = fp.read()
@@ -220,9 +219,9 @@ dummy-gui = dummy:main_gui
                     gui_entry_point = fp.read()
                     self.assertMultiLineEqual(gui_entry_point, r_gui_entry_point)
 
-                self.assertEqual(md5_file(op.join(egginst.bin_dir, "dummy.exe")),
+                self.assertEqual(md5_file(os.path.join(egginst.bin_dir, "dummy.exe")),
                                  hashlib.md5(exe_data.cli).hexdigest())
-                self.assertEqual(md5_file(op.join(egginst.bin_dir, "dummy-gui.exe")),
+                self.assertEqual(md5_file(os.path.join(egginst.bin_dir, "dummy-gui.exe")),
                                  hashlib.md5(exe_data.gui).hexdigest())
 
 class TestProxy(unittest.TestCase):
@@ -246,9 +245,9 @@ sys.exit(subprocess.call([src] + sys.argv[1:]))
 """
 
         with mkdtemp() as prefix:
-            with mock.patch("sys.executable", op.join(prefix, "python.exe")):
+            with mock.patch("sys.executable", os.path.join(prefix, "python.exe")):
                 r_python_proxy_data = r_python_proxy_data_template.format(
-                        executable=op.join(prefix, "python.exe"),
+                        executable=os.path.join(prefix, "python.exe"),
                         prefix=prefix)
 
                 egginst = EggInst(DUMMY_EGG_WITH_PROXY, prefix)
@@ -257,11 +256,11 @@ sys.exit(subprocess.call([src] + sys.argv[1:]))
                     egginst.arcnames = zp.namelist()
                     create_proxies(egginst)
 
-                    python_proxy = op.join(prefix, "Scripts", "swig-script.py")
-                    coff_proxy = op.join(prefix, "Scripts", "swig.exe")
+                    python_proxy = os.path.join(prefix, "Scripts", "swig-script.py")
+                    coff_proxy = os.path.join(prefix, "Scripts", "swig.exe")
 
-                    self.assertTrue(op.exists(python_proxy))
-                    self.assertTrue(op.exists(coff_proxy))
+                    self.assertTrue(os.path.exists(python_proxy))
+                    self.assertTrue(os.path.exists(coff_proxy))
 
                     self.assertTrue(md5_file(coff_proxy),
                                     hashlib.md5(exe_data.cli).hexdigest())
@@ -280,7 +279,7 @@ sys.exit(subprocess.call([src] + sys.argv[1:]))
         Test we handle correctly entries of the form 'path some_directory'.
         """
         with mkdtemp() as prefix:
-            with mock.patch("sys.executable", op.join(prefix, "python.exe")):
+            with mock.patch("sys.executable", os.path.join(prefix, "python.exe")):
                 egginst = EggInst(DUMMY_EGG_WITH_PROXY_SCRIPTS, prefix)
                 with ZipFile(egginst.path) as zp:
                     egginst.z = zp
@@ -288,8 +287,8 @@ sys.exit(subprocess.call([src] + sys.argv[1:]))
                     create_proxies(egginst)
 
                     proxied_files = [
-                       op.join(prefix, "Scripts", "dummy.dll"),
-                       op.join(prefix, "Scripts", "dummy.lib"),
+                       os.path.join(prefix, "Scripts", "dummy.dll"),
+                       os.path.join(prefix, "Scripts", "dummy.lib"),
                     ]
                     for proxied_file in proxied_files:
-                        self.assertTrue(op.exists(proxied_file))
+                        self.assertTrue(os.path.exists(proxied_file))
