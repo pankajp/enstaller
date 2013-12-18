@@ -1,8 +1,13 @@
 import hashlib
 import os
 import os.path
+import sys
 import threading
-import unittest
+
+if sys.version_info[:2] < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 
 import mock
 
@@ -111,7 +116,8 @@ class TestFetchAPI(unittest.TestCase):
                 remote.connect()
 
                 fetch_api = FetchAPI(remote, d)
-                self.assertRaises(ValueError, lambda: fetch_api.fetch(filename))
+                with self.assertRaises(ValueError):
+                    fetch_api.fetch(filename)
 
     def test_fetch_abort(self):
         event = threading.Event()
