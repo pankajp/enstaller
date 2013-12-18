@@ -1,9 +1,8 @@
 import hashlib
 import os
+import os.path
 import threading
 import unittest
-
-import os.path as op
 
 import mock
 
@@ -95,8 +94,8 @@ class TestFetchAPI(unittest.TestCase):
             fetch_api = FetchAPI(remote, d)
             fetch_api.fetch(filename)
 
-            target = op.join(d, filename)
-            self.assertTrue(op.exists(target))
+            target = os.path.join(d, filename)
+            self.assertTrue(os.path.exists(target))
             self.assertEqual(md5_file(target), fp.md5)
 
     def test_fetch_invalid_md5(self):
@@ -127,9 +126,9 @@ class TestFetchAPI(unittest.TestCase):
             fetch_api = FetchAPI(remote, d)
             fetch_api.fetch(filename, event)
 
-            target = op.join(d, filename)
+            target = os.path.join(d, filename)
             self.assertTrue(event.is_set())
-            self.assertFalse(op.exists(target))
+            self.assertFalse(os.path.exists(target))
 
     def test_fetch_egg_simple(self):
         with mkdtemp() as d:
@@ -142,8 +141,8 @@ class TestFetchAPI(unittest.TestCase):
             fetch_api = FetchAPI(remote, d)
             fetch_api.fetch_egg(egg)
 
-            target = op.join(d, egg)
-            self.assertTrue(op.exists(target))
+            target = os.path.join(d, egg)
+            self.assertTrue(os.path.exists(target))
 
     def test_fetch_egg_refetch(self):
         with mkdtemp() as d:
@@ -156,8 +155,8 @@ class TestFetchAPI(unittest.TestCase):
             fetch_api = FetchAPI(remote, d)
             fetch_api.fetch_egg(egg)
 
-            target = op.join(d, egg)
-            self.assertTrue(op.exists(target))
+            target = os.path.join(d, egg)
+            self.assertTrue(os.path.exists(target))
 
             fetch_api.fetch_egg(egg)
 
@@ -180,7 +179,7 @@ class TestFetchAPI(unittest.TestCase):
             fp, fetch_api = _fetch_api_factory()
             fetch_api.fetch_egg(egg)
 
-            target = op.join(d, egg)
+            target = os.path.join(d, egg)
 
             self.assertEqual(md5_file(target), fp.md5)
             _corrupt_file(target)
