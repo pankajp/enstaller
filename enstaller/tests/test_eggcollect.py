@@ -6,9 +6,9 @@ import os.path as op
 
 from egginst.main import EggInst
 from egginst.tests.common import mkdtemp, NOSE_1_2_1, NOSE_1_3_0
+from egginst.tests.test_egginst import DUMMY_EGG
 from egginst.utils import makedirs
 
-from enstaller.store.tests.common import DUMMY_EGG
 from enstaller.eggcollect import EggCollection, JoinedEggCollection
 
 # XXX: of course, installed metadata had to be different than the one in
@@ -26,7 +26,7 @@ def _dummy_installed_info(prefix):
         u'hook': False,
         u'version': u'1.0.1',
         u'build': 1,
-        u'key': u'dummy-1.0.0-1.egg',
+        u'key': u'dummy-1.0.1-1.egg',
         u'packages': [],
         u'arch': u'x86',
     }

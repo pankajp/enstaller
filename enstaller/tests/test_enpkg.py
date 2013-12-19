@@ -1,3 +1,4 @@
+import os.path
 import shutil
 import sys
 import tempfile
@@ -13,13 +14,14 @@ from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
 from egginst.main import EggInst
 from egginst.tests.common import mkdtemp
+from egginst.tests.test_egginst import DUMMY_EGG
 from egginst.utils import makedirs
 
 from enstaller.eggcollect import EggCollection, JoinedEggCollection
 from enstaller.enpkg import Enpkg, EnpkgError
 from enstaller.main import _create_enstaller_update_enpkg, create_joined_store
 from enstaller.store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
-from enstaller.store.tests.common import DummyIndexedStore, DUMMY_EGG
+from enstaller.store.tests.common import DummyIndexedStore
 
 PYVER = ".".join(str(i) for i in sys.version_info[:2])
 
