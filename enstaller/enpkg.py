@@ -49,7 +49,7 @@ def req_from_anything(arg):
 
 def get_package_path(prefix):
     """Return site-packages path for the given repo prefix.
-    
+
     Note: on windows the path is lowercased and returned.
     """
     if sys.platform == 'win32':
@@ -448,9 +448,3 @@ class Enpkg(object):
         f.super_id = getattr(self, 'super_id', None)
         f.verbose = self.verbose
         f.fetch_egg(egg, force, self._execution_aborted)
-
-
-if __name__ == '__main__':
-    enpkg = Enpkg()
-    for key, info in enpkg.query_remote(name='numpy'):
-        print key
