@@ -3,11 +3,15 @@ import unittest
 
 from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
+from egginst.main import EggInst
 from egginst.tests.common import mkdtemp
-from enstaller.enpkg import Enpkg
+from egginst.utils import makedirs
+
+from enstaller.eggcollect import EggCollection, JoinedEggCollection
+from enstaller.enpkg import Enpkg, EnpkgError
 from enstaller.main import _create_enstaller_update_enpkg, create_joined_store
 from enstaller.store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
-from enstaller.store.tests.common import DummyIndexedStore
+from enstaller.store.tests.common import DummyIndexedStore, DUMMY_EGG
 
 PYVER = ".".join(str(i) for i in sys.version_info[:2])
 
@@ -118,3 +122,73 @@ class TestEnpkg(unittest.TestCase):
             self.assertEqual(len(queried_entries), 2)
             self.assertEqual([q["version"] for q in queried_entries],
                              ["1.6.1", "1.8k"])
+
+class TestEnpkgActions(unittest.TestCase):
+    def test_install_simple(self):
+        entries = [
+            dummy_enpkg_entry_factory("numpy", "1.6.1", 1),
+            dummy_enpkg_entry_factory("numpy", "1.8.0", 2),
+            dummy_enpkg_entry_factory("numpy", "1.7.1", 2),
+        ]
+
+        r_actions = [
+            ('fetch_0', 'numpy-1.8.0-2.egg'),
+            ('install', 'numpy-1.8.0-2.egg')
+        ]
+
+        repo = DummyIndexedStore(entries)
+        repo.connect()
+
+        with mkdtemp() as d:
+            enpkg = Enpkg(repo, prefixes=[d], hook=None,
+                          evt_mgr=None, verbose=False)
+            actions = enpkg.install_actions("numpy")
+
+            self.assertEqual(actions, r_actions)
+
+    def test_install_no_egg_entry(self):
+        entries = [
+            dummy_enpkg_entry_factory("numpy", "1.6.1", 1),
+            dummy_enpkg_entry_factory("numpy", "1.8.0", 2),
+        ]
+
+        repo = DummyIndexedStore(entries)
+        repo.connect()
+
+        with mkdtemp() as d:
+            enpkg = Enpkg(repo, prefixes=[d], hook=None,
+                          evt_mgr=None, verbose=False)
+            with self.assertRaises(EnpkgError):
+                enpkg.install_actions("scipy")
+
+    def test_remove(self):
+        repo = DummyIndexedStore([])
+        repo.connect()
+
+        with mkdtemp() as d:
+            makedirs(d)
+
+            for egg in [DUMMY_EGG]:
+                egginst = EggInst(egg, d)
+                egginst.install()
+
+            local_repo = JoinedEggCollection([EggCollection(d, False, None)])
+            enpkg = Enpkg(repo, prefixes=[d], hook=None,
+                          evt_mgr=None, verbose=False)
+            enpkg.ec = local_repo
+            enpkg.remove_actions("dummy")
+
+    def test_remove_non_existing(self):
+        entries = [
+            dummy_enpkg_entry_factory("numpy", "1.6.1", 1),
+           dummy_enpkg_entry_factory("numpy", "1.8.0", 2),
+        ]
+
+        repo = DummyIndexedStore(entries)
+        repo.connect()
+
+        with mkdtemp() as d:
+            enpkg = Enpkg(repo, prefixes=[d], hook=None,
+                          evt_mgr=None, verbose=False)
+            with self.assertRaises(EnpkgError):
+                enpkg.remove_actions("numpy")
