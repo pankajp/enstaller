@@ -23,13 +23,13 @@ class TestGetProxyInfo(unittest.TestCase):
     @mock.patch("enstaller.proxy.util.os.environ", ControlledEnv(_IGNORED_KEYS))
     def test_from_string(self):
         self.assertEqual(get_proxy_info("http://acme.com"),
-                         {"host": "acme.com", "port": 80, "user": None,
+                         {"host": "http://acme.com", "port": 80, "user": None,
                           "pass": None})
         self.assertEqual(get_proxy_info("http://acme.com:8080"),
-                         {"host": "acme.com", "port": 8080, "user": None,
+                         {"host": "http://acme.com", "port": 8080, "user": None,
                           "pass": None})
         self.assertEqual(get_proxy_info("http://john:doe@acme.com:8080"),
-                         {"host": "acme.com", "port": 8080, "user": "john",
+                         {"host": "http://acme.com", "port": 8080, "user": "john",
                           "pass": "doe"})
 
     def test_from_empty_string(self):
@@ -44,8 +44,6 @@ class TestGetProxyInfo(unittest.TestCase):
         env[PROXY_HOST] = "http://acme.com"
         env[PROXY_PORT] = "3128"
 
-        # FIXME: scheme being kept for env-based settings vs not being kept for
-        # string-based settings most likely a bug as well.
         self.assertEqual(get_proxy_info(),
                          {"host": "http://acme.com", "port": 3128,
                           "user": "john", "pass": "doe"})
@@ -118,8 +116,8 @@ class TestProxySetup(unittest.TestCase):
             self.assertTrue(installed)
             self.assertTrue(mocked.called)
 
-            proxies = {"http": "acme.com:8080",
-                       "https": "acme.com:8080"}
+            proxies = {"http": "http://acme.com:8080",
+                       "https": "http://acme.com:8080"}
             mocked.assert_called_with(OpenerMatcher(proxies))
 
     @mock.patch("os.environ", ControlledEnv(_IGNORED_KEYS))
