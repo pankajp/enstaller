@@ -25,12 +25,11 @@ class TestGetProxyInfo(unittest.TestCase):
         self.assertEqual(get_proxy_info("http://acme.com"),
                          {"host": "acme.com", "port": 80, "user": None,
                           "pass": None})
-        # FIXME: port being a string is most likely a bug
         self.assertEqual(get_proxy_info("http://acme.com:8080"),
-                         {"host": "acme.com", "port": "8080", "user": None,
+                         {"host": "acme.com", "port": 8080, "user": None,
                           "pass": None})
         self.assertEqual(get_proxy_info("http://john:doe@acme.com:8080"),
-                         {"host": "acme.com", "port": "8080", "user": "john",
+                         {"host": "acme.com", "port": 8080, "user": "john",
                           "pass": "doe"})
 
     def test_from_empty_string(self):
@@ -48,7 +47,7 @@ class TestGetProxyInfo(unittest.TestCase):
         # FIXME: scheme being kept for env-based settings vs not being kept for
         # string-based settings most likely a bug as well.
         self.assertEqual(get_proxy_info(),
-                         {"host": "http://acme.com", "port": "3128",
+                         {"host": "http://acme.com", "port": 3128,
                           "user": "john", "pass": "doe"})
 
 class TestGetProxyStr(unittest.TestCase):

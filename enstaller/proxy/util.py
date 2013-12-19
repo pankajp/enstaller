@@ -55,6 +55,15 @@ def install_proxy_handlers(pinfo):
 
     return
 
+def _convert_port_value(s, default_port=80):
+    """Convert the given port string to a valid integer port."""
+    if s is None:
+        return default_port
+    else:
+        try:
+            return int(s)
+        except ValueError:
+            raise ValueError("Invalid port value: {0}".format(s))
 
 def get_proxy_info(proxystr=None):
     """
@@ -69,14 +78,12 @@ def get_proxy_info(proxystr=None):
 
     """
 
-    default_port = 80
-
     # Only check for env variables if no explicit proxy string was provided.
     if proxystr is None or len(proxystr) < 1:
         # FIXME: We should be supporting http_proxy, HTTP_PROXY variables.
         proxy_info = {
             'host' : os.environ.get('PROXY_HOST', None),
-            'port' : os.environ.get('PROXY_PORT', default_port),
+            'port' : _convert_port_value(os.environ.get('PROXY_PORT', None)),
             'user' : os.environ.get('PROXY_USER', None),
             'pass' : os.environ.get('PROXY_PASS', None)
             }
@@ -86,9 +93,10 @@ def get_proxy_info(proxystr=None):
         # XXX Using proxy parsing function from urllib2 to parse proxystr
         _, user, passwd, host_port = urllib2._parse_proxy(proxystr)
         host, port = urllib2.splitport(host_port)
+
         proxy_info = {
             'host' : host,
-            'port' : port or default_port,
+            'port' : _convert_port_value(port),
             'user' : user,
             'pass' : passwd,
             }
