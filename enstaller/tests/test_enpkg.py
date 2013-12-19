@@ -1,5 +1,9 @@
+import shutil
 import sys
+import tempfile
 import unittest
+
+import mock
 
 from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
@@ -192,3 +196,58 @@ class TestEnpkgActions(unittest.TestCase):
                           evt_mgr=None, verbose=False)
             with self.assertRaises(EnpkgError):
                 enpkg.remove_actions("numpy")
+
+class TestEnpkgExecute(unittest.TestCase):
+    def setUp(self):
+        self.prefixes = [tempfile.mkdtemp()]
+
+    def tearDown(self):
+        for prefix in self.prefixes:
+            shutil.rmtree(prefix)
+
+    def test_simple_fetch(self):
+        egg = "yoyo.egg"
+        fetch_opcode = 0
+
+        repo = DummyIndexedStore([])
+        repo.connect()
+
+        with mock.patch("enstaller.enpkg.Enpkg.fetch") as mocked_fetch:
+            enpkg = Enpkg(repo, prefixes=self.prefixes, hook=None,
+                          evt_mgr=None, verbose=False)
+            enpkg.ec = mock.MagicMock()
+            enpkg.execute([("fetch_{0}".format(fetch_opcode), egg)])
+
+            self.assertTrue(mocked_fetch.called)
+            self.assertTrue(mocked_fetch.called_arg_list,
+                            [(egg, fetch_opcode)])
+
+    def test_simple_install(self):
+        egg = DUMMY_EGG
+        fetch_opcode = 0
+
+        entries = [
+            EnpkgS3IndexEntry(product="free", build=1,
+                              egg_basename="dummy", version="1.0.0",
+                              available=True),
+        ]
+
+        repo = DummyIndexedStore(entries)
+        repo.connect()
+
+        with mock.patch("enstaller.enpkg.Enpkg.fetch") as mocked_fetch:
+            enpkg = Enpkg(repo, prefixes=self.prefixes, hook=None,
+                          evt_mgr=None, verbose=False)
+            local_repo = JoinedEggCollection([
+                EggCollection(prefix, False, None) for prefix in
+                self.prefixes])
+            local_repo.install = mock.MagicMock()
+            enpkg.ec = local_repo
+
+            actions = enpkg.install_actions("dummy")
+            enpkg.execute(actions)
+
+            self.assertTrue(mocked_fetch.called_arg_list,
+                            [(egg, fetch_opcode)])
+            self.assertTrue(local_repo.install.called_arg_list,
+                            [(egg, enpkg.local_dir, None)])
