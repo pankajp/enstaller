@@ -21,12 +21,11 @@ from enstaller.eggcollect import EggCollection, JoinedEggCollection
 from enstaller.enpkg import Enpkg, EnpkgError
 from enstaller.main import _create_enstaller_update_enpkg, create_joined_store
 from enstaller.store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
-from enstaller.store.tests.common import DummyIndexedStore
-
-PYVER = ".".join(str(i) for i in sys.version_info[:2])
+from enstaller.store.tests.common import EggsStore, MetadataOnlyStore
+from enstaller.utils import PY_VER
 
 def dummy_enpkg_entry_factory(name, version, build):
-    data = {"egg_basename": name, "packages": [], "python": PYVER,
+    data = {"egg_basename": name, "packages": [], "python": PY_VER,
             "size": 1024, "version": version, "build": build,
             "available": True}
     return EnpkgS3IndexEntry.from_data(data)
@@ -53,7 +52,7 @@ class TestEnstallerUpdateHack(unittest.TestCase):
 
         entries = [dummy_enpkg_entry_factory("enstaller", version, build) \
                    for version, build in remote_versions]
-        repo = DummyIndexedStore(entries)
+        repo = MetadataOnlyStore(entries)
         repo.connect()
 
         enpkg = Enpkg(repo, prefixes=prefixes, hook=None,
@@ -103,7 +102,7 @@ class TestEnpkg(unittest.TestCase):
             dummy_enpkg_entry_factory("numpy", "1.7.1", 1),
         ]
 
-        repo = DummyIndexedStore(entries)
+        repo = MetadataOnlyStore(entries)
         repo.connect()
 
         with mkdtemp() as d:
@@ -121,7 +120,7 @@ class TestEnpkg(unittest.TestCase):
             dummy_enpkg_entry_factory("numpy", "1.8k", 2),
         ]
 
-        repo = DummyIndexedStore(entries)
+        repo = MetadataOnlyStore(entries)
         repo.connect()
 
         with mkdtemp() as d:
@@ -146,7 +145,7 @@ class TestEnpkgActions(unittest.TestCase):
             ('install', 'numpy-1.8.0-2.egg')
         ]
 
-        repo = DummyIndexedStore(entries)
+        repo = MetadataOnlyStore(entries)
         repo.connect()
 
         with mkdtemp() as d:
@@ -162,7 +161,7 @@ class TestEnpkgActions(unittest.TestCase):
             dummy_enpkg_entry_factory("numpy", "1.8.0", 2),
         ]
 
-        repo = DummyIndexedStore(entries)
+        repo = MetadataOnlyStore(entries)
         repo.connect()
 
         with mkdtemp() as d:
@@ -172,7 +171,7 @@ class TestEnpkgActions(unittest.TestCase):
                 enpkg.install_actions("scipy")
 
     def test_remove(self):
-        repo = DummyIndexedStore([])
+        repo = MetadataOnlyStore([])
         repo.connect()
 
         with mkdtemp() as d:
@@ -194,7 +193,7 @@ class TestEnpkgActions(unittest.TestCase):
            dummy_enpkg_entry_factory("numpy", "1.8.0", 2),
         ]
 
-        repo = DummyIndexedStore(entries)
+        repo = MetadataOnlyStore(entries)
         repo.connect()
 
         with mkdtemp() as d:
@@ -215,7 +214,7 @@ class TestEnpkgExecute(unittest.TestCase):
         egg = "yoyo.egg"
         fetch_opcode = 0
 
-        repo = DummyIndexedStore([])
+        repo = MetadataOnlyStore([])
         repo.connect()
 
         with mock.patch("enstaller.enpkg.Enpkg.fetch") as mocked_fetch:
@@ -238,7 +237,7 @@ class TestEnpkgExecute(unittest.TestCase):
                               available=True),
         ]
 
-        repo = DummyIndexedStore(entries)
+        repo = MetadataOnlyStore(entries)
         repo.connect()
 
         with mock.patch("enstaller.enpkg.Enpkg.fetch") as mocked_fetch:
@@ -257,3 +256,40 @@ class TestEnpkgExecute(unittest.TestCase):
                             [(egg, fetch_opcode)])
             self.assertTrue(local_repo.install.called_arg_list,
                             [(egg, enpkg.local_dir, None)])
+
+class TestEnpkgRevert(unittest.TestCase):
+    def setUp(self):
+        self.prefixes = [tempfile.mkdtemp()]
+
+    def tearDown(self):
+        for prefix in self.prefixes:
+            shutil.rmtree(prefix)
+
+    def test_empty_history(self):
+        repo = EggsStore([])
+        repo.connect()
+
+        enpkg = Enpkg(repo, prefixes=self.prefixes, hook=None,
+                      evt_mgr=None, verbose=False)
+        enpkg.revert_actions(0)
+
+        with self.assertRaises(EnpkgError):
+            enpkg.revert_actions(1)
+
+    def test_simple_scenario(self):
+        egg = DUMMY_EGG
+        r_actions = {1: [], 0: [("remove", os.path.basename(egg))]}
+
+        repo = EggsStore([egg])
+        repo.connect()
+
+        enpkg = Enpkg(repo, prefixes=self.prefixes, hook=None,
+                      evt_mgr=None, verbose=False)
+        actions = enpkg.install_actions("dummy")
+        enpkg.execute(actions)
+
+        self.assertFalse(enpkg.find(os.path.basename(egg)) is None)
+
+        for state in [0, 1]:
+            actions = enpkg.revert_actions(state)
+            self.assertEqual(actions, r_actions[state])

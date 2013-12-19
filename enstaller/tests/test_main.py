@@ -8,7 +8,7 @@ import enstaller.config
 
 from enstaller.enpkg import Enpkg
 from enstaller.main import main, update_enstaller
-from enstaller.store.tests.common import DummyIndexedStore
+from enstaller.store.tests.common import MetadataOnlyStore
 
 def patched_read(**kw):
     config = {}
@@ -53,7 +53,7 @@ class TestEnstallerUpdate(unittest.TestCase):
                               egg_basename="enstaller", version=high_version,
                               available=True),
         ]
-        store = DummyIndexedStore(enstaller_eggs)
+        store = MetadataOnlyStore(enstaller_eggs)
         with mock.patch("__builtin__.raw_input", lambda ignored: "y"):
             with mock.patch("enstaller.main.install_req", lambda *args: None):
                 enpkg = Enpkg(remote=store)
