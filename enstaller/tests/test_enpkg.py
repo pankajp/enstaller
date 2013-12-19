@@ -11,7 +11,7 @@ from enstaller.store.tests.common import DummyIndexedStore
 
 PYVER = ".".join(str(i) for i in sys.version_info[:2])
 
-def dummy_enpk_entry_factory(name, version, build):
+def dummy_enpkg_entry_factory(name, version, build):
     data = {"egg_basename": name, "packages": [], "python": PYVER,
             "size": 1024, "version": version, "build": build,
             "available": True}
@@ -37,7 +37,7 @@ class TestEnstallerUpdateHack(unittest.TestCase):
     def _compute_actions(self, remote_versions, local_version):
         prefixes = [sys.prefix]
 
-        entries = [dummy_enpk_entry_factory("enstaller", version, build) \
+        entries = [dummy_enpkg_entry_factory("enstaller", version, build) \
                    for version, build in remote_versions]
         repo = DummyIndexedStore(entries)
         repo.connect()
@@ -80,3 +80,41 @@ class TestCreateJoinedStores(unittest.TestCase):
         urls = ["ftp://acme.com/repo"]
         with self.assertRaises(Exception):
             create_joined_store(urls)
+
+class TestEnpkg(unittest.TestCase):
+    def test_info_list_names(self):
+        entries = [
+            dummy_enpkg_entry_factory("numpy", "1.6.1", 1),
+            dummy_enpkg_entry_factory("numpy", "1.8.0", 2),
+            dummy_enpkg_entry_factory("numpy", "1.7.1", 1),
+        ]
+
+        repo = DummyIndexedStore(entries)
+        repo.connect()
+
+        with mkdtemp() as d:
+            enpkg = Enpkg(repo, prefixes=[d], hook=None,
+                          evt_mgr=None, verbose=False)
+            queried_entries = enpkg.info_list_name("numpy")
+
+            self.assertEqual(len(queried_entries), 3)
+            self.assertEqual([q["version"] for q in queried_entries],
+                             ["1.6.1", "1.7.1", "1.8.0"])
+
+    def test_info_list_names_invalid_version(self):
+        entries = [
+            dummy_enpkg_entry_factory("numpy", "1.6.1", 1),
+            dummy_enpkg_entry_factory("numpy", "1.8k", 2),
+        ]
+
+        repo = DummyIndexedStore(entries)
+        repo.connect()
+
+        with mkdtemp() as d:
+            enpkg = Enpkg(repo, prefixes=[d], hook=None,
+                          evt_mgr=None, verbose=False)
+            queried_entries = enpkg.info_list_name("numpy")
+
+            self.assertEqual(len(queried_entries), 2)
+            self.assertEqual([q["version"] for q in queried_entries],
+                             ["1.6.1", "1.8k"])
