@@ -1,14 +1,12 @@
-import collections
 import sys
 import unittest
 
 from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
+from egginst.tests.common import mkdtemp
 from enstaller.enpkg import Enpkg
-from enstaller.store.indexed import IndexedStore
-
-from enstaller.main import _create_enstaller_update_enpkg
-
+from enstaller.main import _create_enstaller_update_enpkg, create_joined_store
+from enstaller.store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
 from enstaller.store.tests.common import DummyIndexedStore
 
 PYVER = ".".join(str(i) for i in sys.version_info[:2])
@@ -19,7 +17,7 @@ def dummy_enpk_entry_factory(name, version, build):
             "available": True}
     return EnpkgS3IndexEntry.from_data(data)
 
-class TestEnstallerHack(unittest.TestCase):
+class TestEnstallerUpdateHack(unittest.TestCase):
     def test_scenario1(self):
         """Test that we upgrade when remote is more recent than local."""
         remote_versions = [("4.6.1", 1)]
@@ -49,6 +47,36 @@ class TestEnstallerHack(unittest.TestCase):
         new_enpkg = _create_enstaller_update_enpkg(enpkg, local_version)
         return new_enpkg._install_actions_enstaller(local_version)
 
+class TestCreateJoinedStores(unittest.TestCase):
+    def test_simple_dir(self):
+        with mkdtemp() as d:
+            urls = [d]
+            store = create_joined_store(urls)
+            self.assertEqual(len(store.repos), 1)
 
-if __name__ == "__main__":
-    unittest.main()
+            store = store.repos[0]
+            self.assertTrue(isinstance(store, LocalIndexedStore))
+            self.assertEqual(store.root, d)
+
+    def test_simple_file_scheme(self):
+        urls = ["file:///foo"]
+        store = create_joined_store(urls)
+        self.assertEqual(len(store.repos), 1)
+
+        store = store.repos[0]
+        self.assertTrue(isinstance(store, LocalIndexedStore))
+        self.assertEqual(store.root, "/foo")
+
+    def test_simple_http_scheme(self):
+        urls = ["http://acme.com/repo"]
+        store = create_joined_store(urls)
+        self.assertEqual(len(store.repos), 1)
+
+        store = store.repos[0]
+        self.assertTrue(isinstance(store, RemoteHTTPIndexedStore))
+        self.assertEqual(store.root, urls[0])
+
+    def test_invalid_scheme(self):
+        urls = ["ftp://acme.com/repo"]
+        with self.assertRaises(Exception):
+            create_joined_store(urls)
