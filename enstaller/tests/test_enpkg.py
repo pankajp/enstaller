@@ -183,6 +183,50 @@ class TestEnpkg(unittest.TestCase):
             self.assertEqual([q["version"] for q in queried_entries],
                              ["1.6.1", "1.8k"])
 
+    def test_query_simple(self):
+        entries = [
+            dummy_enpkg_entry_factory("numpy", "1.6.1", 1),
+            dummy_enpkg_entry_factory("numpy", "1.8k", 2),
+        ]
+
+        repo = MetadataOnlyStore(entries)
+        repo.connect()
+
+        with mkdtemp() as d:
+            enpkg = Enpkg(repo, prefixes=[d], hook=None,
+                          evt_mgr=None, verbose=False)
+            r = dict(enpkg.query(name="numpy"))
+            self.assertTrue(set(r.keys()), set(entry.s3index_key for entry in
+                                               entries))
+
+    def test_query_simple_with_local(self):
+        """
+        Ensure enpkg.query finds both local and remote eggs.
+        """
+        local_egg = DUMMY_EGG
+
+        entries = [
+            dummy_enpkg_entry_factory("dummy", "1.6.1", 1),
+            dummy_enpkg_entry_factory("dummy", "1.8k", 2),
+        ]
+
+        repo = MetadataOnlyStore(entries)
+        repo.connect()
+
+        local_entry = EnpkgS3IndexEntry.from_egg(DUMMY_EGG)
+
+        with mkdtemp() as d:
+            enpkg = Enpkg(repo, prefixes=[d], hook=None,
+                          evt_mgr=None, verbose=False)
+            enpkg = Enpkg(repo, prefixes=[d], hook=None,
+                          evt_mgr=None, verbose=False)
+            enpkg.ec.install(os.path.basename(local_egg),
+                             os.path.dirname(local_egg))
+
+            r = dict(enpkg.query(name="dummy"))
+            self.assertTrue(set(r.keys()), set(entry.s3index_key for entry in
+                                               entries + [local_entry]))
+
 class TestEnpkgActions(unittest.TestCase):
     def test_install_simple(self):
         entries = [
