@@ -5,6 +5,7 @@ Its primary command-line interface program is enpkg, which processes user
 commands and in turn invokes egginst to do the actual installations.
 enpkg can access eggs from both local and HTTP repositories.
 """
+import argparse
 import collections
 import os
 import re
@@ -482,6 +483,7 @@ def main(argv=None):
     p.add_argument("--forceall", action="store_true",
                    help="force install of all packages "
                         "(i.e. including dependencies)")
+    p.add_argument("--freeze", help=argparse.SUPPRESS, action="store_true")
     p.add_argument("--hook", action="store_true",
                    help="don't install into site-packages (experimental)")
     p.add_argument("--imports", action="store_true",
@@ -508,6 +510,7 @@ def main(argv=None):
     p.add_argument("--remove", action="store_true", help="remove a package")
     p.add_argument("--remove-enstaller", action="store_true",
                    help="remove enstaller (will break enpkg)")
+    p.add_argument("--requirements", help=argparse.SUPPRESS)
     p.add_argument("--revert", metavar="REV#",
                    help="revert to a previous set of packages (does not revert "
                    "enstaller itself)")
@@ -542,7 +545,7 @@ def main(argv=None):
     simple_standalone_actions = (args.config, args.env, args.userpass,
                                 args.revert, args.log, args.whats_new,
                                 args.update_all, args.remove_enstaller,
-                                args.add_url)
+                                args.add_url, args.freeze, args.requirements)
     # Action options which can take a package name pattern:
     complex_standalone_actions = (args.list, args.imports,
                                  args.search, args.info, args.remove)
@@ -601,6 +604,19 @@ def main(argv=None):
         h = History(prefix)
         h.update()
         h.print_log()
+        return
+
+    if args.freeze:
+        from .eggcollect import EggCollection, JoinedEggCollection
+        collection = JoinedEggCollection(
+            [EggCollection(prefix, False, None) for prefix in prefixes]
+        )
+        full_names = [
+            "{0} {1}-{2}".format(req["name"], req["version"], req["build"])
+            for name, req in collection.query(type="egg")
+        ]
+        for full_name in sorted(full_names):
+            print full_name
         return
 
     if args.list:                                 # --list
@@ -687,6 +703,12 @@ def main(argv=None):
 
     if args.update_all:                           # --update-all
         update_all(enpkg, args)
+        return
+
+    if args.requirements:
+        with open(args.requirements, "rt") as fp:
+            for req in fp:
+                install_req(enpkg, req, args)
         return
 
     if len(args.cnames) == 0 and not args.remove_enstaller:
