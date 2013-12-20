@@ -1,3 +1,4 @@
+import ntpath
 import sys
 import warnings
 from uuid import uuid4
@@ -53,7 +54,7 @@ def get_package_path(prefix):
     Note: on windows the path is lowercased and returned.
     """
     if sys.platform == 'win32':
-        return join(prefix, 'Lib', 'site-packages').lower()
+        return ntpath.join(prefix, 'Lib', 'site-packages').lower()
     else:
         postfix = 'lib/python{0}.{1}/site-packages'.format(*sys.version_info)
         return join(prefix, postfix)

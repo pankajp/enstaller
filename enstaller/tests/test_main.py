@@ -4,17 +4,11 @@ import mock
 
 from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
-import enstaller.config
-
 from enstaller.enpkg import Enpkg
 from enstaller.main import main, update_enstaller
 from enstaller.store.tests.common import MetadataOnlyStore
 
-def patched_read(**kw):
-    config = {}
-    config.update(enstaller.config.default)
-    config.update(**kw)
-    return config
+from .common import patched_read
 
 class TestEnstallerMainActions(unittest.TestCase):
     def test_print_version(self):

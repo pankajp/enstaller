@@ -1,3 +1,4 @@
+import ntpath
 import os.path
 import shutil
 import sys
@@ -19,16 +20,66 @@ from egginst.utils import makedirs
 
 from enstaller.eggcollect import EggCollection, JoinedEggCollection
 from enstaller.enpkg import Enpkg, EnpkgError
+from enstaller.enpkg import get_default_kvs, req_from_anything, get_package_path
 from enstaller.main import _create_enstaller_update_enpkg, create_joined_store
+from enstaller.resolve import Req
 from enstaller.store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
 from enstaller.store.tests.common import EggsStore, MetadataOnlyStore
 from enstaller.utils import PY_VER
+
+from .common import patched_read
 
 def dummy_enpkg_entry_factory(name, version, build):
     data = {"egg_basename": name, "packages": [], "python": PY_VER,
             "size": 1024, "version": version, "build": build,
             "available": True}
     return EnpkgS3IndexEntry.from_data(data)
+
+class TestMisc(unittest.TestCase):
+    @mock.patch("enstaller.config.read",
+                lambda: patched_read(webservice_entry_point="http://acme.com"))
+    def test_get_default_kvs(self):
+        store = get_default_kvs()
+        self.assertEqual(store.root, "http://acme.com")
+
+    def test_req_from_anything_egg_string(self):
+        req_string = "numpy-1.8.0-1.egg"
+
+        req = req_from_anything(req_string)
+
+        self.assertEqual(req.name, "numpy")
+        self.assertEqual(req.version, "1.8.0")
+        self.assertEqual(req.build, 1)
+
+    def test_req_from_anything_req(self):
+        req = Req("numpy 1.8.0-1")
+
+        req = req_from_anything(req)
+
+        self.assertEqual(req.name, "numpy")
+        self.assertEqual(req.version, "1.8.0")
+        self.assertEqual(req.build, 1)
+
+    def test_req_from_anything_string(self):
+        req = req_from_anything("numpy")
+
+        self.assertEqual(req.name, "numpy")
+        self.assertEqual(req.version, None)
+        self.assertEqual(req.build, None)
+
+    @mock.patch("sys.platform", "linux2")
+    def test_get_package_path_unix(self):
+        prefix = "/foo"
+        r_site_packages = os.path.join(prefix, "lib", "python" + PY_VER, "site-packages")
+
+        self.assertEqual(get_package_path(prefix), r_site_packages)
+
+    @mock.patch("sys.platform", "win32")
+    def test_get_package_path_unix(self):
+        prefix = "c:\\foo"
+        r_site_packages = ntpath.join(prefix, "lib", "site-packages")
+
+        self.assertEqual(get_package_path(prefix), r_site_packages)
 
 class TestEnstallerUpdateHack(unittest.TestCase):
     def test_scenario1(self):
