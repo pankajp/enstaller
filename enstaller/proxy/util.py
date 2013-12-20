@@ -12,6 +12,7 @@
 
 import os
 import urllib2
+import urlparse
 
 
 def get_proxystr(pinfo):
@@ -55,6 +56,15 @@ def install_proxy_handlers(pinfo):
 
     return
 
+def _convert_port_value(s, default_port=80):
+    """Convert the given port string to a valid integer port."""
+    if s is None:
+        return default_port
+    else:
+        try:
+            return int(s)
+        except ValueError:
+            raise ValueError("Invalid port value: {0}".format(s))
 
 def get_proxy_info(proxystr=None):
     """
@@ -69,28 +79,29 @@ def get_proxy_info(proxystr=None):
 
     """
 
-    default_port = 80
-
     # Only check for env variables if no explicit proxy string was provided.
     if proxystr is None or len(proxystr) < 1:
         # FIXME: We should be supporting http_proxy, HTTP_PROXY variables.
         proxy_info = {
             'host' : os.environ.get('PROXY_HOST', None),
-            'port' : os.environ.get('PROXY_PORT', default_port),
+            'port' : _convert_port_value(os.environ.get('PROXY_PORT', None)),
             'user' : os.environ.get('PROXY_USER', None),
             'pass' : os.environ.get('PROXY_PASS', None)
             }
 
     # Parse the passed proxy string
     else:
-        # XXX Using proxy parsing function from urllib2 to parse proxystr
-        _, user, passwd, host_port = urllib2._parse_proxy(proxystr)
-        host, port = urllib2.splitport(host_port)
+        parts = urlparse.urlparse(proxystr)
+        _, hostport = urllib2.splituser(parts.netloc)
+        host, _ = urllib2.splitport(hostport)
+
+        host = urlparse.urlunparse((parts.scheme, host, "", "", "", ""))
+
         proxy_info = {
             'host' : host,
-            'port' : port or default_port,
-            'user' : user,
-            'pass' : passwd,
+            'port' : _convert_port_value(parts.port),
+            'user' : parts.username,
+            'pass' : parts.password,
             }
 
     # If a user was specified, but no password was, prompt for it now.
