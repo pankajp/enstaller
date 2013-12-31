@@ -1,8 +1,11 @@
+import contextlib
 import ntpath
 import os.path
+import posixpath
 import shutil
 import sys
 import tempfile
+import warnings
 
 if sys.version_info[:2] < (2, 7):
     import unittest2 as unittest
@@ -20,7 +23,7 @@ from egginst.utils import makedirs
 
 from enstaller.eggcollect import EggCollection, JoinedEggCollection
 from enstaller.enpkg import Enpkg, EnpkgError
-from enstaller.enpkg import get_default_kvs, req_from_anything, get_package_path
+from enstaller.enpkg import get_default_kvs, req_from_anything, get_package_path, check_prefixes
 from enstaller.main import _create_enstaller_update_enpkg, create_joined_store
 from enstaller.resolve import Req
 from enstaller.store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
@@ -28,6 +31,12 @@ from enstaller.store.tests.common import EggsStore, MetadataOnlyStore
 from enstaller.utils import PY_VER
 
 from .common import patched_read
+
+@contextlib.contextmanager
+def catch_warning_for_tests():
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        yield w
 
 def dummy_enpkg_entry_factory(name, version, build):
     data = {"egg_basename": name, "packages": [], "python": PY_VER,
@@ -80,6 +89,62 @@ class TestMisc(unittest.TestCase):
         r_site_packages = ntpath.join(prefix, "lib", "site-packages")
 
         self.assertEqual(get_package_path(prefix), r_site_packages)
+
+    @mock.patch("sys.platform", "linux2")
+    def test_check_prefixes_unix(self):
+        prefixes = ["/foo", "/bar"]
+        site_packages = [posixpath.join(prefix,
+                                        "lib/python{0}/site-packages". \
+                                        format(PY_VER))
+                         for prefix in prefixes]
+
+        with mock.patch("sys.path", site_packages):
+            with catch_warning_for_tests() as w:
+                check_prefixes(prefixes)
+                self.assertEqual(w, [])
+
+        with mock.patch("sys.path", site_packages[::-1]):
+            with catch_warning_for_tests() as w:
+                check_prefixes(prefixes)
+                self.assertEqual(len(w), 1)
+                message = str(w[0].message)
+                self.assertEqual(message, "Order of path prefixes doesn't match PYTHONPATH")
+
+        with mock.patch("sys.path", []):
+            with catch_warning_for_tests() as w:
+                check_prefixes(prefixes)
+                self.assertEqual(len(w), 1)
+                message = str(w[0].message)
+                self.assertEqual(message,
+                                 "Expected to find {0} in PYTHONPATH". \
+                                 format(site_packages[0]))
+
+    @mock.patch("sys.platform", "win32")
+    def test_check_prefixes_win32(self):
+        prefixes = ["c:\\foo", "c:\\bar"]
+        site_packages = [ntpath.join(prefix, "lib", "site-packages")
+                         for prefix in prefixes]
+
+        with mock.patch("sys.path", site_packages):
+            with catch_warning_for_tests() as w:
+                check_prefixes(prefixes)
+                self.assertEqual(w, [])
+
+        with mock.patch("sys.path", site_packages[::-1]):
+            with catch_warning_for_tests() as w:
+                check_prefixes(prefixes)
+                self.assertEqual(len(w), 1)
+                message = str(w[0].message)
+                self.assertEqual(message, "Order of path prefixes doesn't match PYTHONPATH")
+
+        with mock.patch("sys.path", []):
+            with catch_warning_for_tests() as w:
+                check_prefixes(prefixes)
+                self.assertEqual(len(w), 1)
+                message = str(w[0].message)
+                self.assertEqual(message,
+                                 "Expected to find {0} in PYTHONPATH". \
+                                 format(site_packages[0]))
 
 class TestEnstallerUpdateHack(unittest.TestCase):
     def test_scenario1(self):
