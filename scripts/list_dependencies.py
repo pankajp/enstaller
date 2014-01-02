@@ -40,7 +40,6 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    userpass = config.get_auth()
     plat = enstaller.plat.custom_plat
 
     p = argparse.ArgumentParser()
@@ -49,8 +48,15 @@ def main(argv=None):
     p.add_argument("--platform",
             help="Platform to consider (default: %(default)s). 'all' works as well",
             default=plat)
+    p.add_argument("--auth",
+            help="Authentication (default: enpkg credentials)")
 
     namespace = p.parse_args(argv)
+
+    if namespace.auth is None:
+        userpass = config.get_auth()
+    else:
+        userpass = tuple(namespace.auth.split(":"))
 
     if namespace.platform == "all":
         platforms = ["rh5-32", "rh5-64", "osx-32", "osx-64", "win-32", "win-64"]
