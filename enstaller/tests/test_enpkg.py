@@ -23,7 +23,8 @@ from egginst.utils import makedirs
 
 from enstaller.eggcollect import EggCollection, JoinedEggCollection
 from enstaller.enpkg import Enpkg, EnpkgError
-from enstaller.enpkg import get_default_kvs, req_from_anything, get_package_path, check_prefixes
+from enstaller.enpkg import get_default_kvs, req_from_anything, \
+        get_package_path, check_prefixes, get_writable_local_dir
 from enstaller.main import _create_enstaller_update_enpkg, create_joined_store
 from enstaller.resolve import Req
 from enstaller.store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
@@ -145,6 +146,19 @@ class TestMisc(unittest.TestCase):
                 self.assertEqual(message,
                                  "Expected to find {0} in PYTHONPATH". \
                                  format(site_packages[0]))
+
+    def test_writable_local_dir_writable(self):
+        with mkdtemp() as d:
+            with mock.patch("enstaller.enpkg.get_repository_cache", lambda x: x):
+                self.assertEqual(get_writable_local_dir(d), d)
+
+    def test_writable_local_dir_non_writable(self):
+        fake_dir = "/some/dummy_dir/hopefully/doesnt/exists"
+        with mock.patch("enstaller.enpkg.get_repository_cache", lambda x: fake_dir):
+            def mocked_makedirs(d):
+                raise OSError("mocked makedirs")
+            with mock.patch("os.makedirs", mocked_makedirs):
+                self.assertNotEqual(get_writable_local_dir("/foo"), "/foo")
 
 class TestEnstallerUpdateHack(unittest.TestCase):
     def test_scenario1(self):
