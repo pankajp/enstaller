@@ -5,6 +5,7 @@ import re
 import os
 import sys
 import platform
+from getpass import getpass
 from os.path import isfile, join
 
 from enstaller import __version__
@@ -70,7 +71,6 @@ def input_auth():
     Prompt user for username and password.  Return (username, password)
     tuple or (None, None) if left blank.
     """
-    from getpass import getpass
     print """\
 Please enter the email address (or username) and password for your
 EPD or EPD Free subscription.  If you are not subscribed to EPD,
