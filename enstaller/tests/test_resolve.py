@@ -151,12 +151,17 @@ class TestChain0(unittest.TestCase):
                           'EPDCore-2.0.0-1.egg'])
 
 class TestChain1(unittest.TestCase):
+    def setUp(self):
+        r = JoinedStore([
+                DummyStore(join(INDEX_REPO_DIR, name, 'index-7.1.txt'), name)
+                for name in ('epd', 'gpl')])
+        r.connect()
+        c = Resolve(r)
 
-    r = JoinedStore([
-            DummyStore(join(INDEX_REPO_DIR, name, 'index-7.1.txt'), name)
-            for name in ('epd', 'gpl')])
-    r.connect()
-    c = Resolve(r)
+        self.r = r
+        self.c = c
+
+        resolve.PY_VER = '2.7'
 
     def test_get_repo(self):
         for req_string, repo_name in [
@@ -171,7 +176,6 @@ class TestChain1(unittest.TestCase):
                     repo_name)
 
     def test_get_dist(self):
-        resolve.PY_VER = '2.7'
         for req_string, repo_name, egg in [
             ('MySQL_python',  'gpl', 'MySQL_python-1.2.3-2.egg'),
             ('numpy',         'epd', 'numpy-1.6.0-3.egg'),
