@@ -1,12 +1,17 @@
+import json
 import os.path
 import tempfile
 import unittest
+import urllib2
+
+from cStringIO import StringIO
 
 import mock
 
 import enstaller.config
 
-from enstaller.config import clear_cache, get, get_default_url, get_path, input_auth, write
+from enstaller.config import AuthFailedError, clear_cache, get, \
+    get_default_url, get_path, input_auth, web_auth, write
 
 FAKE_USER = "john.doe"
 FAKE_PASSWORD = "fake_password"
@@ -139,3 +144,68 @@ class TestWriteConfig(unittest.TestCase):
                 write()
                 self.assertEqual(mocked_keyring.set_password.call_args[0],
                                  ("Enthought.com", FAKE_USER, FAKE_PASSWORD))
+
+
+AUTH_API_URL = 'https://api.enthought.com/accounts/user/info/'
+
+class TestWebAuth(unittest.TestCase):
+    r_json_resp = {'first_name': u'David',
+                   'has_subscription': True,
+                   'is_active': True,
+                   'is_authenticated': True,
+                   'last_name': u'Cournapeau',
+                   'subscription_level': u'basic'}
+
+    def test_invalid_auth_args(self):
+        with self.assertRaises(AuthFailedError):
+            web_auth((None, None))
+
+    def test_simple(self):
+        with mock.patch("enstaller.config.urllib2") as murllib2:
+            attrs = {'urlopen.return_value': StringIO(json.dumps(self.r_json_resp))}
+            murllib2.configure_mock(**attrs)
+            self.assertEqual(web_auth((FAKE_USER, FAKE_PASSWORD)),
+                             self.r_json_resp)
+
+    def test_auth_encoding(self):
+        r_headers = {"Authorization": "Basic " + FAKE_CREDS}
+        with mock.patch("enstaller.config.urllib2") as murllib2:
+            attrs = {'urlopen.return_value': StringIO(json.dumps(self.r_json_resp))}
+            murllib2.configure_mock(**attrs)
+
+            web_auth((FAKE_USER, FAKE_PASSWORD))
+            murllib2.Request.assert_called_with(AUTH_API_URL, headers=r_headers)
+
+    def test_urllib_failures(self):
+        with mock.patch("enstaller.config.urllib2") as murllib2:
+            # XXX: we can't rely on mock for exceptions, but there has to be a
+            # better way ?
+            murllib2.URLError = urllib2.URLError
+
+            attrs = {'urlopen.side_effect': urllib2.URLError("dummy")}
+            murllib2.configure_mock(**attrs)
+
+            with self.assertRaises(AuthFailedError):
+                web_auth((FAKE_USER, FAKE_PASSWORD))
+
+        with mock.patch("enstaller.config.urllib2") as murllib2:
+            murllib2.HTTPError = urllib2.URLError
+
+            mocked_fp = mock.MagicMock()
+            mocked_fp.read.side_effect = murllib2.HTTPError("dummy")
+            attrs = {'urlopen.return_value': mocked_fp}
+            murllib2.configure_mock(**attrs)
+
+            with self.assertRaises(AuthFailedError):
+                web_auth((FAKE_USER, FAKE_PASSWORD))
+
+    def test_unauthenticated_user(self):
+        r_json_resp = {'is_authenticated': False,
+                       'last_name': u'Cournapeau',
+                       'subscription_level': u'basic'}
+        with mock.patch("enstaller.config.urllib2") as murllib2:
+            attrs = {'urlopen.return_value': StringIO(json.dumps(r_json_resp))}
+            murllib2.configure_mock(**attrs)
+
+            with self.assertRaises(AuthFailedError):
+                web_auth((FAKE_USER, FAKE_PASSWORD))

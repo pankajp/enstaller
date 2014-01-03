@@ -1,10 +1,13 @@
 # Copyright by Enthought, Inc.
 # Author: Ilan Schnell <ischnell@enthought.com>
 
+import json
 import re
 import os
 import sys
 import platform
+import urllib2
+
 from getpass import getpass
 from os.path import isfile, join
 
@@ -224,9 +227,6 @@ def web_auth(auth,
 
     Function taken from Canopy and modified.
     """
-    import json
-    import urllib2
-
     # Make basic local checks
     username, password = auth
     if username is None or password is None:
