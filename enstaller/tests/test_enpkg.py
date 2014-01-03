@@ -61,9 +61,9 @@ class TestMisc(unittest.TestCase):
         self.assertEqual(req.build, 1)
 
     def test_req_from_anything_req(self):
-        req = Req("numpy 1.8.0-1")
+        req_arg = Req("numpy 1.8.0-1")
 
-        req = req_from_anything(req)
+        req = req_from_anything(req_arg)
 
         self.assertEqual(req.name, "numpy")
         self.assertEqual(req.version, "1.8.0")
@@ -84,7 +84,7 @@ class TestMisc(unittest.TestCase):
         self.assertEqual(get_package_path(prefix), r_site_packages)
 
     @mock.patch("sys.platform", "win32")
-    def test_get_package_path_unix(self):
+    def test_get_package_path_windows(self):
         prefix = "c:\\foo"
         r_site_packages = ntpath.join(prefix, "lib", "site-packages")
 
