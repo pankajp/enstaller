@@ -11,11 +11,11 @@ else:
 import mock
 
 from egginst.main import name_version_fn
+from egginst.tests.common import DUMMY_EGG_SIZE, DUMMY_EGG, \
+    DUMMY_EGG_MTIME, DUMMY_EGG_MD5
+
 from enstaller.utils import canonical, comparable_version, path_to_uri, \
     uri_to_path, info_file, cleanup_url, exit_if_sudo_on_venv
-
-from enstaller.store.tests.common import DUMMY_EGG_SIZE, DUMMY_EGG, \
-    DUMMY_EGG_MTIME, DUMMY_EGG_MD5
 
 class TestUtils(unittest.TestCase):
 

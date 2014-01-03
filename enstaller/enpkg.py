@@ -1,3 +1,4 @@
+import ntpath
 import sys
 import warnings
 from uuid import uuid4
@@ -49,11 +50,11 @@ def req_from_anything(arg):
 
 def get_package_path(prefix):
     """Return site-packages path for the given repo prefix.
-    
+
     Note: on windows the path is lowercased and returned.
     """
     if sys.platform == 'win32':
-        return join(prefix, 'Lib', 'site-packages').lower()
+        return ntpath.join(prefix, 'Lib', 'site-packages').lower()
     else:
         postfix = 'lib/python{0}.{1}/site-packages'.format(*sys.version_info)
         return join(prefix, postfix)
@@ -448,9 +449,3 @@ class Enpkg(object):
         f.super_id = getattr(self, 'super_id', None)
         f.verbose = self.verbose
         f.fetch_egg(egg, force, self._execution_aborted)
-
-
-if __name__ == '__main__':
-    enpkg = Enpkg()
-    for key, info in enpkg.query_remote(name='numpy'):
-        print key
