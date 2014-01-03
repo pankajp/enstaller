@@ -17,8 +17,7 @@ import mock
 from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
 from egginst.main import EggInst
-from egginst.tests.common import mkdtemp
-from egginst.tests.test_egginst import DUMMY_EGG
+from egginst.tests.common import mkdtemp, DUMMY_EGG
 from egginst.utils import makedirs
 
 from enstaller.eggcollect import EggCollection, JoinedEggCollection

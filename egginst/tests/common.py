@@ -29,7 +29,18 @@ MACHO_ARCH_TO_FILE = {
 PYTHON_VERSION = ".".join(str(i) for i in sys.version_info[:2])
 
 DUMMY_EGG_WITH_INST_TARGETS = os.path.join(MACHO_DIRECTORY, "dummy_with_target_dat-1.0.0-1.egg")
-DUMMY_EGG_WITH_APPINST = os.path.join(os.path.dirname(__file__), "data", "dummy_with_appinst-1.0.0-1.egg")
+
+_EGGINST_COMMON_DATA = os.path.join(os.path.dirname(__file__), "data")
+DUMMY_EGG_WITH_APPINST = os.path.join(_EGGINST_COMMON_DATA, "dummy_with_appinst-1.0.0-1.egg")
+
+DUMMY_EGG = os.path.join(_EGGINST_COMMON_DATA, "dummy-1.0.1-1.egg")
+DUMMY_EGG_WITH_ENTRY_POINTS = os.path.join(_EGGINST_COMMON_DATA, "dummy_with_entry_points-1.0.0-1.egg")
+DUMMY_WITH_PROXY_EGG = os.path.join(_EGGINST_COMMON_DATA, "dummy_with_proxy-1.3.40-3.egg")
+
+__st = os.stat(DUMMY_EGG)
+DUMMY_EGG_MTIME = __st.st_mtime
+DUMMY_EGG_SIZE = __st.st_size
+DUMMY_EGG_MD5 = "1ec1f69526c55db7420b0d480c9b955e"
 
 NOSE_1_2_1 = os.path.join(os.path.dirname(__file__), "data", "nose-1.2.1-1.egg")
 NOSE_1_3_0 = os.path.join(os.path.dirname(__file__), "data", "nose-1.3.0-1.egg")

@@ -17,17 +17,8 @@ from egginst.main import EggInst, get_installed, main
 from egginst.testing_utils import slow
 from egginst.utils import makedirs, zip_write_symlink, ZipFile
 
-from .common import DUMMY_EGG_WITH_APPINST, PYTHON_VERSION, SUPPORT_SYMLINK, mkdtemp
-
-_EGGINST_COMMON_DATA = os.path.join(os.path.dirname(__file__), "data")
-DUMMY_EGG = os.path.join(_EGGINST_COMMON_DATA, "dummy-1.0.1-1.egg")
-DUMMY_EGG_WITH_ENTRY_POINTS = os.path.join(_EGGINST_COMMON_DATA, "dummy_with_entry_points-1.0.0-1.egg")
-DUMMY_WITH_PROXY_EGG = os.path.join(_EGGINST_COMMON_DATA, "dummy_with_proxy-1.3.40-3.egg")
-
-__st = os.stat(DUMMY_EGG)
-DUMMY_EGG_MTIME = __st.st_mtime
-DUMMY_EGG_SIZE = __st.st_size
-DUMMY_EGG_MD5 = "1ec1f69526c55db7420b0d480c9b955e"
+from .common import DUMMY_EGG, DUMMY_EGG_WITH_APPINST, \
+        DUMMY_EGG_WITH_ENTRY_POINTS, PYTHON_VERSION, SUPPORT_SYMLINK, mkdtemp
 
 def _create_egg_with_symlink(filename, name):
     with ZipFile(filename, "w") as fp:

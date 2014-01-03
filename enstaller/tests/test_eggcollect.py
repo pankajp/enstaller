@@ -5,8 +5,7 @@ import unittest
 import os.path as op
 
 from egginst.main import EggInst
-from egginst.tests.common import mkdtemp, NOSE_1_2_1, NOSE_1_3_0
-from egginst.tests.test_egginst import DUMMY_EGG
+from egginst.tests.common import mkdtemp, DUMMY_EGG, NOSE_1_2_1, NOSE_1_3_0
 from egginst.utils import makedirs
 
 from enstaller.eggcollect import EggCollection, JoinedEggCollection

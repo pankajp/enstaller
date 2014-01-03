@@ -15,7 +15,7 @@ import mock
 from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
 from egginst.testing_utils import network
-from egginst.tests.test_egginst import DUMMY_EGG, DUMMY_WITH_PROXY_EGG
+from egginst.tests.common import DUMMY_EGG, DUMMY_WITH_PROXY_EGG
 
 from enstaller.store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
 from enstaller.store.joined import JoinedStore
