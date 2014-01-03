@@ -206,7 +206,7 @@ class TestCreateJoinedStores(unittest.TestCase):
         self.assertEqual(len(store.repos), 1)
 
         store = store.repos[0]
-        self.assertTrue(isinstance(store, LocalIndexedStore))
+        self.assertIsInstance(store, LocalIndexedStore)
         self.assertEqual(store.root, "/foo")
 
     def test_simple_http_scheme(self):
@@ -215,7 +215,7 @@ class TestCreateJoinedStores(unittest.TestCase):
         self.assertEqual(len(store.repos), 1)
 
         store = store.repos[0]
-        self.assertTrue(isinstance(store, RemoteHTTPIndexedStore))
+        self.assertIsInstance(store, RemoteHTTPIndexedStore)
         self.assertEqual(store.root, urls[0])
 
     def test_invalid_scheme(self):
@@ -274,8 +274,8 @@ class TestEnpkg(unittest.TestCase):
             enpkg = Enpkg(repo, prefixes=[d], hook=None,
                           evt_mgr=None, verbose=False)
             r = dict(enpkg.query(name="numpy"))
-            self.assertTrue(set(r.keys()), set(entry.s3index_key for entry in
-                                               entries))
+            self.assertEqual(set(r.keys()),
+                             set(entry.s3index_key for entry in entries))
 
     def test_query_simple_with_local(self):
         """
@@ -302,8 +302,8 @@ class TestEnpkg(unittest.TestCase):
                              os.path.dirname(local_egg))
 
             r = dict(enpkg.query(name="dummy"))
-            self.assertTrue(set(r.keys()), set(entry.s3index_key for entry in
-                                               entries + [local_entry]))
+            self.assertEqual(set(r.keys()),
+                             set(entry.s3index_key for entry in entries + [local_entry]))
 
 class TestEnpkgActions(unittest.TestCase):
     def test_install_simple(self):
@@ -358,7 +358,10 @@ class TestEnpkgActions(unittest.TestCase):
             enpkg = Enpkg(repo, prefixes=[d], hook=None,
                           evt_mgr=None, verbose=False)
             enpkg.ec = local_repo
-            enpkg.remove_actions("dummy")
+
+            self.assertTrue(local_repo.find(os.path.basename(DUMMY_EGG)))
+            actions = enpkg.remove_actions("dummy")
+            self.assertEqual(actions, [("remove", os.path.basename(DUMMY_EGG))])
 
     def test_remove_non_existing(self):
         entries = [
@@ -397,16 +400,16 @@ class TestEnpkgExecute(unittest.TestCase):
             enpkg.execute([("fetch_{0}".format(fetch_opcode), egg)])
 
             self.assertTrue(mocked_fetch.called)
-            self.assertTrue(mocked_fetch.called_arg_list,
-                            [(egg, fetch_opcode)])
+            mocked_fetch.assert_called_with(egg, force=fetch_opcode)
 
     def test_simple_install(self):
         egg = DUMMY_EGG
+        base_egg = os.path.basename(egg)
         fetch_opcode = 0
 
         entries = [
             EnpkgS3IndexEntry(product="free", build=1,
-                              egg_basename="dummy", version="1.0.0",
+                              egg_basename="dummy", version="1.0.1",
                               available=True),
         ]
 
@@ -425,10 +428,9 @@ class TestEnpkgExecute(unittest.TestCase):
             actions = enpkg.install_actions("dummy")
             enpkg.execute(actions)
 
-            self.assertTrue(mocked_fetch.called_arg_list,
-                            [(egg, fetch_opcode)])
-            self.assertTrue(local_repo.install.called_arg_list,
-                            [(egg, enpkg.local_dir, None)])
+            mocked_fetch.assert_called_with(base_egg, force=fetch_opcode)
+            local_repo.install.assert_called_with(base_egg, enpkg.local_dir,
+                                                  None)
 
 class TestEnpkgRevert(unittest.TestCase):
     def setUp(self):
@@ -461,7 +463,7 @@ class TestEnpkgRevert(unittest.TestCase):
         actions = enpkg.install_actions("dummy")
         enpkg.execute(actions)
 
-        self.assertFalse(enpkg.find(os.path.basename(egg)) is None)
+        self.assertIsNotNone(enpkg.find(os.path.basename(egg)))
 
         for state in [0, 1]:
             actions = enpkg.revert_actions(state)
