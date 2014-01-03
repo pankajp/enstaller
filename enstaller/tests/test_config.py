@@ -16,7 +16,7 @@ import mock
 import enstaller.config
 
 from enstaller.config import AuthFailedError, clear_cache, get, \
-    get_default_url, get_path, input_auth, web_auth, write
+    get_auth, get_default_url, get_path, input_auth, web_auth, write
 
 FAKE_USER = "john.doe"
 FAKE_PASSWORD = "fake_password"
@@ -214,3 +214,56 @@ class TestWebAuth(unittest.TestCase):
 
             with self.assertRaises(AuthFailedError):
                 web_auth((FAKE_USER, FAKE_PASSWORD))
+
+class TestGetAuth(unittest.TestCase):
+    def test_with_keyring(self):
+        def mocked_get(arg):
+            if arg == "EPD_auth":
+                return None
+            elif arg == "EPD_username":
+                return FAKE_USER
+            else:
+                get(arg)
+
+        with mock.patch("enstaller.config.get", mocked_get):
+            with mock.patch("enstaller.config.keyring") as mocked_keyring:
+                attrs = {"get_password.return_value": FAKE_PASSWORD}
+                mocked_keyring.configure_mock(**attrs)
+                self.assertEqual(get_auth(), (FAKE_USER, FAKE_PASSWORD))
+                mocked_keyring.get_password.assert_called_with("Enthought.com",
+                                                               FAKE_USER)
+
+    @mock.patch("enstaller.config.keyring", None)
+    def test_with_auth(self):
+        def mocked_get(arg):
+            if arg == "EPD_auth":
+                return FAKE_CREDS
+            else:
+                get(arg)
+
+        with mock.patch("enstaller.config.get", mocked_get):
+            self.assertEqual(get_auth(), (FAKE_USER, FAKE_PASSWORD))
+
+    def test_with_auth_and_keyring(self):
+        def mocked_get(arg):
+            if arg == "EPD_auth":
+                return FAKE_CREDS
+            else:
+                get(arg)
+
+        with mock.patch("enstaller.config.get", mocked_get):
+            with mock.patch("enstaller.config.keyring"):
+                with mock.patch("enstaller.config.change_auth") as mocked_change_auth:
+                    get_auth()
+                    mocked_change_auth.assert_called_with(FAKE_USER, FAKE_PASSWORD)
+
+    @mock.patch("enstaller.config.keyring", None)
+    def test_without_auth_or_keyring(self):
+        def mocked_get(arg):
+            if arg in ("EPD_auth", "EPD_username"):
+                return None
+            else:
+                get(arg)
+
+        with mock.patch("enstaller.config.get", mocked_get):
+            self.assertEqual(get_auth(), (None, None))
