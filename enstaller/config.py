@@ -483,7 +483,3 @@ def print_config(remote, prefix):
     except Exception as e:
         print e
     print subscription_message(user)
-
-if __name__ == '__main__':
-    write()
-    print_config()
