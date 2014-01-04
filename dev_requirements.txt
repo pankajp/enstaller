@@ -6,4 +6,5 @@ encore
 -e git+https://github.com/enthought/okonomiyaki#egg=okonomiyaki
 mock
 nose
+randomize
 six

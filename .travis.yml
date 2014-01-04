@@ -10,7 +10,7 @@ install:
        fi
    - python setup.py develop
 script:
-  - nosetests --with-coverage --cover-package=egginst,enstaller enstaller egginst
+  - nosetests --randomize --with-coverage --cover-package=egginst,enstaller enstaller egginst
 notifications:
   email:
     - davidc@enthought.com
