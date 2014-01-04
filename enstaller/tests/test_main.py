@@ -1,6 +1,11 @@
 import os.path
 import re
-import unittest
+import sys
+
+if sys.version_info[:2] < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 
 from cStringIO import StringIO
 
