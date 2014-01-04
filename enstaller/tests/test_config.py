@@ -15,8 +15,10 @@ import mock
 
 import enstaller.config
 
-from enstaller.config import AuthFailedError, change_auth, clear_cache, get, \
-    get_auth, get_default_url, get_path, input_auth, web_auth, write
+from enstaller.config import AuthFailedError, authenticate, change_auth, \
+    clear_cache, get, get_auth, get_default_url, get_path, input_auth, web_auth, write
+
+from .common import patched_read
 
 def compute_creds(username, password):
     return "{0}:{1}".format(username, password).encode("base64").rstrip()
@@ -343,3 +345,39 @@ class TestChangeAuth(unittest.TestCase):
 
                 with open(fp.name, "rt") as fp:
                     self.assertEqual(fp.read(), config_data)
+
+class TestAuthenticate(unittest.TestCase):
+    @mock.patch("enstaller.config.read",
+                lambda: patched_read(use_webservice=True))
+    def test_use_webservice_valid_user(self):
+        with mock.patch("enstaller.config.web_auth") as mocked_auth:
+            authenticate((FAKE_USER, FAKE_PASSWORD))
+            self.assertTrue(mocked_auth.called)
+
+    @mock.patch("enstaller.config.read",
+                lambda: patched_read(use_webservice=True))
+    def test_use_webservice_invalid_user(self):
+        with mock.patch("enstaller.config.web_auth") as mocked_auth:
+            mocked_auth.return_value = {"is_authenticated": False}
+
+            with self.assertRaises(AssertionError):
+                authenticate((FAKE_USER, FAKE_PASSWORD))
+
+    @mock.patch("enstaller.config.read",
+                lambda: patched_read(use_webservice=False))
+    def test_use_remote(self):
+        remote = mock.Mock()
+        user = authenticate((FAKE_USER, FAKE_PASSWORD), remote)
+        self.assertEqual(user, {"is_authenticated": True})
+
+    @mock.patch("enstaller.config.read",
+                lambda: patched_read(use_webservice=False))
+    def test_use_remote_invalid(self):
+        remote = mock.Mock()
+
+        for klass in KeyError, Exception:
+            attrs = {"connect.side_effect": klass()}
+            remote.configure_mock(**attrs)
+
+            with self.assertRaises(AuthFailedError):
+                authenticate((FAKE_USER, FAKE_PASSWORD), remote)
