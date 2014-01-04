@@ -360,7 +360,7 @@ class TestAuthenticate(unittest.TestCase):
         with mock.patch("enstaller.config.web_auth") as mocked_auth:
             mocked_auth.return_value = {"is_authenticated": False}
 
-            with self.assertRaises(AssertionError):
+            with self.assertRaises(AuthFailedError):
                 authenticate((FAKE_USER, FAKE_PASSWORD))
 
     @mock.patch("enstaller.config.read",

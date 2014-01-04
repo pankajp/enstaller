@@ -320,8 +320,8 @@ def authenticate(auth, remote=None):
         try:
             user = web_auth(auth)
             assert user['is_authenticated']
-        except:
-            raise
+        except Exception as e:
+            raise AuthFailedError('Authentication failed: %s.' % e)
     else:
         # check credentials using remote.connect
         try:
