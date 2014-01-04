@@ -1,4 +1,5 @@
 import contextlib
+import time
 
 from cStringIO import StringIO
 
@@ -8,6 +9,7 @@ from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
 import enstaller.config
 
+from enstaller.eggcollect import AbstractEggCollection
 from enstaller.utils import PY_VER
 
 def patched_read(**kw):
@@ -21,6 +23,14 @@ def dummy_enpkg_entry_factory(name, version, build):
             "size": 1024, "version": version, "build": build,
             "available": True}
     return EnpkgS3IndexEntry.from_data(data)
+
+def dummy_installed_egg_factory(name, version, build, meta_dir=None):
+    data = {"name": name.lower(), "platform": "linux2", "python": PY_VER,
+            "type": "egg", "osdist": "RedHat_5",
+            "installed": True, "hook": False, "version": version, "build": build,
+            "key": "{0}-{1}-{2}.egg".format(name, version, build),
+            "packages": [], "arch": "x86", "ctime": time.ctime()}
+    return data
 
 class MockedPrint(object):
     def __init__(self):
@@ -39,3 +49,24 @@ def mock_print():
 
     with mock.patch("__builtin__.print", m):
         yield m
+
+class MetaOnlyEggCollection(AbstractEggCollection):
+    def __init__(self, entries):
+        self.entries = entries
+        self._egg_name_to_entry = dict((entry["key"], entry) for entry in entries)
+
+    def find(self, egg):
+        return self._egg_name_to_entry[egg]
+
+    def query(self, **kwargs):
+        name = kwargs.get("name")
+        for key in sorted(self._egg_name_to_entry.iterkeys()):
+            info = self._egg_name_to_entry[key]
+            if info and all(info.get(k) == v for k, v in kwargs.iteritems()):
+                yield key, info
+
+    def install(self, egg, dir_path):
+        raise ValueError("You can't call install on {0}".format(self.__class__.__name__))
+
+    def remove(self, egg):
+        raise ValueError("You can't call remove on {0}".format(self.__class__.__name__))

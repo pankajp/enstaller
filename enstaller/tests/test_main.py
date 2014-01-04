@@ -11,12 +11,14 @@ from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 from egginst.tests.common import mkdtemp, DUMMY_EGG
 
 from enstaller.enpkg import Enpkg
+from enstaller.eggcollect import EggCollection
 from enstaller.main import disp_store_info, info_option, \
     install_time_string, main, name_egg, print_installed, search, \
-    update_enstaller
+    updates_check, update_enstaller, whats_new
 from enstaller.store.tests.common import MetadataOnlyStore
 
-from .common import dummy_enpkg_entry_factory, mock_print, patched_read
+from .common import MetaOnlyEggCollection, dummy_enpkg_entry_factory, \
+    dummy_installed_egg_factory, mock_print, patched_read
 
 class TestEnstallerMainActions(unittest.TestCase):
     def test_print_version(self):
@@ -103,22 +105,25 @@ class TestMisc(unittest.TestCase):
             name = "some/dir/fu_bar-1.0.0-1.egg"
             name_egg(name)
 
-def _create_prefix_with_eggs(prefix, installed_eggs, remote_entries=None):
+def _create_prefix_with_eggs(prefix, installed_entries=None, remote_entries=None):
     if remote_entries is None:
         remote_entries = []
+    if installed_entries is None:
+        installed_entries = []
+
     repo = MetadataOnlyStore(remote_entries)
     repo.connect()
 
     enpkg = Enpkg(repo, prefixes=[prefix], hook=None,
                   evt_mgr=None, verbose=False)
-    for egg in installed_eggs:
-        enpkg.ec.install(os.path.basename(egg), os.path.dirname(egg))
+    enpkg.ec = MetaOnlyEggCollection(installed_entries)
     return enpkg
 
 class TestInfoStrings(unittest.TestCase):
     def test_print_install_time(self):
         with mkdtemp() as d:
-            enpkg = _create_prefix_with_eggs(d, [DUMMY_EGG])
+            installed_entries = [dummy_installed_egg_factory("dummy", "1.0.1", 1)]
+            enpkg = _create_prefix_with_eggs(d, installed_entries)
 
             self.assertRegexpMatches(install_time_string(enpkg, "dummy"),
                                      "dummy-1.0.1-1.egg was installed on:")
@@ -129,7 +134,7 @@ class TestInfoStrings(unittest.TestCase):
         with mkdtemp() as d:
             entries = [dummy_enpkg_entry_factory("enstaller", "4.6.2", 1),
                        dummy_enpkg_entry_factory("enstaller", "4.6.3", 1)]
-            enpkg = _create_prefix_with_eggs(d, [], entries)
+            enpkg = _create_prefix_with_eggs(d, remote_entries=entries)
 
             info_option(enpkg, "enstaller")
 
@@ -140,7 +145,9 @@ Name                 Version              Store
 ============================================================
 dummy                1.0.1-1              -
 """
-            enpkg = _create_prefix_with_eggs(d, [DUMMY_EGG])
+            installed_entries = [dummy_installed_egg_factory("dummy", "1.0.1", 1)]
+            ec = EggCollection(d, False)
+            ec.install(os.path.basename(DUMMY_EGG), os.path.dirname(DUMMY_EGG))
 
             with mock_print() as m:
                 print_installed(d)
@@ -171,7 +178,7 @@ dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
             entries = [dummy_enpkg_entry_factory("dummy", "1.0.0", 1),
                        dummy_enpkg_entry_factory("dummy", "0.9.8", 1),
                        dummy_enpkg_entry_factory("another_dummy", "2.0.0", 1)]
-            enpkg = _create_prefix_with_eggs(d, [], entries)
+            enpkg = _create_prefix_with_eggs(d, remote_entries=entries)
 
             with mock_print() as m:
                 search(enpkg)
@@ -188,7 +195,8 @@ dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
 """.replace("DUMMY_ANCHOR", "")
             entries = [dummy_enpkg_entry_factory("dummy", "1.0.1", 1),
                        dummy_enpkg_entry_factory("dummy", "0.9.8", 1)]
-            enpkg = _create_prefix_with_eggs(d, [DUMMY_EGG], entries)
+            installed_entries = [dummy_installed_egg_factory("dummy", "1.0.1", 1)]
+            enpkg = _create_prefix_with_eggs(d, installed_entries, entries)
 
             with mock_print() as m:
                 search(enpkg)
@@ -206,7 +214,8 @@ dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
             entries = [dummy_enpkg_entry_factory("dummy", "1.0.1", 1),
                        dummy_enpkg_entry_factory("dummy", "0.9.8", 1),
                        dummy_enpkg_entry_factory("another_package", "2.0.0", 1)]
-            enpkg = _create_prefix_with_eggs(d, [DUMMY_EGG], entries)
+            installed_entries = [dummy_installed_egg_factory("dummy", "1.0.1", 1)]
+            enpkg = _create_prefix_with_eggs(d, installed_entries, entries)
 
             with mock_print() as m:
                 search(enpkg, pat=re.compile("dummy"))
@@ -245,8 +254,131 @@ dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
                 with mock_print() as m:
                     attrs = {"subscription_message.return_value": ""}
                     mocked_config.configure_mock(**attrs)
-                    enpkg = _create_prefix_with_eggs(d, [], entries)
+                    enpkg = _create_prefix_with_eggs(d, remote_entries=entries)
                     search(enpkg)
 
                     self.assertMultiLineEqual(m.value, r_output)
                     self.assertTrue(mocked_config.subscription_message.called)
+
+class TestUpdatesCheck(unittest.TestCase):
+    def test_update_check_new_available(self):
+        entries = [dummy_enpkg_entry_factory("dummy", "1.2.0", 1),
+                   dummy_enpkg_entry_factory("dummy", "0.9.8", 1)]
+        installed_entries = [
+                dummy_installed_egg_factory("dummy", "1.0.1", 1)
+        ]
+
+        with mkdtemp() as d:
+            enpkg = _create_prefix_with_eggs(d, installed_entries, entries)
+
+            updates, EPD_update =  updates_check(enpkg)
+
+            self.assertEqual(EPD_update, [])
+            self.assertEqual(len(updates), 1)
+            update0 = updates[0]
+            self.assertEqual(update0.keys(), ["current", "update"])
+            self.assertEqual(update0["current"]["version"], "1.0.1")
+            self.assertEqual(update0["update"]["version"], "1.2.0")
+
+    def test_update_check_no_new_available(self):
+        entries = [dummy_enpkg_entry_factory("dummy", "1.0.0", 1),
+                   dummy_enpkg_entry_factory("dummy", "0.9.8", 1)]
+        installed_entries = [
+                dummy_installed_egg_factory("dummy", "1.0.1", 1)
+        ]
+
+        with mkdtemp() as d:
+            enpkg = _create_prefix_with_eggs(d, installed_entries, entries)
+
+            updates, EPD_update =  updates_check(enpkg)
+
+            self.assertEqual(EPD_update, [])
+            self.assertEqual(updates, [])
+
+    def test_update_check_no_available(self):
+        installed_entries = [
+                dummy_installed_egg_factory("dummy", "1.0.1", 1)
+        ]
+        with mkdtemp() as d:
+            enpkg = _create_prefix_with_eggs(d, installed_entries)
+
+            updates, EPD_update =  updates_check(enpkg)
+
+            self.assertEqual(EPD_update, [])
+            self.assertEqual(updates, [])
+
+    def test_update_check_epd(self):
+        installed_entries = [dummy_installed_egg_factory("EPD", "7.2", 1)]
+        remote_entries = [dummy_enpkg_entry_factory("EPD", "7.3", 1)]
+
+        with mkdtemp() as d:
+            enpkg = _create_prefix_with_eggs(d, installed_entries, remote_entries)
+
+            updates, EPD_update =  updates_check(enpkg)
+
+            self.assertEqual(updates, [])
+            self.assertEqual(len(EPD_update), 1)
+
+            epd_update0 = EPD_update[0]
+            self.assertEqual(epd_update0.keys(), ["current", "update"])
+            self.assertEqual(epd_update0["current"]["version"], "7.2")
+            self.assertEqual(epd_update0["update"]["version"], "7.3")
+
+    def test_whats_new_no_new_epd(self):
+        r_output = """\
+Name                 installed            available
+============================================================
+numpy                1.7.1-1              1.7.1-2
+scipy                0.12.0-1             0.13.0-1
+"""
+        installed_entries = [
+            dummy_installed_egg_factory("numpy", "1.7.1", 1),
+            dummy_installed_egg_factory("scipy", "0.12.0", 1)
+        ]
+        remote_entries = [
+            dummy_enpkg_entry_factory("numpy", "1.7.1", 2),
+            dummy_enpkg_entry_factory("scipy", "0.13.0", 1)
+        ]
+
+        with mkdtemp() as d:
+            enpkg = _create_prefix_with_eggs(d, installed_entries, remote_entries)
+
+            with mock_print() as m:
+                whats_new(enpkg)
+                self.assertMultiLineEqual(m.value, r_output)
+
+    def test_whats_new_new_epd(self):
+        r_output = "EPD 7.3-2 is available. To update to it (with " \
+                   "confirmation warning), run 'enpkg epd'.\n"
+        installed_entries = [
+            dummy_installed_egg_factory("EPD", "7.2", 1),
+        ]
+        remote_entries = [
+            dummy_enpkg_entry_factory("EPD", "7.3", 2),
+        ]
+
+        with mkdtemp() as d:
+            enpkg = _create_prefix_with_eggs(d, installed_entries, remote_entries)
+
+            with mock_print() as m:
+                whats_new(enpkg)
+                self.assertMultiLineEqual(m.value, r_output)
+
+    def test_whats_new_no_updates(self):
+        r_output = "No new version of any installed package is available\n"
+
+        installed_entries = [
+            dummy_installed_egg_factory("numpy", "1.7.1", 2),
+            dummy_installed_egg_factory("scipy", "0.13.0", 1)
+        ]
+        remote_entries = [
+            dummy_enpkg_entry_factory("numpy", "1.7.1", 1),
+            dummy_enpkg_entry_factory("scipy", "0.12.0", 1)
+        ]
+
+        with mkdtemp() as d:
+            enpkg = _create_prefix_with_eggs(d, installed_entries, remote_entries)
+
+            with mock_print() as m:
+                whats_new(enpkg)
+                self.assertMultiLineEqual(m.value, r_output)
