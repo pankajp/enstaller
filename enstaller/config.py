@@ -436,7 +436,7 @@ def read():
         return read.cache
 
     path = get_path()
-    read.cache = default
+    read.cache = default.copy()
     if path is None:
         return read.cache
 

@@ -15,13 +15,15 @@ import mock
 
 import enstaller.config
 
-from enstaller.config import AuthFailedError, clear_cache, get, \
+from enstaller.config import AuthFailedError, change_auth, clear_cache, get, \
     get_auth, get_default_url, get_path, input_auth, web_auth, write
+
+def compute_creds(username, password):
+    return "{0}:{1}".format(username, password).encode("base64").rstrip()
 
 FAKE_USER = "john.doe"
 FAKE_PASSWORD = "fake_password"
-
-FAKE_CREDS = "{0}:{1}".format(FAKE_USER, FAKE_PASSWORD).encode("base64").rstrip()
+FAKE_CREDS = compute_creds(FAKE_USER, FAKE_PASSWORD)
 
 class TestGetPath(unittest.TestCase):
     def test_home_config_exists(self):
@@ -267,3 +269,77 @@ class TestGetAuth(unittest.TestCase):
 
         with mock.patch("enstaller.config.get", mocked_get):
             self.assertEqual(get_auth(), (None, None))
+
+class TestChangeAuth(unittest.TestCase):
+    def setUp(self):
+        clear_cache()
+
+    def tearDown(self):
+        clear_cache()
+
+    @mock.patch("enstaller.config.keyring", None)
+    def test_change_existing_config_file(self):
+        r_new_password = "ouioui_dans_sa_petite_voiture"
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            fp.write("EPD_auth = '{0}'".format(FAKE_CREDS))
+
+        with mock.patch("enstaller.config.get_path", lambda: fp.name):
+            self.assertEqual(get_auth(), (FAKE_USER, FAKE_PASSWORD))
+            change_auth(FAKE_USER, r_new_password)
+            self.assertEqual(get_auth(), (FAKE_USER, r_new_password))
+
+    @mock.patch("enstaller.config.keyring", None)
+    def test_change_existing_config_file_empty_username(self):
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            fp.write("EPD_auth = '{0}'".format(FAKE_CREDS))
+
+        with mock.patch("enstaller.config.get_path", lambda: fp.name):
+            self.assertEqual(get_auth(), (FAKE_USER, FAKE_PASSWORD))
+            change_auth("", "dummy")
+            self.assertEqual(get_auth(), (None, None))
+
+    def test_change_existing_config_file_with_keyring(self):
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            fp.write("EPD_auth = '{0}'".format(FAKE_CREDS))
+
+        with mock.patch("enstaller.config.keyring") as mocked_keyring:
+            with mock.patch("enstaller.config.get_path", lambda: fp.name):
+                change_auth("user", "dummy")
+                mocked_keyring.set_password.assert_called_with("Enthought.com", "user", "dummy")
+
+        with open(fp.name, "rt") as f:
+            self.assertRegexpMatches(f.read(), "EPD_username")
+            self.assertNotRegexpMatches(f.read(), "EPD_auth")
+
+
+    @mock.patch("enstaller.config.keyring", None)
+    def test_change_empty_config_file_empty_username(self):
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            fp.write("")
+
+        with mock.patch("enstaller.config.get_path", lambda: fp.name):
+            self.assertEqual(get_auth(), (None, None))
+            change_auth(FAKE_USER, FAKE_PASSWORD)
+            self.assertEqual(get_auth(), (FAKE_USER, FAKE_PASSWORD))
+
+    @mock.patch("enstaller.config.keyring", None)
+    def test_no_config_file(self):
+        with mock.patch("enstaller.config.get_path", lambda: None):
+            with mock.patch("enstaller.config.write") as m:
+                self.assertEqual(get_auth(), (None, None))
+                change_auth(FAKE_USER, FAKE_PASSWORD)
+                m.assert_called_with(FAKE_USER, FAKE_PASSWORD)
+
+    @mock.patch("enstaller.config.keyring", None)
+    def test_change_config_file_empty_auth(self):
+        config_data = "EPD_auth = '{0}'".format(FAKE_CREDS)
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            fp.write(config_data)
+
+        with mock.patch("enstaller.config.get_path", lambda: fp.name):
+            with mock.patch("enstaller.config.write") as m:
+                change_auth(None, None)
+                self.assertFalse(m.called)
+
+                with open(fp.name, "rt") as fp:
+                    self.assertEqual(fp.read(), config_data)
