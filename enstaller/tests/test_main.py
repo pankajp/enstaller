@@ -1,14 +1,18 @@
+import os.path
 import unittest
 
 import mock
 
 from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
+from egginst.tests.common import mkdtemp, DUMMY_EGG
+
 from enstaller.enpkg import Enpkg
-from enstaller.main import main, update_enstaller
+from enstaller.main import disp_store_info, info_option, \
+    install_time_string, main, name_egg, update_enstaller
 from enstaller.store.tests.common import MetadataOnlyStore
 
-from .common import patched_read
+from .common import dummy_enpkg_entry_factory, patched_read
 
 class TestEnstallerMainActions(unittest.TestCase):
     def test_print_version(self):
@@ -72,3 +76,55 @@ class TestEnstallerUpdate(unittest.TestCase):
         # both low/high versions are below current enstaller version
         low_version, high_version = "1.0.0", "2.0.0"
         self.assertFalse(self._test_update_enstaller(low_version, high_version))
+
+class TestMisc(unittest.TestCase):
+    def test_disp_store_info(self):
+        info = {"store_location": "https://api.enthought.com/eggs/osx-64/"}
+        self.assertEqual(disp_store_info(info), "api osx-64")
+
+        info = {"store_location": "https://api.enthought.com/eggs/win-32/"}
+        self.assertEqual(disp_store_info(info), "api win-32")
+
+        info = {}
+        self.assertEqual(disp_store_info(info), "-")
+
+    def test_name_egg(self):
+        name = "foo-1.0.0-1.egg"
+        self.assertEqual(name_egg(name), "foo")
+
+        name = "fu_bar-1.0.0-1.egg"
+        self.assertEqual(name_egg(name), "fu_bar")
+
+        with self.assertRaises(AssertionError):
+            name = "some/dir/fu_bar-1.0.0-1.egg"
+            name_egg(name)
+
+def _create_prefix_with_eggs(prefix, installed_eggs, remote_entries=None):
+    if remote_entries is None:
+        remote_entries = []
+    repo = MetadataOnlyStore(remote_entries)
+    repo.connect()
+
+    enpkg = Enpkg(repo, prefixes=[prefix], hook=None,
+                  evt_mgr=None, verbose=False)
+    for egg in installed_eggs:
+        enpkg.ec.install(os.path.basename(egg), os.path.dirname(egg))
+    return enpkg
+
+class TestInfoStrings(unittest.TestCase):
+    def test_print_install_time(self):
+        with mkdtemp() as d:
+            enpkg = _create_prefix_with_eggs(d, [DUMMY_EGG])
+
+            self.assertRegexpMatches(install_time_string(enpkg, "dummy"),
+                                     "dummy-1.0.1-1.egg was installed on:")
+
+            self.assertEqual(install_time_string(enpkg, "ddummy"), "")
+
+    def test_info_option(self):
+        with mkdtemp() as d:
+            entries = [dummy_enpkg_entry_factory("enstaller", "4.6.2", 1),
+                       dummy_enpkg_entry_factory("enstaller", "4.6.3", 1)]
+            enpkg = _create_prefix_with_eggs(d, [], entries)
+
+            info_option(enpkg, "enstaller")

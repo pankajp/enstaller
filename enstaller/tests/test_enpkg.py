@@ -30,19 +30,13 @@ from enstaller.store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
 from enstaller.store.tests.common import EggsStore, MetadataOnlyStore
 from enstaller.utils import PY_VER
 
-from .common import patched_read
+from .common import dummy_enpkg_entry_factory, patched_read
 
 @contextlib.contextmanager
 def catch_warning_for_tests():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         yield w
-
-def dummy_enpkg_entry_factory(name, version, build):
-    data = {"egg_basename": name, "packages": [], "python": PY_VER,
-            "size": 1024, "version": version, "build": build,
-            "available": True}
-    return EnpkgS3IndexEntry.from_data(data)
 
 class TestMisc(unittest.TestCase):
     @mock.patch("enstaller.config.read",

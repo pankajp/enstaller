@@ -75,15 +75,17 @@ def name_egg(egg):
     return split_eggname(egg)[0]
 
 
-def print_install_time(enpkg, name):
+def install_time_string(enpkg, name):
+    lines = []
     for key, info in enpkg.ec.query(name=name):
-        print '%s was installed on: %s' % (key, info['ctime'])
+        lines.append('%s was installed on: %s' % (key, info['ctime']))
+    return "\n".join(lines)
 
 
 def info_option(enpkg, name):
     name = name.lower()
     print 'Package:', name
-    print_install_time(enpkg, name)
+    print install_time_string(enpkg, name)
     pad = 4*' '
     for info in enpkg.info_list_name(name):
         print 'Version: ' + VB_FMT % info
@@ -312,7 +314,7 @@ def install_req(enpkg, req, opts):
             enpkg.execute(actions)
             if len(actions) == 0:
                 print "No update necessary, %r is up-to-date." % req.name
-                print_install_time(enpkg, req.name)
+                print install_time_string(enpkg, req.name)
         except EnpkgError, e:
             if mode == 'root' or e.req is None or e.req == req:
                 # trying to install just one requirement - try to give more info
