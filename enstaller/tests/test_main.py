@@ -1,5 +1,8 @@
 import os.path
+import re
 import unittest
+
+from cStringIO import StringIO
 
 import mock
 
@@ -9,10 +12,10 @@ from egginst.tests.common import mkdtemp, DUMMY_EGG
 
 from enstaller.enpkg import Enpkg
 from enstaller.main import disp_store_info, info_option, \
-    install_time_string, main, name_egg, update_enstaller
+    install_time_string, main, name_egg, print_installed, update_enstaller
 from enstaller.store.tests.common import MetadataOnlyStore
 
-from .common import dummy_enpkg_entry_factory, patched_read
+from .common import dummy_enpkg_entry_factory, mock_print, patched_read
 
 class TestEnstallerMainActions(unittest.TestCase):
     def test_print_version(self):
@@ -128,3 +131,25 @@ class TestInfoStrings(unittest.TestCase):
             enpkg = _create_prefix_with_eggs(d, [], entries)
 
             info_option(enpkg, "enstaller")
+
+    def test_print_installed(self):
+        with mkdtemp() as d:
+            r_out = """\
+Name                 Version              Store
+============================================================
+dummy                1.0.1-1              -
+"""
+            enpkg = _create_prefix_with_eggs(d, [DUMMY_EGG])
+
+            with mock_print() as m:
+                print_installed(d)
+                self.assertEqual(m.value, r_out)
+
+            r_out = """\
+Name                 Version              Store
+============================================================
+"""
+
+            with mock_print() as m:
+                print_installed(d, pat=re.compile("no_dummy"))
+                self.assertEqual(m.value, r_out)

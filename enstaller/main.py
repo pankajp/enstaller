@@ -5,6 +5,8 @@ Its primary command-line interface program is enpkg, which processes user
 commands and in turn invokes egginst to do the actual installations.
 enpkg can access eggs from both local and HTTP repositories.
 """
+from __future__ import print_function
+
 import collections
 import os
 import re
@@ -41,25 +43,25 @@ FMT4 = '%-20s %-20s %-20s %s'
 
 
 def env_option(prefixes):
-    print "Prefixes:"
+    print("Prefixes:")
     for p in prefixes:
-        print '    %s%s' % (p, ['', ' (sys)'][p == sys.prefix])
-    print
+        print('    %s%s' % (p, ['', ' (sys)'][p == sys.prefix]))
+    print()
 
     cmd = ('export', 'set')[sys.platform == 'win32']
-    print "%s PATH=%s" % (cmd, os.pathsep.join(
-                                 join(p, bin_dir_name) for p in prefixes))
+    print("%s PATH=%s" % (cmd, os.pathsep.join(
+                                 join(p, bin_dir_name) for p in prefixes)))
     if len(prefixes) > 1:
-        print "%s PYTHONPATH=%s" % (cmd, os.pathsep.join(
-                            join(p, rel_site_packages) for p in prefixes))
+        print("%s PYTHONPATH=%s" % (cmd, os.pathsep.join(
+                            join(p, rel_site_packages) for p in prefixes)))
 
     if sys.platform != 'win32':
         if sys.platform == 'darwin':
             name = 'DYLD_LIBRARY_PATH'
         else:
             name = 'LD_LIBRARY_PATH'
-        print "%s %s=%s" % (cmd, name, os.pathsep.join(
-                                 join(p, 'lib') for p in prefixes))
+        print("%s %s=%s" % (cmd, name, os.pathsep.join(
+                                 join(p, 'lib') for p in prefixes)))
 
 
 def disp_store_info(info):
@@ -84,41 +86,41 @@ def install_time_string(enpkg, name):
 
 def info_option(enpkg, name):
     name = name.lower()
-    print 'Package:', name
-    print install_time_string(enpkg, name)
+    print('Package:', name)
+    print(install_time_string(enpkg, name))
     pad = 4*' '
     for info in enpkg.info_list_name(name):
-        print 'Version: ' + VB_FMT % info
-        print pad + 'Product: %s' % info.get('product', '')
-        print pad + 'Available: %s' % info.get('available', '')
-        print pad + 'Python version: %s' % info.get('python', '')
-        print pad + 'Store location: %s' % info.get('store_location', '')
+        print('Version: ' + VB_FMT % info)
+        print(pad + 'Product: %s' % info.get('product', ''))
+        print(pad + 'Available: %s' % info.get('available', ''))
+        print(pad + 'Python version: %s' % info.get('python', ''))
+        print(pad + 'Store location: %s' % info.get('store_location', ''))
         mtime = info.get('mtime', '')
         if mtime:
             mtime = datetime.datetime.fromtimestamp(mtime)
-        print pad + 'Last modified: %s' % mtime
-        print pad + 'Type: %s' % info.get('type', '')
-        print pad + 'MD5: %s' % info.get('md5', '')
-        print pad + 'Size: %s' % info.get('size', '')
+        print(pad + 'Last modified: %s' % mtime)
+        print(pad + 'Type: %s' % info.get('type', ''))
+        print(pad + 'MD5: %s' % info.get('md5', ''))
+        print(pad + 'Size: %s' % info.get('size', ''))
         reqs = set(r for r in info['packages'])
-        print pad + "Requirements: %s" % (', '.join(sorted(reqs)) or None)
+        print(pad + "Requirements: %s" % (', '.join(sorted(reqs)) or None))
 
 
 def print_installed(prefix, hook=False, pat=None):
-    print FMT % ('Name', 'Version', 'Store')
-    print 60 * '='
+    print(FMT % ('Name', 'Version', 'Store'))
+    print(60 * '=')
     ec = EggCollection(prefix, hook)
     for egg, info in ec.query():
         if pat and not pat.search(info['name']):
             continue
-        print FMT % (name_egg(egg), VB_FMT % info, disp_store_info(info))
+        print(FMT % (name_egg(egg), VB_FMT % info, disp_store_info(info)))
 
 
 def list_option(prefixes, hook=False, pat=None):
     for prefix in reversed(prefixes):
-        print "prefix:", prefix
+        print("prefix:", prefix)
         print_installed(prefix, hook, pat)
-        print
+        print()
 
 
 def parse_list(fn):
@@ -136,8 +138,8 @@ def parse_list(fn):
 
 
 def imports_option(enpkg, pat=None):
-    print FMT % ('Name', 'Version', 'Location')
-    print 60 * "="
+    print(FMT % ('Name', 'Version', 'Location'))
+    print(60 * "=")
 
     names = set(info['name'] for _, info in enpkg.query_installed())
     for name in sorted(names, key=string.lower):
@@ -148,7 +150,7 @@ def imports_option(enpkg, pat=None):
             if index:
                 info = index.values()[0]
                 loc = 'sys' if c.prefix == sys.prefix else 'user'
-        print FMT % (name, VB_FMT % info, loc)
+        print(FMT % (name, VB_FMT % info, loc))
 
 
 def search(enpkg, pat=None):
@@ -159,8 +161,8 @@ def search(enpkg, pat=None):
     # messages
     SUBSCRIBED = True
 
-    print FMT4 % ('Name', '  Versions', 'Product', 'Note')
-    print 80 * '='
+    print(FMT4 % ('Name', '  Versions', 'Product', 'Note'))
+    print(80 * '=')
 
     names = {}
     for key, info in enpkg.query_remote():
@@ -183,8 +185,8 @@ def search(enpkg, pat=None):
             product = info.get('product', '')
             if not(available):
                 SUBSCRIBED = False
-            print FMT4 % (disp_name, disp_ver, product,
-                   '' if available else 'not subscribed to')
+            print(FMT4 % (disp_name, disp_ver, product,
+                   '' if available else 'not subscribed to'))
             disp_name = ''
 
     # if the user's search returns any packages that are not available
@@ -195,8 +197,8 @@ def search(enpkg, pat=None):
         try:
             user = config.authenticate(config.get_auth())
         except Exception as e:
-            print e.message
-        print config.subscription_message(user)
+            print(e.message)
+        print(config.subscription_message(user))
 
 
 def updates_check(enpkg):
@@ -218,54 +220,54 @@ def updates_check(enpkg):
 def whats_new(enpkg):
     updates, EPD_update = updates_check(enpkg)
     if not (updates or EPD_update):
-        print "No new version of any installed package is available"
+        print("No new version of any installed package is available")
     else:
         if EPD_update:
             new_EPD_version = VB_FMT % EPD_update[0]['update']
-            print "EPD", new_EPD_version, "is available. " \
-                "To update to it (with confirmation warning), run 'enpkg epd'."
+            print("EPD", new_EPD_version, "is available. " \
+                "To update to it (with confirmation warning), run 'enpkg epd'.")
         if updates:
-            print FMT % ('Name', 'installed', 'available')
-            print 60 * "="
+            print(FMT % ('Name', 'installed', 'available'))
+            print(60 * "=")
             for update in updates:
-                print FMT % (name_egg(update['current']['key']),
+                print(FMT % (name_egg(update['current']['key']),
                              VB_FMT % update['current'],
-                             VB_FMT % update['update'])
+                             VB_FMT % update['update']))
 
 
 def update_all(enpkg, args):
     updates, EPD_update = updates_check(enpkg)
     if not (updates or EPD_update):
-        print "No new version of any installed package is available"
+        print("No new version of any installed package is available")
     else:
         if EPD_update:
             new_EPD_version = VB_FMT % EPD_update[0]['update']
-            print "EPD", new_EPD_version, "is available. " \
-                "To update to it (with confirmation warning), run 'enpkg epd'."
+            print("EPD", new_EPD_version, "is available. " \
+                "To update to it (with confirmation warning), run 'enpkg epd'.")
         if updates:
             print ("The following updates and their dependencies "
                    "will be installed")
-            print FMT % ('Name', 'installed', 'available')
-            print 60 * "="
+            print(FMT % ('Name', 'installed', 'available'))
+            print(60 * "=")
             for update in updates:
-                print FMT % (name_egg(update['current']['key']),
+                print(FMT % (name_egg(update['current']['key']),
                              VB_FMT % update['current'],
-                             VB_FMT % update['update'])
+                             VB_FMT % update['update']))
             for update in updates:
                 install_req(enpkg, update['current']['name'], args)
 
 def epd_install_confirm():
-    print "Warning: 'enpkg epd' will downgrade any packages that are currently"
-    print "at a higher version than in the specified EPD release."
-    print "Usually it is preferable to update all installed packages with:"
-    print "    enpkg --update-all"
+    print("Warning: 'enpkg epd' will downgrade any packages that are currently")
+    print("at a higher version than in the specified EPD release.")
+    print("Usually it is preferable to update all installed packages with:")
+    print("    enpkg --update-all")
     yn = raw_input("Are you sure that you wish to proceed? (y/[n]) ")
     return yn.lower() in set(['y', 'yes'])
 
 def add_url(url, verbose):
     url = fill_url(url)
     if url in config.get('IndexedRepos'):
-        print "Already configured:", url
+        print("Already configured:", url)
         return
     config.prepend_url(url)
 
@@ -313,35 +315,35 @@ def install_req(enpkg, req, opts):
                     force=opts.force, forceall=opts.forceall)
             enpkg.execute(actions)
             if len(actions) == 0:
-                print "No update necessary, %r is up-to-date." % req.name
-                print install_time_string(enpkg, req.name)
+                print("No update necessary, %r is up-to-date." % req.name)
+                print(install_time_string(enpkg, req.name))
         except EnpkgError, e:
             if mode == 'root' or e.req is None or e.req == req:
                 # trying to install just one requirement - try to give more info
                 info_list = enpkg.info_list_name(req.name)
                 if info_list:
-                    print "Versions for package %r are:\n%s" % (req.name,
-                        pretty_print_packages(info_list))
+                    print("Versions for package %r are:\n%s" % (req.name,
+                        pretty_print_packages(info_list)))
                     if any(not i.get('available', True) for i in info_list):
                         if config.get('use_webservice') and not(last_try):
                             _check_auth()
                         else:
                             _done(FAILURE)
                 else:
-                    print e.message
+                    print(e.message)
                     _done(FAILURE)
             elif mode == 'recur':
-                print e.message
-                print '\n'.join(textwrap.wrap(
+                print(e.message)
+                print('\n'.join(textwrap.wrap(
                     "You may be able to force an install of just this "
                     "egg by using the --no-deps enpkg commandline argument "
-                    "after installing another version of the dependency. "))
+                    "after installing another version of the dependency. ")))
                 if e.req:
                     info_list = enpkg.info_list_name(e.req.name)
                     if info_list:
-                        print ("Available versions of the required package "
+                        print(("Available versions of the required package "
                                "%r are:\n%s") % (
-                            e.req.name, pretty_print_packages(info_list))
+                            e.req.name, pretty_print_packages(info_list)))
                         if any(not i.get('available', True) for i in info_list):
                             if config.get('use_webservice') and not(last_try):
                                 _check_auth()
@@ -350,8 +352,8 @@ def install_req(enpkg, req, opts):
             _done(FAILURE)
         except OSError as e:
             if e.errno == errno.EACCES and sys.platform == 'darwin':
-                print "Install failed. OSX install requires admin privileges."
-                print "You should add 'sudo ' before the 'enpkg' command."
+                print("Install failed. OSX install requires admin privileges.")
+                print("You should add 'sudo ' before the 'enpkg' command.")
                 _done(FAILURE)
             else:
                 raise
@@ -366,12 +368,12 @@ def install_req(enpkg, req, opts):
             assert(user['is_authenticated'])
             # An EPD Free user who is trying to install a package not in
             # EPD free.  Print out subscription level and fail.
-            print config.subscription_message(user)
+            print(config.subscription_message(user))
             _done(FAILURE)
         except Exception as e:
-            print e.message
+            print(e.message)
             # No credentials.
-            print ""
+            print("")
             _prompt_for_auth()
 
     def _prompt_for_auth():
@@ -458,7 +460,7 @@ def update_enstaller(enpkg, opts):
                 install_req(enpkg, 'enstaller', opts)
                 updated = True
     except EnpkgError as e:
-        print "Can't update enstaller:", e
+        print("Can't update enstaller:", e)
     return updated
 
 
@@ -587,10 +589,10 @@ def main(argv=None):
     exit_if_sudo_on_venv(prefix)
 
     if args.verbose:
-        print "Prefixes:"
+        print("Prefixes:")
         for prefix in prefixes:
-            print '    %s%s' % (prefix, ['', ' (sys)'][prefix == sys.prefix])
-        print
+            print('    %s%s' % (prefix, ['', ' (sys)'][prefix == sys.prefix]))
+        print()
 
     if args.env:                                  # --env
         env_option(prefixes)
@@ -640,7 +642,7 @@ def main(argv=None):
     if args.dry_run:
         def print_actions(actions):
             for item in actions:
-                print '%-8s %s' % item
+                print('%-8s %s' % item)
         enpkg.execute = print_actions
 
     if args.imports:                              # --imports
@@ -660,17 +662,17 @@ def main(argv=None):
         try:
             actions = enpkg.revert_actions(arg)
             if not actions:
-                print "Nothing to do"
+                print("Nothing to do")
                 return
             enpkg.execute(actions)
         except EnpkgError as e:
-            print e.message
+            print(e.message)
         return
 
     # Try to auto-update enstaller
     if update_enstaller(enpkg, args):
-        print "Enstaller has been updated.", \
-            "Please re-run your previous command."
+        print("Enstaller has been updated.", \
+            "Please re-run your previous command.")
         return
 
     if args.search:                               # --search
@@ -707,24 +709,24 @@ def main(argv=None):
             reqs.append(Req(arg))
 
     if args.verbose:
-        print "Requirements:"
+        print("Requirements:")
         for req in reqs:
-            print '    %r' % req
-        print
+            print('    %r' % req)
+        print()
 
-    print "prefix:", prefix
+    print("prefix:", prefix)
 
     REMOVE_ENSTALLER_WARNING = ("Removing enstaller package will break enpkg "
                                 "and is not recommended.")
     if args.remove:
         if any(req.name == 'enstaller' for req in reqs):
-            print REMOVE_ENSTALLER_WARNING
-            print "If you are sure you wish to remove enstaller, use:"
-            print "    enpkg --remove-enstaller"
+            print(REMOVE_ENSTALLER_WARNING)
+            print("If you are sure you wish to remove enstaller, use:")
+            print("    enpkg --remove-enstaller")
             return
 
     if args.remove_enstaller:
-        print REMOVE_ENSTALLER_WARNING
+        print(REMOVE_ENSTALLER_WARNING)
         yn = raw_input("Really remove enstaller? (y/[n]) ")
         if yn.lower() in set(['y', 'yes']):
             args.remove = True
@@ -744,7 +746,7 @@ def main(argv=None):
             try:
                 enpkg.execute(enpkg.remove_actions(req))
             except EnpkgError as e:
-                print e.message
+                print(e.message)
         else:
             install_req(enpkg, req, args)             # install (default)
 
