@@ -16,7 +16,8 @@ import mock
 import enstaller.config
 
 from enstaller.config import AuthFailedError, authenticate, change_auth, \
-    clear_cache, get, get_auth, get_default_url, get_path, input_auth, web_auth, write
+    clear_cache, get, get_auth, get_default_url, get_path, input_auth, \
+    subscription_level, web_auth, write
 
 from .common import patched_read
 
@@ -381,3 +382,21 @@ class TestAuthenticate(unittest.TestCase):
 
             with self.assertRaises(AuthFailedError):
                 authenticate((FAKE_USER, FAKE_PASSWORD), remote)
+
+class TestSubscriptionLevel(unittest.TestCase):
+    def test_unsubscribed_user(self):
+        user_info = {"is_authenticated": True}
+        self.assertEqual(subscription_level(user_info), "EPD")
+
+        user_info = {"is_authenticated": False}
+        self.assertIsNone(subscription_level(user_info))
+
+    def test_subscribed_user(self):
+        user_info = {"has_subscription": True, "is_authenticated": True}
+        self.assertEqual(subscription_level(user_info), "EPD Basic or above")
+
+        user_info = {"has_subscription": False, "is_authenticated": True}
+        self.assertEqual(subscription_level(user_info), "EPD Free")
+
+        user_info = {"has_subscription": False, "is_authenticated": False}
+        self.assertIsNone(subscription_level(user_info))
