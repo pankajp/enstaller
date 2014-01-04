@@ -27,7 +27,7 @@ class MockedPrint(object):
         self.s = StringIO()
 
     def __call__(self, *a):
-        self.s.write(" ".join(a) + "\n")
+        self.s.write(" ".join(str(_) for _ in a) + "\n")
 
     @property
     def value(self):

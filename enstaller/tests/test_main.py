@@ -12,7 +12,8 @@ from egginst.tests.common import mkdtemp, DUMMY_EGG
 
 from enstaller.enpkg import Enpkg
 from enstaller.main import disp_store_info, info_option, \
-    install_time_string, main, name_egg, print_installed, update_enstaller
+    install_time_string, main, name_egg, print_installed, search, \
+    update_enstaller
 from enstaller.store.tests.common import MetadataOnlyStore
 
 from .common import dummy_enpkg_entry_factory, mock_print, patched_read
@@ -153,3 +154,99 @@ Name                 Version              Store
             with mock_print() as m:
                 print_installed(d, pat=re.compile("no_dummy"))
                 self.assertEqual(m.value, r_out)
+
+class TestSearch(unittest.TestCase):
+    @mock.patch("enstaller.config.read", lambda: patched_read(use_webservice=False))
+    def test_no_installed(self):
+        with mkdtemp() as d:
+            # XXX: isn't there a better way to ensure ws at the end of a line
+            # are not eaten away ?
+            r_output = """\
+Name                   Versions           Product              Note
+================================================================================
+another_dummy          2.0.0-1            commercial           DUMMY_ANCHOR
+dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
+                       1.0.0-1            commercial           DUMMY_ANCHOR
+""".replace("DUMMY_ANCHOR", "")
+            entries = [dummy_enpkg_entry_factory("dummy", "1.0.0", 1),
+                       dummy_enpkg_entry_factory("dummy", "0.9.8", 1),
+                       dummy_enpkg_entry_factory("another_dummy", "2.0.0", 1)]
+            enpkg = _create_prefix_with_eggs(d, [], entries)
+
+            with mock_print() as m:
+                search(enpkg)
+                self.assertMultiLineEqual(m.value, r_output)
+
+    @mock.patch("enstaller.config.read", lambda: patched_read(use_webservice=False))
+    def test_installed(self):
+        with mkdtemp() as d:
+            r_output = """\
+Name                   Versions           Product              Note
+================================================================================
+dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
+                     * 1.0.1-1            commercial           DUMMY_ANCHOR
+""".replace("DUMMY_ANCHOR", "")
+            entries = [dummy_enpkg_entry_factory("dummy", "1.0.1", 1),
+                       dummy_enpkg_entry_factory("dummy", "0.9.8", 1)]
+            enpkg = _create_prefix_with_eggs(d, [DUMMY_EGG], entries)
+
+            with mock_print() as m:
+                search(enpkg)
+                self.assertMultiLineEqual(m.value, r_output)
+
+    @mock.patch("enstaller.config.read", lambda: patched_read(use_webservice=False))
+    def test_pattern(self):
+        with mkdtemp() as d:
+            r_output = """\
+Name                   Versions           Product              Note
+================================================================================
+dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
+                     * 1.0.1-1            commercial           DUMMY_ANCHOR
+""".replace("DUMMY_ANCHOR", "")
+            entries = [dummy_enpkg_entry_factory("dummy", "1.0.1", 1),
+                       dummy_enpkg_entry_factory("dummy", "0.9.8", 1),
+                       dummy_enpkg_entry_factory("another_package", "2.0.0", 1)]
+            enpkg = _create_prefix_with_eggs(d, [DUMMY_EGG], entries)
+
+            with mock_print() as m:
+                search(enpkg, pat=re.compile("dummy"))
+                self.assertMultiLineEqual(m.value, r_output)
+
+            r_output = """\
+Name                   Versions           Product              Note
+================================================================================
+another_package        2.0.0-1            commercial           DUMMY_ANCHOR
+dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
+                     * 1.0.1-1            commercial           DUMMY_ANCHOR
+""".replace("DUMMY_ANCHOR", "")
+            with mock_print() as m:
+                search(enpkg, pat=re.compile(".*"))
+                self.assertMultiLineEqual(m.value, r_output)
+
+    @mock.patch("enstaller.config.read", lambda: patched_read(use_webservice=True))
+    def test_not_available(self):
+        r_output = """\
+Name                   Versions           Product              Note
+================================================================================
+another_package        2.0.0-1            commercial           not subscribed to
+dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
+                       1.0.1-1            commercial           DUMMY_ANCHOR
+
+""".replace("DUMMY_ANCHOR", "")
+        another_entry = dummy_enpkg_entry_factory("another_package", "2.0.0", 1)
+        another_entry.available = False
+
+        entries = [dummy_enpkg_entry_factory("dummy", "1.0.1", 1),
+                   dummy_enpkg_entry_factory("dummy", "0.9.8", 1),
+                   another_entry]
+
+        with mock.patch("enstaller.main.config") as mocked_config:
+            with mkdtemp() as d:
+                with mock_print() as m:
+                    attrs = {"subscription_message.return_value": ""}
+                    mocked_config.configure_mock(**attrs)
+                    enpkg = _create_prefix_with_eggs(d, [], entries)
+                    search(enpkg)
+
+                    self.assertMultiLineEqual(m.value, r_output)
+                    self.assertTrue(mocked_config.subscription_message.called)
