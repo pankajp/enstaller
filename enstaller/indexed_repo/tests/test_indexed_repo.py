@@ -5,6 +5,7 @@ from os.path import abspath, dirname, normpath
 
 import mock
 
+from enstaller.utils import PY_VER
 from enstaller.indexed_repo import Chain
 import enstaller.indexed_repo.dist_naming as dist_naming
 import enstaller.indexed_repo.requirement as requirement
@@ -249,6 +250,7 @@ class TestChain1(unittest.TestCase):
                               Req('numpy'),
                               Req('pysparse 1.2.dev203')]))
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.7")
     def test_root(self):
         self.assertEqual(self.c.install_sequence(Req('numpy 1.5.1'),
                                                  mode='root'),
@@ -258,11 +260,13 @@ class TestChain1(unittest.TestCase):
                                                  mode='root'),
                          [self.repos['epd'] + 'numpy-1.5.1-1.egg'])
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.7")
     def test_order1(self):
         self.assertEqual(self.c.install_sequence(Req('numpy')),
                          [self.repos['epd'] + egg for egg in
                           'MKL-10.3-1.egg', 'numpy-1.6.0-3.egg'])
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.7")
     def test_order2(self):
         self.assertEqual(self.c.install_sequence(Req('scipy')),
                          [self.repos['epd'] + egg for egg in
@@ -281,6 +285,7 @@ class TestChain2(unittest.TestCase):
         self.c = c
         self.repos = repos
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.7")
     def test_flat_recur1(self):
         d1 = self.c.install_sequence(Req('openepd'), mode='flat')
         d2 = self.c.install_sequence(Req('openepd'), mode='recur')
@@ -294,6 +299,7 @@ class TestChain2(unittest.TestCase):
             d2 = self.c.install_sequence(Req(rs), mode='recur')
             self.assertEqual(d1, d2)
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.7")
     def test_multiple_reqs(self):
         lst = self.c.install_sequence(Req('ets'))
         self.assert_(self.repos['epd'] + 'numpy-1.5.1-2.egg' in lst)
