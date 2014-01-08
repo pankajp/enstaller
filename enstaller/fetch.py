@@ -75,7 +75,7 @@ class FetchAPI(object):
         if hasattr(fi, "close"):
             fi.close()
         else:
-            # Compat schim for requests < 2
+            # Compat shim for requests < 2
             fi._fp.close()
 
         if md5 and h.hexdigest() != md5:
