@@ -71,7 +71,12 @@ class FetchAPI(object):
                         h.update(chunk)
                     n += len(chunk)
                     progress(step=n)
-        fi.close()
+
+        if hasattr(fi, "close"):
+            fi.close()
+        else:
+            # Compat schim for requests < 2
+            fi._fp.close()
 
         if md5 and h.hexdigest() != md5:
             raise ValueError("received data MD5 sums mismatch")
