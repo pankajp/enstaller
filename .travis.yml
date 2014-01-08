@@ -8,9 +8,10 @@ install:
        else
        pip install -r dev_requirements.txt;
        fi
+   - pip install coveralls
    - python setup.py develop
 script:
-  - nosetests --with-coverage --cover-package=egginst,enstaller enstaller egginst
+    - coverage run --source=enstaller,egginst -m nose.core enstaller egginst
 notifications:
   email:
     - davidc@enthought.com
