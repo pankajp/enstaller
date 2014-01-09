@@ -122,5 +122,6 @@ setup(
         "Topic :: System :: Software Distribution",
         "Topic :: System :: Systems Administration",
     ],
+    test_suite="nose.collector",
     **kwds
 )
