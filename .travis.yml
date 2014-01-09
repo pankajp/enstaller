@@ -10,10 +10,10 @@ install:
        fi
    - pip install coveralls
    - python setup.py develop
-#script:
-#    - coverage run --source=enstaller,egginst -m nose.core enstaller egginst
-#after_success:
-#    coveralls
+script:
+    - coverage run --source=enstaller,egginst -m nose.core enstaller egginst
+after_success:
+    coveralls
 notifications:
   email:
     - davidc@enthought.com
