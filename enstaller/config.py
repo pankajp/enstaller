@@ -14,8 +14,21 @@ from os.path import isfile, join
 from enstaller import __version__
 from utils import PY_VER, abs_expanduser, fill_url
 
+def __import_new_keyring():
+    """
+    Import keyring >= 1.1.
+    """
+    import keyring.backends.OS_X
+    import keyring.backends.Gnome
+    import keyring.backends.Windows
+    import keyring.backends.kwallet
 
-try:
+    keyring.core.init_backend()
+    if keyring.get_keyring().priority < 0:
+        keyring = None
+    return keyring
+
+def __import_old_keyring():
     import keyring
     import keyring.backend
     # don't use keyring backends that require console input or just do
@@ -29,10 +42,21 @@ try:
     keyring.core.init_backend()
     if keyring.get_keyring().supported() < 0:
         keyring = None
-except (ImportError, KeyError):
-    # the KeyError happens on Windows when the environment variable
-    # 'USERPROFILE' is not set
+    return keyring
+
+try:
+    import keyring
+except ImportError, KeyError:
+    # The KeyError happens when USERPROFILE env var is not defined on windows
     keyring = None
+else:
+    try:
+        keyring = __import_new_keyring()
+    except ImportError:
+        try:
+            keyring = __import_old_keyring()
+        except ImportError:
+            keyring = None
 
 KEYRING_SERVICE_NAME = 'Enthought.com'
 REPOSITORY_CACHE_CONFIG_NAME = "repository_cache"
