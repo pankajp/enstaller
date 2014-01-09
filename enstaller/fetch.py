@@ -6,6 +6,7 @@ from uuid import uuid4
 from os.path import basename, isdir, isfile, join
 
 from egginst.utils import human_bytes, rm_rf
+from enstaller.compat import close_file_or_response
 from utils import md5_file
 
 
@@ -61,7 +62,7 @@ class FetchAPI(object):
             with open(pp, 'wb') as fo:
                 while True:
                     if execution_aborted is not None and execution_aborted.is_set():
-                        fi.close()
+                        close_file_or_response(fi)
                         return
                     chunk = fi.read(buffsize)
                     if not chunk:
@@ -72,11 +73,7 @@ class FetchAPI(object):
                     n += len(chunk)
                     progress(step=n)
 
-        if hasattr(fi, "close"):
-            fi.close()
-        else:
-            # Compat shim for requests < 2
-            fi._fp.close()
+        close_file_or_response(fi)
 
         if md5 and h.hexdigest() != md5:
             raise ValueError("received data MD5 sums mismatch")
