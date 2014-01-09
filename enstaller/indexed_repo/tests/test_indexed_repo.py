@@ -3,6 +3,9 @@ import sys
 import unittest
 from os.path import abspath, dirname, normpath
 
+import mock
+
+from enstaller.utils import PY_VER
 from enstaller.indexed_repo import Chain
 import enstaller.indexed_repo.dist_naming as dist_naming
 import enstaller.indexed_repo.requirement as requirement
@@ -173,14 +176,16 @@ def eggs_rs(c, req_string):
 
 
 class TestChain0(unittest.TestCase):
+    def setUp(self):
+        c = Chain(verbose=0)
+        for fn in ['index-add.txt', 'index-5.1.txt', 'index-5.0.txt']:
+            repo = "{0}/".format(path_to_uri(dirname(__file__)))
+            c.add_repo(repo, fn)
 
-    c = Chain(verbose=0)
-    for fn in ['index-add.txt', 'index-5.1.txt', 'index-5.0.txt']:
-        repo = "{0}/".format(path_to_uri(dirname(__file__)))
-        c.add_repo(repo, fn)
+        self.c = c
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.5")
     def test_25(self):
-        requirement.PY_VER = '2.5'
         self.assertEqual(eggs_rs(self.c, 'SciPy 0.8.0.dev5698'),
                          ['freetype-2.3.7-1.egg', 'libjpeg-7.0-1.egg',
                           'numpy-1.3.0-1.egg', 'PIL-1.1.6-4.egg',
@@ -193,9 +198,8 @@ class TestChain0(unittest.TestCase):
                          ['AppInst-2.0.4-1.egg', 'numpy-1.3.0-1.egg',
                           'scipy-0.8.0-1.egg', 'EPDCore-1.2.5-1.egg'])
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.6")
     def test_26(self):
-        requirement.PY_VER = '2.6'
-
         self.assertEqual(eggs_rs(self.c, 'SciPy'),
                          ['numpy-1.3.0-2.egg', 'scipy-0.8.0-2.egg'])
 
@@ -204,15 +208,17 @@ class TestChain0(unittest.TestCase):
                           'EPDCore-2.0.0-1.egg'])
 
 class TestChain1(unittest.TestCase):
-
-    repos = {None: None}
-    c = Chain(verbose=0)
-    for name in 'epd', 'gpl':
-        # XXX: relying on having a '/' is horrible, but that assumption is made
-        # in enough places through the code that we don't want to change it.
-        repo = "{0}/".format(path_to_uri(posixpath.join(dirname(__file__), name)))
-        c.add_repo(repo, 'index-7.1.txt')
-        repos[name] = repo
+    def setUp(self):
+        repos = {None: None}
+        c = Chain(verbose=0)
+        for name in 'epd', 'gpl':
+            # XXX: relying on having a '/' is horrible, but that assumption is made
+            # in enough places through the code that we don't want to change it.
+            repo = "{0}/".format(path_to_uri(posixpath.join(dirname(__file__), name)))
+            c.add_repo(repo, 'index-7.1.txt')
+            repos[name] = repo
+        self.c = c
+        self.repos = repos
 
     def test_get_repo(self):
         for req_string, repo_name in [
@@ -223,8 +229,8 @@ class TestChain1(unittest.TestCase):
             self.assertEqual(self.c.get_repo(Req(req_string)),
                              self.repos[repo_name])
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.7")
     def test_get_dist(self):
-        requirement.PY_VER = '2.7'
         for req_string, dist in [
             ('MySQL_python',  self.repos['gpl'] + 'MySQL_python-1.2.3-2.egg'),
             ('numpy',         self.repos['epd'] + 'numpy-1.6.0-3.egg'),
@@ -244,6 +250,7 @@ class TestChain1(unittest.TestCase):
                               Req('numpy'),
                               Req('pysparse 1.2.dev203')]))
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.7")
     def test_root(self):
         self.assertEqual(self.c.install_sequence(Req('numpy 1.5.1'),
                                                  mode='root'),
@@ -253,11 +260,13 @@ class TestChain1(unittest.TestCase):
                                                  mode='root'),
                          [self.repos['epd'] + 'numpy-1.5.1-1.egg'])
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.7")
     def test_order1(self):
         self.assertEqual(self.c.install_sequence(Req('numpy')),
                          [self.repos['epd'] + egg for egg in
                           'MKL-10.3-1.egg', 'numpy-1.6.0-3.egg'])
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.7")
     def test_order2(self):
         self.assertEqual(self.c.install_sequence(Req('scipy')),
                          [self.repos['epd'] + egg for egg in
@@ -266,14 +275,17 @@ class TestChain1(unittest.TestCase):
 
 
 class TestChain2(unittest.TestCase):
+    def setUp(self):
+        repos = {}
+        c = Chain(verbose=0)
+        for name in 'open', 'runner', 'epd':
+            repo = "{0}/".format(path_to_uri(posixpath.join(dirname(__file__), name)))
+            c.add_repo(repo, 'index-7.1.txt')
+            repos[name] = repo
+        self.c = c
+        self.repos = repos
 
-    repos = {}
-    c = Chain(verbose=0)
-    for name in 'open', 'runner', 'epd':
-        repo = "{0}/".format(path_to_uri(posixpath.join(dirname(__file__), name)))
-        c.add_repo(repo, 'index-7.1.txt')
-        repos[name] = repo
-
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.7")
     def test_flat_recur1(self):
         d1 = self.c.install_sequence(Req('openepd'), mode='flat')
         d2 = self.c.install_sequence(Req('openepd'), mode='recur')
@@ -287,6 +299,7 @@ class TestChain2(unittest.TestCase):
             d2 = self.c.install_sequence(Req(rs), mode='recur')
             self.assertEqual(d1, d2)
 
+    @mock.patch("enstaller.indexed_repo.requirement.PY_VER", "2.7")
     def test_multiple_reqs(self):
         lst = self.c.install_sequence(Req('ets'))
         self.assert_(self.repos['epd'] + 'numpy-1.5.1-2.egg' in lst)
