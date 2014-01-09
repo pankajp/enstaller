@@ -158,29 +158,33 @@ class TestWriteConfig(unittest.TestCase):
 
 AUTH_API_URL = 'https://api.enthought.com/accounts/user/info/'
 
-class TestWebAuth(unittest.TestCase):
-    r_json_resp = {'first_name': u'David',
-                   'has_subscription': True,
-                   'is_active': True,
-                   'is_authenticated': True,
-                   'last_name': u'Cournapeau',
-                   'subscription_level': u'basic'}
+R_JSON_AUTH_RESP = {'first_name': u'David',
+        'has_subscription': True,
+        'is_active': True,
+        'is_authenticated': True,
+        'last_name': u'Cournapeau',
+        'subscription_level': u'basic'}
 
+R_JSON_NOAUTH_RESP = {'is_authenticated': False,
+        'last_name': u'Cournapeau',
+        'subscription_level': u'basic'}
+
+class TestWebAuth(unittest.TestCase):
     def test_invalid_auth_args(self):
         with self.assertRaises(AuthFailedError):
             web_auth((None, None))
 
     def test_simple(self):
         with mock.patch("enstaller.config.urllib2") as murllib2:
-            attrs = {'urlopen.return_value': StringIO(json.dumps(self.r_json_resp))}
+            attrs = {'urlopen.return_value': StringIO(json.dumps(R_JSON_AUTH_RESP))}
             murllib2.configure_mock(**attrs)
             self.assertEqual(web_auth((FAKE_USER, FAKE_PASSWORD)),
-                             self.r_json_resp)
+                             R_JSON_AUTH_RESP)
 
     def test_auth_encoding(self):
         r_headers = {"Authorization": "Basic " + FAKE_CREDS}
         with mock.patch("enstaller.config.urllib2") as murllib2:
-            attrs = {'urlopen.return_value': StringIO(json.dumps(self.r_json_resp))}
+            attrs = {'urlopen.return_value': StringIO(json.dumps(R_JSON_AUTH_RESP))}
             murllib2.configure_mock(**attrs)
 
             web_auth((FAKE_USER, FAKE_PASSWORD))
@@ -210,11 +214,8 @@ class TestWebAuth(unittest.TestCase):
                 web_auth((FAKE_USER, FAKE_PASSWORD))
 
     def test_unauthenticated_user(self):
-        r_json_resp = {'is_authenticated': False,
-                       'last_name': u'Cournapeau',
-                       'subscription_level': u'basic'}
         with mock.patch("enstaller.config.urllib2") as murllib2:
-            attrs = {'urlopen.return_value': StringIO(json.dumps(r_json_resp))}
+            attrs = {'urlopen.return_value': StringIO(json.dumps(R_JSON_NOAUTH_RESP))}
             murllib2.configure_mock(**attrs)
 
             with self.assertRaises(AuthFailedError):
