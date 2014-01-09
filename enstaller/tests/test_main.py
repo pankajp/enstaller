@@ -17,7 +17,7 @@ from egginst.tests.common import mkdtemp, DUMMY_EGG
 
 from enstaller.enpkg import Enpkg
 from enstaller.eggcollect import EggCollection
-from enstaller.main import disp_store_info, info_option, \
+from enstaller.main import disp_store_info, epd_install_confirm, info_option, \
     install_time_string, main, name_egg, print_installed, search, \
     updates_check, update_enstaller, whats_new
 from enstaller.store.tests.common import MetadataOnlyStore
@@ -109,6 +109,15 @@ class TestMisc(unittest.TestCase):
         with self.assertRaises(AssertionError):
             name = "some/dir/fu_bar-1.0.0-1.egg"
             name_egg(name)
+
+    def test_epd_install_confirm(self):
+        for allowed_yes in ("y", "Y", "yes", "YES", "YeS"):
+            with mock.patch("__builtin__.raw_input", lambda ignored: allowed_yes):
+                self.assertTrue(epd_install_confirm())
+
+        for non_yes in ("n", "N", "no", "NO", "dummy"):
+            with mock.patch("__builtin__.raw_input", lambda ignored: non_yes):
+                self.assertFalse(epd_install_confirm())
 
 def _create_prefix_with_eggs(prefix, installed_entries=None, remote_entries=None):
     if remote_entries is None:
