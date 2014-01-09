@@ -228,7 +228,7 @@ class TestGetAuth(unittest.TestCase):
             elif arg == "EPD_username":
                 return FAKE_USER
             else:
-                get(arg)
+                return get(arg)
 
         with mock.patch("enstaller.config.get", mocked_get):
             with mock.patch("enstaller.config.keyring") as mocked_keyring:
@@ -244,7 +244,7 @@ class TestGetAuth(unittest.TestCase):
             if arg == "EPD_auth":
                 return FAKE_CREDS
             else:
-                get(arg)
+                return get(arg)
 
         with mock.patch("enstaller.config.get", mocked_get):
             self.assertEqual(get_auth(), (FAKE_USER, FAKE_PASSWORD))
@@ -254,7 +254,7 @@ class TestGetAuth(unittest.TestCase):
             if arg == "EPD_auth":
                 return FAKE_CREDS
             else:
-                get(arg)
+                return get(arg)
 
         with mock.patch("enstaller.config.get", mocked_get):
             with mock.patch("enstaller.config.keyring"):
@@ -268,7 +268,7 @@ class TestGetAuth(unittest.TestCase):
             if arg in ("EPD_auth", "EPD_username"):
                 return None
             else:
-                get(arg)
+                return get(arg)
 
         with mock.patch("enstaller.config.get", mocked_get):
             self.assertEqual(get_auth(), (None, None))
