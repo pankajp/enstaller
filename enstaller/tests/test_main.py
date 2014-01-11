@@ -16,7 +16,7 @@ from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 from egginst.tests.common import mkdtemp, DUMMY_EGG
 
 from enstaller.enpkg import Enpkg
-from enstaller.eggcollect import EggCollection
+from enstaller.eggcollect import EggCollection, JoinedEggCollection
 from enstaller.main import disp_store_info, epd_install_confirm, info_option, \
     install_time_string, main, name_egg, print_installed, search, \
     updates_check, update_enstaller, whats_new
@@ -130,7 +130,8 @@ def _create_prefix_with_eggs(prefix, installed_entries=None, remote_entries=None
 
     enpkg = Enpkg(repo, prefixes=[prefix], hook=None,
                   evt_mgr=None, verbose=False)
-    enpkg.ec = MetaOnlyEggCollection(installed_entries)
+    enpkg.ec = JoinedEggCollection([
+        MetaOnlyEggCollection(installed_entries)])
     return enpkg
 
 class TestInfoStrings(unittest.TestCase):
@@ -339,11 +340,13 @@ class TestUpdatesCheck(unittest.TestCase):
             self.assertEqual(epd_update0["update"]["version"], "7.3")
 
     def test_whats_new_no_new_epd(self):
+        # XXX: fragile, as it depends on dict ordering from
+        # EggCollection.query_installed. We should sort the output instead.
         r_output = """\
 Name                 installed            available
 ============================================================
-numpy                1.7.1-1              1.7.1-2
 scipy                0.12.0-1             0.13.0-1
+numpy                1.7.1-1              1.7.1-2
 """
         installed_entries = [
             dummy_installed_egg_factory("numpy", "1.7.1", 1),
