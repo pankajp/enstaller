@@ -1,6 +1,11 @@
+import errno
+import functools
 import os.path
 import re
+import shutil
 import sys
+import tempfile
+import textwrap
 
 if sys.version_info[:2] < (2, 7):
     import unittest2 as unittest
@@ -11,19 +16,20 @@ from cStringIO import StringIO
 
 import mock
 
-from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
+from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry, Dependency
 
 from egginst.tests.common import mkdtemp, DUMMY_EGG
 
 from enstaller.enpkg import Enpkg
 from enstaller.eggcollect import EggCollection, JoinedEggCollection
 from enstaller.main import disp_store_info, epd_install_confirm, info_option, \
-    install_time_string, main, name_egg, print_installed, search, \
+    install_req, install_time_string, main, name_egg, print_installed, search, \
     updates_check, update_enstaller, whats_new
 from enstaller.store.tests.common import MetadataOnlyStore
 
 from .common import MetaOnlyEggCollection, dummy_enpkg_entry_factory, \
-    dummy_installed_egg_factory, mock_print, patched_read
+    dummy_installed_egg_factory, mock_print, patched_read, \
+    dont_use_webservice, is_not_authenticated, is_authenticated, use_webservice
 
 class TestEnstallerMainActions(unittest.TestCase):
     def test_print_version(self):
@@ -399,3 +405,158 @@ numpy                1.7.1-1              1.7.1-2
             with mock_print() as m:
                 whats_new(enpkg)
                 self.assertMultiLineEqual(m.value, r_output)
+
+class FakeOptions(object):
+    def __init__(self):
+        self.force = False
+        self.forceall = False
+        self.no_deps = False
+
+class TestInstallReq(unittest.TestCase):
+    def setUp(self):
+        self.prefix = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.prefix)
+
+    def test_simple_install(self):
+        remote_entries = [
+            dummy_enpkg_entry_factory("nose", "1.3.0", 1)
+        ]
+
+        with mock.patch("enstaller.main.Enpkg.execute") as m:
+            enpkg = _create_prefix_with_eggs(self.prefix, [], remote_entries)
+            install_req(enpkg, "nose", FakeOptions())
+            m.assert_called_with([('fetch_0', 'nose-1.3.0-1.egg'),
+                                  ('install', 'nose-1.3.0-1.egg')])
+
+    def test_simple_non_existing_requirement(self):
+        r_error_string = "No egg found for requirement 'nono_le_petit_robot'.\n"
+        non_existing_requirement = "nono_le_petit_robot"
+
+        with mock.patch("enstaller.main.Enpkg.execute") as mocked_execute:
+            enpkg = _create_prefix_with_eggs(self.prefix, [])
+            with mock_print() as mocked_print:
+                with self.assertRaises(SystemExit) as e:
+                    install_req(enpkg, non_existing_requirement, FakeOptions())
+                self.assertEqual(e.exception.code, 1)
+                self.assertEqual(mocked_print.value, r_error_string)
+            mocked_execute.assert_not_called()
+
+    def test_simple_no_install_needed(self):
+        installed_entries = [
+            dummy_installed_egg_factory("nose", "1.3.0", 1)
+        ]
+        remote_entries = [
+            dummy_enpkg_entry_factory("nose", "1.3.0", 1)
+        ]
+
+        with mock.patch("enstaller.main.Enpkg.execute") as m:
+            enpkg = _create_prefix_with_eggs(self.prefix, installed_entries, remote_entries)
+            install_req(enpkg, "nose", FakeOptions())
+            m.assert_called_with([])
+
+    @is_authenticated
+    @use_webservice
+    def test_install_not_available(self):
+        nose = dummy_enpkg_entry_factory("nose", "1.3.0", 1)
+        nose.available = False
+        remote_entries = [nose]
+
+        enpkg = _create_prefix_with_eggs(self.prefix, [], remote_entries)
+
+        with mock.patch("enstaller.main.Enpkg.execute"):
+            with mock.patch("enstaller.config.subscription_message") as subscription_message:
+                with self.assertRaises(SystemExit) as e:
+                    install_req(enpkg, "nose", FakeOptions())
+                subscription_message.assert_called()
+                self.assertEqual(e.exception.code, 1)
+
+    @is_not_authenticated
+    @use_webservice
+    @mock.patch("enstaller.config.input_auth", lambda: (None, None))
+    def test_install_not_available_not_authenticated(self):
+        nose = dummy_enpkg_entry_factory("nose", "1.3.0", 1)
+        nose.available = False
+        remote_entries = [nose]
+
+        enpkg = _create_prefix_with_eggs(self.prefix, [], remote_entries)
+
+        with mock.patch("enstaller.main.Enpkg.execute"):
+            with mock.patch("enstaller.config.checked_change_auth") as m:
+                with self.assertRaises(SystemExit) as e:
+                    install_req(enpkg, "nose", FakeOptions())
+                m.assert_called_with(None, None)
+                self.assertEqual(e.exception.code, 1)
+
+    @is_authenticated
+    @use_webservice
+    def test_recursive_install_unavailable_dependency(self):
+        r_output = textwrap.dedent("""\
+        Error: could not resolve "numpy 1.7.1" required by "scipy-0.12.0-1.egg"
+        You may be able to force an install of just this egg by using the
+        --no-deps enpkg commandline argument after installing another version
+        of the dependency.
+        Available versions of the required package 'numpy' are:
+            1.7.1 (no subscription)
+        You are logged in as None.
+        Subscription level: EPD
+        """)
+
+        self.maxDiff = None
+        numpy = dummy_enpkg_entry_factory("numpy", "1.7.1", 1)
+        numpy.available = False
+        scipy = dummy_enpkg_entry_factory("scipy", "0.12.0", 1)
+        scipy.packages = [Dependency.from_spec_string("numpy 1.7.1")]
+
+        remote_entries = [numpy, scipy]
+
+        with mock.patch("enstaller.main.Enpkg.execute"):
+            enpkg = _create_prefix_with_eggs(self.prefix, [], remote_entries)
+            with mock_print() as m:
+                with self.assertRaises(SystemExit):
+                    install_req(enpkg, "scipy", FakeOptions())
+                self.assertMultiLineEqual(m.value, r_output)
+
+    @is_not_authenticated
+    @dont_use_webservice
+    def test_recursive_install_unavailable_dependency_non_authenticated(self):
+        numpy = dummy_enpkg_entry_factory("numpy", "1.7.1", 1)
+        numpy.available = False
+        scipy = dummy_enpkg_entry_factory("scipy", "0.12.0", 1)
+        scipy.packages = [Dependency.from_spec_string("numpy 1.7.1")]
+
+        remote_entries = [numpy, scipy]
+
+        with mock.patch("enstaller.main.Enpkg.execute"):
+            with mock.patch("enstaller.config.subscription_message") as m:
+                enpkg = _create_prefix_with_eggs(self.prefix, [], remote_entries)
+                with self.assertRaises(SystemExit):
+                    install_req(enpkg, "scipy", FakeOptions())
+                m.assert_not_called()
+
+    @mock.patch("sys.platform", "darwin")
+    def test_os_error_darwin(self):
+        remote_entries = [
+            dummy_enpkg_entry_factory("nose", "1.3.0", 1)
+        ]
+
+        with mock.patch("enstaller.main.Enpkg.execute") as m:
+            error = OSError()
+            error.errno = errno.EACCES
+            m.side_effect = error
+            enpkg = _create_prefix_with_eggs(self.prefix, [], remote_entries)
+            with self.assertRaises(SystemExit) as e:
+                install_req(enpkg, "nose", FakeOptions())
+
+    @mock.patch("sys.platform", "linux2")
+    def test_os_error(self):
+        remote_entries = [
+            dummy_enpkg_entry_factory("nose", "1.3.0", 1)
+        ]
+
+        with mock.patch("enstaller.main.Enpkg.execute") as m:
+            m.side_effect = OSError()
+            enpkg = _create_prefix_with_eggs(self.prefix, [], remote_entries)
+            with self.assertRaises(OSError) as e:
+                install_req(enpkg, "nose", FakeOptions())

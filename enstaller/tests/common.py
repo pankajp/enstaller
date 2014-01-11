@@ -56,7 +56,7 @@ class MetaOnlyEggCollection(AbstractEggCollection):
         self._egg_name_to_entry = dict((entry["key"], entry) for entry in entries)
 
     def find(self, egg):
-        return self._egg_name_to_entry[egg]
+        return self._egg_name_to_entry.get(egg, None)
 
     def query(self, **kwargs):
         name = kwargs.get("name")
@@ -70,3 +70,16 @@ class MetaOnlyEggCollection(AbstractEggCollection):
 
     def remove(self, egg):
         raise ValueError("You can't call remove on {0}".format(self.__class__.__name__))
+
+# Decorators to force a certain configuration
+def is_authenticated(f):
+    return mock.patch("enstaller.config.authenticate", lambda ignored: {"is_authenticated": True})(f)
+
+def is_not_authenticated(f):
+    return mock.patch("enstaller.config.authenticate", lambda ignored: {"is_authenticated": False})(f)
+
+def use_webservice(f):
+    return mock.patch("enstaller.config.read", lambda: patched_read(use_webservice=True))(f)
+
+def dont_use_webservice(f):
+    return mock.patch("enstaller.config.read", lambda: patched_read(use_webservice=False))(f)
