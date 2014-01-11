@@ -2,6 +2,8 @@ import json
 import time
 from os.path import join
 
+from egginst.utils import ZipFile
+
 # Path relative to EGG-INFO in egg, or $RPPT/EGG-INFO/$package_name when
 # installed
 APPINST_PATH = join("inst", "appinst.dat")
@@ -48,3 +50,22 @@ def create_info(egg, extra_info=None):
         json.dump(info, fo, indent=2, sort_keys=True)
 
     return info
+
+def is_custom_egg(egg):
+    """
+    Return True if the egg is built using Enthought build infrastructure, False
+    otherwise.
+
+    Note
+    ----
+    This is not 100 % reliable, as some Enthought eggs don't always have any
+    specific metadata.
+    """
+    with ZipFile(egg) as zp:
+        for dest in ("spec/depend", "inst/targets.dat"):
+            try:
+                info = zp.getinfo("EGG-INFO/{0}".format(dest))
+                return True
+            except KeyError:
+                pass
+        return False

@@ -11,22 +11,24 @@ import os
 import sys
 import re
 import json
+import shutil
 import warnings
 import zipfile
 from uuid import uuid4
 from os.path import abspath, basename, dirname, join, isdir, isfile, sep
 
-from utils import (on_win, bin_dir_name, rel_site_packages, human_bytes,
-                   rm_empty_dir, rm_rf, get_executable, makedirs, is_zipinfo_symlink)
+import eggmeta
 import scripts
 
-from .eggmeta import APPINST_PATH
+from utils import (on_win, bin_dir_name, rel_site_packages, human_bytes, ensure_dir,
+                   rm_empty_dir, rm_rf, get_executable, makedirs, is_zipinfo_symlink)
 
 
 NS_PKG_PAT = re.compile(
     r'\s*__import__\([\'"]pkg_resources[\'"]\)\.declare_namespace'
     r'\(__name__\)\s*$')
 
+EGG_INFO = "EGG-INFO"
 
 def name_version_fn(fn):
     """
@@ -40,6 +42,10 @@ def name_version_fn(fn):
         return fn, ''
 
 class EggInst(object):
+
+    @property
+    def egg_info_dir(self):
+        return self.fn + "-info"
 
     def __init__(self, path, prefix=sys.prefix,
                  hook=False, pkgs_dir=None, evt_mgr=None,
@@ -72,11 +78,13 @@ class EggInst(object):
 
 
     def install(self, extra_info=None):
+
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
 
         self.z = zipfile.ZipFile(self.path)
         self.arcnames = self.z.namelist()
+
         self.extract()
 
         if on_win:
@@ -158,6 +166,7 @@ class EggInst(object):
         else:
             from console import ProgressManager
 
+        is_custom_egg = eggmeta.is_custom_egg(self.path)
         n = 0
         size = sum(self.z.getinfo(name).file_size for name in self.arcnames)
         self.installed_size = size
@@ -173,13 +182,30 @@ class EggInst(object):
         with progress:
             for name in self.arcnames:
                 n += self.z.getinfo(name).file_size
-                self.write_arcname(name)
+
+                self.write_arcname(name, is_custom_egg)
+
+                if not is_custom_egg and name.startswith(EGG_INFO):
+                    name = os.path.normpath(name)
+                    dest = join(self.pyloc, self.egg_info_dir,
+                                name[len(EGG_INFO) + 1:])
+                    self.files.append(dest)
+
+                    ensure_dir(dest)
+                    source = self.z.open(name)
+                    try:
+                        with file(dest, "wb") as target:
+                            shutil.copyfileobj(source, target)
+                    finally:
+                        source.close()
+
                 progress(step=n)
 
 
-    def get_dst(self, arcname):
-        if (arcname == 'EGG-INFO/PKG-INFO' and self.path.endswith('.egg')):
-            return join(self.site_packages, self.fn + '-info')
+    def get_dst(self, arcname, is_custom_egg=True):
+        if is_custom_egg:
+            if (arcname == 'EGG-INFO/PKG-INFO' and self.path.endswith('.egg')):
+                return join(self.site_packages, self.egg_info_dir)
 
         for start, cond, dst_dir in [
             ('EGG-INFO/prefix/',  True,       self.prefix),
@@ -206,7 +232,7 @@ class EggInst(object):
     py_pat = re.compile(r'^(.+)\.py(c|o)?$')
     so_pat = re.compile(r'^lib.+\.so')
     py_obj = '.pyd' if on_win else '.so'
-    def write_arcname(self, arcname):
+    def write_arcname(self, arcname, is_custom_egg=True):
         if arcname.endswith('/') or arcname.startswith('.unused'):
             return
         zip_info = self.z.getinfo(arcname)
@@ -219,7 +245,7 @@ class EggInst(object):
         if m and (m.group(1) + self.py_obj) in self.arcnames:
             # .py, .pyc, .pyo next to .so are not written
             return
-        path = self.get_dst(arcname)
+        path = self.get_dst(arcname, is_custom_egg)
         dn, fn = os.path.split(path)
         data = self.z.read(arcname)
         if fn in ['__init__.py', '__init__.pyc']:
@@ -247,7 +273,7 @@ class EggInst(object):
         if self.noapp:
             return
 
-        path = join(self.meta_dir, APPINST_PATH)
+        path = join(self.meta_dir, eggmeta.APPINST_PATH)
         if not isfile(path):
             return
 
