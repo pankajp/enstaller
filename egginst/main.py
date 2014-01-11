@@ -256,11 +256,22 @@ class EggInst(object):
         except ImportError:
             return
 
+        def _install_app():
+            try:
+                if remove:
+                    appinst.uninstall_from_dat(path, self.prefix)
+                else:
+                    appinst.install_from_dat(path, self.prefix)
+            except TypeError, e:
+                # Old appinst (<= 2.1.1) did not handle the prefix argument (2d
+                # arg)
+                if remove:
+                    appinst.uninstall_from_dat(path)
+                else:
+                    appinst.install_from_dat(path)
+
         try:
-            if remove:
-                appinst.uninstall_from_dat(path, self.prefix)
-            else:
-                appinst.install_from_dat(path, self.prefix)
+            _install_app()
         except Exception, e:
             print("Warning (%sinstalling application item):\n%r" %
                   ('un' if remove else '', e))

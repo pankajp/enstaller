@@ -151,11 +151,37 @@ class TestEggInstInstall(unittest.TestCase):
 
         egginst = EggInst(egg_path, self.base_dir)
 
-        mocked_appinst = mock.Mock()
-        with mock.patch("appinst.install_from_dat", mocked_appinst.install_from_dat):
+        with mock.patch("appinst.install_from_dat", autospec=True) as m:
             egginst.install()
-            mocked_appinst.install_from_dat.assert_called_with(appinst_path, self.base_dir)
+            m.assert_called_with(appinst_path, self.base_dir)
 
-        with mock.patch("appinst.uninstall_from_dat", mocked_appinst.uninstall_from_dat):
+        with mock.patch("appinst.uninstall_from_dat", autospec=True) as m:
             egginst.remove()
-            mocked_appinst.install_from_dat.assert_called_with(appinst_path, self.base_dir)
+            m.assert_called_with(appinst_path, self.base_dir)
+
+    @slow
+    def test_old_appinst(self):
+        """
+        Test that we still work with old (<= 2.1.1) appinst, where
+        [un]install_from_dat only takes one argument (no prefix).
+        """
+        egg_path = DUMMY_EGG_WITH_APPINST
+        appinst_path = os.path.join(self.meta_dir, "dummy_with_appinst", APPINST_PATH)
+
+        egginst = EggInst(egg_path, self.base_dir)
+
+        def mocked_old_install_from_dat(x):
+            pass
+        def mocked_old_uninstall_from_dat(x):
+            pass
+
+        # XXX: we use autospec to enforce function taking exactly one argument,
+        # otherwise the proper TypeError exception is not raised when calling
+        # it with two arguments, which is how old vs new appinst is detected.
+        with mock.patch("appinst.install_from_dat", autospec=mocked_old_install_from_dat) as m:
+            egginst.install()
+            m.assert_called_with(appinst_path)
+
+        with mock.patch("appinst.uninstall_from_dat", autospec=mocked_old_uninstall_from_dat) as m:
+            egginst.remove()
+            m.assert_called_with(appinst_path)
