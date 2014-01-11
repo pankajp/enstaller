@@ -1,17 +1,34 @@
 # Copyright by Enthought, Inc.
 # Author: Ilan Schnell <ischnell@enthought.com>
 
+import json
 import re
 import os
 import sys
 import platform
+import urllib2
+
+from getpass import getpass
 from os.path import isfile, join
 
 from enstaller import __version__
 from utils import PY_VER, abs_expanduser, fill_url
 
+def __import_new_keyring():
+    """
+    Import keyring >= 1.1.
+    """
+    import keyring.backends.OS_X
+    import keyring.backends.Gnome
+    import keyring.backends.Windows
+    import keyring.backends.kwallet
 
-try:
+    keyring.core.init_backend()
+    if keyring.get_keyring().priority < 0:
+        keyring = None
+    return keyring
+
+def __import_old_keyring():
     import keyring
     import keyring.backend
     # don't use keyring backends that require console input or just do
@@ -25,10 +42,21 @@ try:
     keyring.core.init_backend()
     if keyring.get_keyring().supported() < 0:
         keyring = None
-except (ImportError, KeyError):
-    # the KeyError happens on Windows when the environment variable
-    # 'USERPROFILE' is not set
+    return keyring
+
+try:
+    import keyring
+except ImportError, KeyError:
+    # The KeyError happens when USERPROFILE env var is not defined on windows
     keyring = None
+else:
+    try:
+        keyring = __import_new_keyring()
+    except ImportError:
+        try:
+            keyring = __import_old_keyring()
+        except ImportError:
+            keyring = None
 
 KEYRING_SERVICE_NAME = 'Enthought.com'
 REPOSITORY_CACHE_CONFIG_NAME = "repository_cache"
@@ -70,7 +98,6 @@ def input_auth():
     Prompt user for username and password.  Return (username, password)
     tuple or (None, None) if left blank.
     """
-    from getpass import getpass
     print """\
 Please enter the email address (or username) and password for your
 EPD or EPD Free subscription.  If you are not subscribed to EPD,
@@ -224,9 +251,6 @@ def web_auth(auth,
 
     Function taken from Canopy and modified.
     """
-    import json
-    import urllib2
-
     # Make basic local checks
     username, password = auth
     if username is None or password is None:
@@ -320,8 +344,8 @@ def authenticate(auth, remote=None):
         try:
             user = web_auth(auth)
             assert user['is_authenticated']
-        except:
-            raise
+        except Exception as e:
+            raise AuthFailedError('Authentication failed: %s.' % e)
     else:
         # check credentials using remote.connect
         try:
@@ -436,7 +460,7 @@ def read():
         return read.cache
 
     path = get_path()
-    read.cache = default
+    read.cache = default.copy()
     if path is None:
         return read.cache
 
@@ -483,7 +507,3 @@ def print_config(remote, prefix):
     except Exception as e:
         print e
     print subscription_message(user)
-
-if __name__ == '__main__':
-    write()
-    print_config()
