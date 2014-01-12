@@ -6,6 +6,7 @@ No significant new features:
   * Add support for cancellation in fetch API
   * Undocumented feature --freeze/--requirement (used internally @ Enthought
     only)
+  * Don't print the traceback when crashing anymore, unless ENSTALLER_DEBUG is enabled
 
 The project setup has been significantly improved however:
 

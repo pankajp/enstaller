@@ -106,7 +106,7 @@ setup(
     ],
     entry_points = {
         "console_scripts": [
-             "enpkg = enstaller.main:main",
+             "enpkg = enstaller.main:main_noexc",
              "egginst = egginst.main:main",
              "update-patches = enstaller.patch:main",
         ],
