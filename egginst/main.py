@@ -245,7 +245,7 @@ class EggInst(object):
                     if is_in_legacy_egg_info(name, is_custom_egg):
                         self._write_legacy_egg_info_metadata(name)
                     else:
-                        self.write_arcname(name, is_custom_egg)
+                        self.write_arcname(name)
 
                     progress(step=n)
 
@@ -254,7 +254,7 @@ class EggInst(object):
                 for name in self.arcnames:
                     n += self.z.getinfo(name).file_size
 
-                    self.write_arcname(name, is_custom_egg)
+                    self.write_arcname(name)
                     if should_copy_in_egg_info(name, is_custom_egg):
                         self._write_standard_egg_info_metadata(name)
 
@@ -298,7 +298,7 @@ class EggInst(object):
                 source.close()
 
 
-    def get_dst(self, arcname, is_custom_egg=True):
+    def get_dst(self, arcname):
         for start, cond, dst_dir in [
             ('EGG-INFO/prefix/',  True,       self.prefix),
             ('EGG-INFO/usr/',     not on_win, self.prefix),
@@ -324,7 +324,7 @@ class EggInst(object):
     py_pat = re.compile(r'^(.+)\.py(c|o)?$')
     so_pat = re.compile(r'^lib.+\.so')
     py_obj = '.pyd' if on_win else '.so'
-    def write_arcname(self, arcname, is_custom_egg=True):
+    def write_arcname(self, arcname):
         if arcname.endswith('/') or arcname.startswith('.unused'):
             return
         zip_info = self.z.getinfo(arcname)
@@ -337,7 +337,7 @@ class EggInst(object):
         if m and (m.group(1) + self.py_obj) in self.arcnames:
             # .py, .pyc, .pyo next to .so are not written
             return
-        path = self.get_dst(arcname, is_custom_egg)
+        path = self.get_dst(arcname)
         dn, fn = os.path.split(path)
         data = self.z.read(arcname)
         if fn in ['__init__.py', '__init__.pyc']:
