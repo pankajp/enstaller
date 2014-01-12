@@ -13,3 +13,8 @@ enstaller.egg-info/spec/
 enstaller.egg-info/top_level.txt
 
 enstaller/_version.py
+
+.coverage
+.env
+.tox
+cover
