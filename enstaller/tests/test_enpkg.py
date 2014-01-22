@@ -17,9 +17,10 @@ import mock
 from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
 from egginst.main import EggInst
-from egginst.tests.common import mkdtemp, DUMMY_EGG
+from egginst.tests.common import mkdtemp, DUMMY_EGG, NOSE_1_2_1, NOSE_1_3_0
 from egginst.utils import makedirs
 
+from enstaller.egg_meta import split_eggname
 from enstaller.eggcollect import EggCollection, JoinedEggCollection
 from enstaller.enpkg import Enpkg, EnpkgError
 from enstaller.enpkg import get_default_kvs, req_from_anything, \
@@ -377,6 +378,47 @@ class TestEnpkgActions(unittest.TestCase):
                           evt_mgr=None, verbose=False)
             with self.assertRaises(EnpkgError):
                 enpkg.remove_actions("numpy")
+
+    def test_chained_override_update(self):
+        """ Test update to package with latest version in lower prefix
+        but an older version in primary prefix.
+        """
+        l0_egg = NOSE_1_3_0
+        l1_egg = NOSE_1_2_1
+
+        expected_actions = [
+            ('fetch_0', os.path.basename(l0_egg)),
+            ('remove', os.path.basename(l1_egg)),
+            ('install', os.path.basename(l0_egg)),
+        ]
+
+        entries = [
+            dummy_enpkg_entry_factory(*split_eggname(os.path.basename(l0_egg))),
+        ]
+
+        repo = MetadataOnlyStore(entries)
+        repo.connect()
+
+        with mkdtemp() as d:
+            l0 = os.path.join(d, 'l0')
+            l1 = os.path.join(d, 'l1')
+            makedirs(l0)
+            makedirs(l1)
+
+            # Install latest version in l0
+            EggInst(l0_egg, l0).install()
+            # Install older version in l1
+            EggInst(l1_egg, l1).install()
+
+            local_repo = JoinedEggCollection([EggCollection(l1, False, None),
+                                              EggCollection(l0, False, None)])
+            enpkg = Enpkg(repo, prefixes=[l1, l0], hook=None,
+                          evt_mgr=None, verbose=False)
+            enpkg.ec = local_repo
+
+            actions = enpkg.install_actions("nose")
+            self.assertListEqual(actions, expected_actions)
+
 
 class TestEnpkgExecute(unittest.TestCase):
     def setUp(self):
