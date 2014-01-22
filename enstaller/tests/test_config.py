@@ -96,6 +96,7 @@ class TestWriteConfig(unittest.TestCase):
             self.assertTrue(m.called)
 
     @mock.patch("enstaller.config.getpass", lambda ignored: FAKE_PASSWORD)
+    @mock.patch("enstaller.config.keyring", None)
     @mock.patch("__builtin__.raw_input", lambda ignored: FAKE_USER)
     def test_simple(self):
         mocked_open, f = self._mocked_open_factory()
