@@ -333,11 +333,10 @@ class Enpkg(object):
     def _install_actions(self, eggs, mode, force, forceall):
         if not forceall:
             # remove already installed eggs from egg list
-            rm = lambda eggs: [e for e in eggs if self.find(e) is None]
             if force:
-                eggs = rm(eggs[:-1]) + [eggs[-1]]
+                eggs = self._filter_installed_eggs(eggs[:-1]) + [eggs[-1]]
             else:
-                eggs = rm(eggs)
+                eggs = self._filter_installed_eggs(eggs)
 
         res = []
         for egg in eggs:
@@ -355,6 +354,24 @@ class Enpkg(object):
         for egg in eggs:
             res.append(('install', egg))
         return res
+
+    def _filter_installed_eggs(self, eggs):
+        """ Filter out already installed eggs from the given egg list.
+
+        Note that only visible eggs are filtered.
+        For example, if in multiple prefixes, a lower prefix has an egg
+        which is overridden by a different version in a higher prefix,
+        then only the top-most egg is considered and the egg in lower prefix
+        is not considered.
+        """
+        filtered_eggs = []
+        for egg in eggs:
+            for installed in self.ec.query(name=split_eggname(egg)[0].lower()):
+                if installed[0] == egg:
+                    break
+            else:
+                filtered_eggs.append(egg)
+        return filtered_eggs
 
     def remove_actions(self, arg):
         """
