@@ -294,6 +294,7 @@ class EggInst(object):
             try:
                 with file(dest, "wb") as target:
                     shutil.copyfileobj(source, target)
+                    self.files.append(dest)
             finally:
                 source.close()
 

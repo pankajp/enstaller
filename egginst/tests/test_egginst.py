@@ -13,7 +13,7 @@ else:
 import mock
 
 from egginst.main import EggInst, get_installed, main
-from egginst.testing_utils import slow
+from egginst.testing_utils import slow, assert_same_fs
 from egginst.utils import makedirs, zip_write_symlink, ZipFile
 
 from egginst import eggmeta
@@ -212,12 +212,24 @@ class TestEggInfoInstall(unittest.TestCase):
             path = os.path.join(egg_info_base, f)
             self.assertTrue(os.path.exists(path))
 
+    def test_standard_egg_remove(self):
+        custom_egg_info_base = os.path.join(self.base_dir, "EGG-INFO", "jinja2")
+        egg_info_base = os.path.join(self.site_packages,
+                                     "Jinja2-2.6-py2.7.egg-info")
+        egg = STANDARD_EGG
+
+        with assert_same_fs(self, self.base_dir):
+            egginst = EggInst(egg, self.base_dir)
+            egginst.install()
+
+            egginst.remove()
+
+
     def test_simple_custom_egg(self):
         custom_egg_info_base = os.path.join(self.base_dir, "EGG-INFO", "dummy")
         egg_info_base = os.path.join(self.site_packages,
                                      "dummy-{0}.egg-info". \
                                      format("1.0.1-1"))
-
         egg = DUMMY_EGG
 
         egginst = EggInst(egg, self.base_dir)
@@ -238,12 +250,23 @@ class TestEggInfoInstall(unittest.TestCase):
         path = os.path.join(egg_info_base, "spec/summary")
         self.assertFalse(os.path.exists(path))
 
+    def test_simple_custom_egg_remove(self):
+        custom_egg_info_base = os.path.join(self.base_dir, "EGG-INFO", "dummy")
+        egg_info_base = os.path.join(self.site_packages,
+                                     "dummy-{0}.egg-info". \
+                                     format("1.0.1-1"))
+        egg = DUMMY_EGG
+
+        with assert_same_fs(self, self.base_dir):
+            egginst = EggInst(egg, self.base_dir)
+            egginst.install()
+            egginst.remove()
+
     def test_custom_egg_with_usr_files(self):
         custom_egg_info_base = os.path.join(self.base_dir, "EGG-INFO", "nose")
         egg_info_base = os.path.join(self.site_packages,
                                      "nose-{0}.egg-info". \
                                      format("1.3.0-1"))
-
         egg = NOSE_1_3_0
 
         egginst = EggInst(egg, self.base_dir)
@@ -266,6 +289,18 @@ class TestEggInfoInstall(unittest.TestCase):
 
         path = os.path.join(egg_info_base, "usr/share/man/man1/nosetests.1")
         self.assertFalse(os.path.exists(path))
+
+    def test_custom_egg_with_usr_files_remove(self):
+        custom_egg_info_base = os.path.join(self.base_dir, "EGG-INFO", "nose")
+        egg_info_base = os.path.join(self.site_packages,
+                                     "nose-{0}.egg-info". \
+                                     format("1.3.0-1"))
+        egg = NOSE_1_3_0
+
+        with assert_same_fs(self, self.base_dir):
+            egginst = EggInst(egg, self.base_dir)
+            egginst.install()
+            egginst.remove()
 
     def test_custom_egg_legacy_egg_info(self):
         custom_egg_info_base = os.path.join(self.base_dir, "EGG-INFO", "flake8")
@@ -294,3 +329,15 @@ class TestEggInfoInstall(unittest.TestCase):
         for f in LEGACY_EGG_INFO_EGG_METADATA_FILES:
             path = os.path.join(legacy_egg_info_base, f)
             self.assertFalse(os.path.exists(path))
+
+    def test_custom_egg_legacy_egg_info_remove(self):
+        custom_egg_info_base = os.path.join(self.base_dir, "EGG-INFO", "flake8")
+        egg_info_base = os.path.join(self.site_packages,
+                                     "flake8-2.0.0-2.egg-info")
+        legacy_egg_info_base = os.path.join(self.site_packages, "flake8.egg-info")
+        egg = LEGACY_EGG_INFO_EGG
+
+        with assert_same_fs(self, self.base_dir):
+            egginst = EggInst(egg, self.base_dir)
+            egginst.install()
+            egginst.remove()
