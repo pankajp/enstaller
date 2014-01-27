@@ -34,6 +34,8 @@ _EGGINST_COMMON_DATA = os.path.join(os.path.dirname(__file__), "data")
 DUMMY_EGG_WITH_APPINST = os.path.join(_EGGINST_COMMON_DATA, "dummy_with_appinst-1.0.0-1.egg")
 
 DUMMY_EGG = os.path.join(_EGGINST_COMMON_DATA, "dummy-1.0.1-1.egg")
+DUMMY_EGG_METADATA_FILES = ("PKG-INFO", "spec/depend", "spec/summary")
+
 DUMMY_EGG_WITH_ENTRY_POINTS = os.path.join(_EGGINST_COMMON_DATA, "dummy_with_entry_points-1.0.0-1.egg")
 DUMMY_WITH_PROXY_EGG = os.path.join(_EGGINST_COMMON_DATA, "dummy_with_proxy-1.3.40-3.egg")
 
@@ -44,6 +46,16 @@ DUMMY_EGG_MD5 = "1ec1f69526c55db7420b0d480c9b955e"
 
 NOSE_1_2_1 = os.path.join(os.path.dirname(__file__), "data", "nose-1.2.1-1.egg")
 NOSE_1_3_0 = os.path.join(os.path.dirname(__file__), "data", "nose-1.3.0-1.egg")
+
+STANDARD_EGG = os.path.join(_EGGINST_COMMON_DATA, "Jinja2-2.6-py2.7.egg")
+STANDARD_EGG_METADATA_FILES = ("dependency_links.txt", "entry_points.txt",
+        "not-zip-safe", "PKG-INFO", "requires.txt", "SOURCES.txt",
+        "top_level.txt")
+
+LEGACY_EGG_INFO_EGG = os.path.join(_EGGINST_COMMON_DATA, "flake8-2.0.0-2.egg")
+LEGACY_EGG_INFO_EGG_METADATA_FILES = ("PKG-INFO", "requires.txt",
+        "SOURCES.txt", "dependency_links.txt", "top_level.txt",
+        "entry_points.txt")
 
 @contextlib.contextmanager
 def mkdtemp():

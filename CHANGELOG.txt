@@ -1,12 +1,14 @@
 2013-12-16   4.6.3:
 -------------------
 
-No significant new features:
+Main highlights:
 
   * Add support for cancellation in fetch API
   * Undocumented feature --freeze/--requirement (used internally @ Enthought
     only)
   * Don't print the traceback when crashing anymore, unless ENSTALLER_DEBUG is enabled
+  * Egginst now installs eggs in a way that follows easy_install more closely.
+    In particular, entry points should now be recognized correctly.
 
 The project setup has been significantly improved however:
 
