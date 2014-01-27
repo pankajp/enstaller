@@ -32,7 +32,7 @@ EGG_INFO = "EGG-INFO"
 R_EGG_INFO = re.compile("^{0}".format(EGG_INFO))
 R_EGG_INFO_BLACK_LIST = re.compile(
         "^{0}/(usr|spec|PKG-INFO.bak|prefix|.gitignore|"
-        "inst|scripts|post_egginst.py|pre_egguninst.py)".format(EGG_INFO))
+        "inst|post_egginst.py|pre_egguninst.py)".format(EGG_INFO))
 R_LEGACY_EGG_INFO = re.compile("(^.+.egg-info)")
 
 def name_version_fn(fn):
