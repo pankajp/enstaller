@@ -10,6 +10,7 @@ from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 import enstaller.config
 
 from enstaller.eggcollect import AbstractEggCollection
+from enstaller.egg_meta import split_eggname
 from enstaller.utils import PY_VER
 
 def patched_read(**kw):
@@ -65,11 +66,15 @@ class MetaOnlyEggCollection(AbstractEggCollection):
             if info and all(info.get(k) == v for k, v in kwargs.iteritems()):
                 yield key, info
 
-    def install(self, egg, dir_path):
-        raise ValueError("You can't call install on {0}".format(self.__class__.__name__))
+    def install(self, egg, dir_path, extra_info=None):
+        name, version, build = split_eggname(egg)
+        entry = dummy_installed_egg_factory(name, version, build, meta_dir=None)
+        self._egg_name_to_entry[entry["key"]] = entry
 
     def remove(self, egg):
-        raise ValueError("You can't call remove on {0}".format(self.__class__.__name__))
+        popped = self._egg_name_to_entry.pop(egg, None)
+        if popped is None:
+            raise KeyError("Egg {} not found".format(egg))
 
 # Decorators to force a certain configuration
 def is_authenticated(f):

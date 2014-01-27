@@ -30,7 +30,7 @@ from enstaller.enpkg import Enpkg
 from enstaller.eggcollect import EggCollection, JoinedEggCollection
 from enstaller.main import disp_store_info, epd_install_confirm, info_option, \
     install_req, install_time_string, main, name_egg, print_installed, search, \
-    updates_check, update_enstaller, whats_new
+    update_all, updates_check, update_enstaller, whats_new
 from enstaller.store.tests.common import MetadataOnlyStore
 
 from .common import MetaOnlyEggCollection, dummy_enpkg_entry_factory, \
@@ -410,6 +410,75 @@ numpy                1.7.1-1              1.7.1-2
 
             with mock_print() as m:
                 whats_new(enpkg)
+                self.assertMultiLineEqual(m.value, r_output)
+
+    def test_update_all_no_updates(self):
+        r_output = "No new version of any installed package is available\n"
+
+        installed_entries = [
+            dummy_installed_egg_factory("numpy", "1.7.1", 2),
+            dummy_installed_egg_factory("scipy", "0.13.0", 1)
+        ]
+        remote_entries = [
+            dummy_enpkg_entry_factory("numpy", "1.7.1", 1),
+            dummy_enpkg_entry_factory("scipy", "0.12.0", 1)
+        ]
+
+        with mkdtemp() as d:
+            enpkg = _create_prefix_with_eggs(d, installed_entries, remote_entries)
+            with mock_print() as m:
+                update_all(enpkg, FakeOptions())
+                self.assertMultiLineEqual(m.value, r_output)
+
+    def test_update_all_no_epd_updates(self):
+        r_output = textwrap.dedent("""\
+        The following updates and their dependencies will be installed
+        Name                 installed            available
+        ============================================================
+        scipy                0.13.0-1             0.13.2-1
+        """)
+
+        installed_entries = [
+            dummy_installed_egg_factory("numpy", "1.7.1", 2),
+            dummy_installed_egg_factory("scipy", "0.13.0", 1),
+            dummy_installed_egg_factory("epd", "7.3", 1),
+        ]
+        remote_entries = [
+            dummy_enpkg_entry_factory("numpy", "1.7.1", 1),
+            dummy_enpkg_entry_factory("scipy", "0.13.2", 1),
+            dummy_enpkg_entry_factory("epd", "7.3", 1),
+        ]
+
+        with mkdtemp() as d:
+            enpkg = _create_prefix_with_eggs(d, installed_entries, remote_entries)
+            with mock_print() as m:
+                update_all(enpkg, FakeOptions())
+                self.assertMultiLineEqual(m.value, r_output)
+
+    def test_update_all_epd_updates(self):
+        r_output = textwrap.dedent("""\
+        EPD 7.3-2 is available. To update to it (with confirmation warning), run 'enpkg epd'.
+        The following updates and their dependencies will be installed
+        Name                 installed            available
+        ============================================================
+        scipy                0.13.0-1             0.13.2-1
+        """)
+
+        installed_entries = [
+            dummy_installed_egg_factory("numpy", "1.7.1", 2),
+            dummy_installed_egg_factory("scipy", "0.13.0", 1),
+            dummy_installed_egg_factory("epd", "7.3", 1),
+        ]
+        remote_entries = [
+            dummy_enpkg_entry_factory("numpy", "1.7.1", 1),
+            dummy_enpkg_entry_factory("scipy", "0.13.2", 1),
+            dummy_enpkg_entry_factory("epd", "7.3", 2),
+        ]
+
+        with mkdtemp() as d:
+            enpkg = _create_prefix_with_eggs(d, installed_entries, remote_entries)
+            with mock_print() as m:
+                update_all(enpkg, FakeOptions())
                 self.assertMultiLineEqual(m.value, r_output)
 
 class FakeOptions(object):
