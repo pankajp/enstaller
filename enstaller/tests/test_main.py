@@ -9,8 +9,14 @@ import textwrap
 
 if sys.version_info[:2] < (2, 7):
     import unittest2 as unittest
+    # FIXME: this looks quite fishy. On 2.6, with unittest2, the assertRaises
+    # context manager does not contain the actual exception object ?
+    def exception_code(ctx):
+        return ctx.exception
 else:
     import unittest
+    def exception_code(ctx):
+        return ctx.exception.code
 
 from cStringIO import StringIO
 
@@ -439,7 +445,7 @@ class TestInstallReq(unittest.TestCase):
             with mock_print() as mocked_print:
                 with self.assertRaises(SystemExit) as e:
                     install_req(enpkg, non_existing_requirement, FakeOptions())
-                self.assertEqual(e.exception.code, 1)
+                self.assertEqual(exception_code(e), 1)
                 self.assertEqual(mocked_print.value, r_error_string)
             mocked_execute.assert_not_called()
 
@@ -487,7 +493,7 @@ class TestInstallReq(unittest.TestCase):
                 with self.assertRaises(SystemExit) as e:
                     install_req(enpkg, "nose", FakeOptions())
                 m.assert_called_with(None, None)
-                self.assertEqual(e.exception.code, 1)
+                self.assertEqual(exception_code(e), 1)
 
     @is_authenticated
     @use_webservice
