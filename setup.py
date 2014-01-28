@@ -9,8 +9,8 @@ except ImportError:
     from distutils.core import setup
 
 MAJOR = 4
-MINOR = 6
-MICRO = 3
+MINOR = 7
+MICRO = 0
 
 IS_RELEASED = False
 
