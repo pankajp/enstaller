@@ -451,9 +451,11 @@ numpy                1.7.1-1              1.7.1-2
 
         with mkdtemp() as d:
             enpkg = _create_prefix_with_eggs(d, installed_entries, remote_entries)
-            with mock_print() as m:
-                update_all(enpkg, FakeOptions())
-                self.assertMultiLineEqual(m.value, r_output)
+            with mock.patch("enstaller.main.install_req") as mocked_install_req:
+                with mock_print() as m:
+                    update_all(enpkg, FakeOptions())
+                    self.assertMultiLineEqual(m.value, r_output)
+                    mocked_install_req.assert_called()
 
     def test_update_all_epd_updates(self):
         r_output = textwrap.dedent("""\
@@ -477,9 +479,11 @@ numpy                1.7.1-1              1.7.1-2
 
         with mkdtemp() as d:
             enpkg = _create_prefix_with_eggs(d, installed_entries, remote_entries)
-            with mock_print() as m:
-                update_all(enpkg, FakeOptions())
-                self.assertMultiLineEqual(m.value, r_output)
+            with mock.patch("enstaller.main.install_req") as mocked_install_req:
+                with mock_print() as m:
+                    update_all(enpkg, FakeOptions())
+                    self.assertMultiLineEqual(m.value, r_output)
+                    mocked_install_req.assert_called()
 
 class FakeOptions(object):
     def __init__(self):
