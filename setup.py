@@ -1,12 +1,8 @@
 import os
 import subprocess
 
+from setuptools import setup
 from distutils.util import convert_path
-
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
 
 MAJOR = 4
 MINOR = 7
