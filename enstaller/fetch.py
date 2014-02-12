@@ -82,42 +82,6 @@ class FetchAPI(object):
             rm_rf(path)
         os.rename(pp, path)
 
-    def patch_egg(self, egg):
-        """
-        Try to create 'egg' by patching an already existing egg, returns
-        True on success and False on failure, i.e. when either:
-            - bsdiff4 is not installed
-            - no patches can be applied because: (i) there are no relevant
-              patches in the repo (ii) a source egg is missing
-        """
-        try:
-            import enstaller.zdiff as zdiff
-        except ImportError:
-            if self.verbose:
-                print "Warning: could not import bsdiff4, cannot patch"
-            return False
-
-        possible = []
-        for patch_fn, info in self.remote.query(
-                          type='patch',
-                          name=egg.split('-')[0].lower(),
-                          dst=egg):
-            assert info['dst'] == egg
-            src_path = self.path(info['src'])
-            #print '%8d %s %s' % (info['size'], patch_fn, isfile(src_path))
-            if isfile(src_path):
-                possible.append((info['size'], patch_fn, info))
-
-        if not possible:
-            return False
-        size, patch_fn, info = min(possible)
-
-        self.fetch(patch_fn)
-        zdiff.patch(self.path(info['src']), self.path(egg),
-                    self.path(patch_fn), self.evt_mgr,
-                    super_id=getattr(self, 'super_id', None))
-        return True
-
     def fetch_egg(self, egg, force=False, execution_aborted=None):
         """
         fetch an egg, i.e. copy or download the distribution into local dir
@@ -142,8 +106,5 @@ class FetchAPI(object):
                 if self.verbose:
                     print "Not forcing refetch, %r exists" % path
                 return
-
-        if not force and self.patch_egg(egg):
-            return
 
         self.fetch(egg, execution_aborted)

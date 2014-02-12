@@ -11,22 +11,29 @@ import os
 import sys
 import re
 import json
+import shutil
 import warnings
 import zipfile
 from uuid import uuid4
 from os.path import abspath, basename, dirname, join, isdir, isfile, sep
 
-from utils import (on_win, bin_dir_name, rel_site_packages, human_bytes,
-                   rm_empty_dir, rm_rf, get_executable, makedirs, is_zipinfo_symlink)
+import eggmeta
 import scripts
 
-from .eggmeta import APPINST_PATH
-
+from utils import (on_win, bin_dir_name, rel_site_packages, human_bytes, ensure_dir,
+                   rm_empty_dir, rm_rf, get_executable, makedirs, is_zipinfo_symlink)
 
 NS_PKG_PAT = re.compile(
     r'\s*__import__\([\'"]pkg_resources[\'"]\)\.declare_namespace'
     r'\(__name__\)\s*$')
 
+EGG_INFO = "EGG-INFO"
+
+R_EGG_INFO = re.compile("^{0}".format(EGG_INFO))
+R_EGG_INFO_BLACK_LIST = re.compile(
+        "^{0}/(usr|spec|PKG-INFO.bak|prefix|.gitignore|"
+        "inst|post_egginst.py|pre_egguninst.py)".format(EGG_INFO))
+R_LEGACY_EGG_INFO = re.compile("(^.+.egg-info)")
 
 def name_version_fn(fn):
     """
@@ -38,6 +45,59 @@ def name_version_fn(fn):
         return tuple(fn.split('-', 1))
     else:
         return fn, ''
+
+def is_in_legacy_egg_info(f, is_custom_egg):
+    """
+    Filter out files in legacy egg-info directory, i.e. for eggs as follows:
+
+        package/__init__.py
+        EGG-INFO/...
+        package.egg-info/...
+
+    filter out the content of package.egg-info. Only a few eggs were produced
+    as above. This version of enstaller will simply copy the required content
+    from EGG-INFO where setuptools expects it.
+    """
+    if is_custom_egg:
+        if R_LEGACY_EGG_INFO.search(f):
+            return True
+        else:
+            return False
+    else:
+        return False
+
+def should_copy_in_egg_info(f, is_custom_egg):
+    """
+    Return True if the given archive name needs to be copied in to
+    $site-packages/$package_egg_info
+    """
+    if R_EGG_INFO.search(f):
+        if is_custom_egg:
+            if R_EGG_INFO_BLACK_LIST.search(f):
+                return False
+            else:
+                return True
+        else:
+            return True
+    else:
+        return False
+
+def has_legacy_egg_info_format(arcnames, is_custom_egg):
+    if is_custom_egg:
+        for name in arcnames:
+            if R_LEGACY_EGG_INFO.search(name):
+                return True
+        return False
+    else:
+        return False
+
+def setuptools_egg_info_dir(path):
+    """
+    Return the .egg-info directory name as created/expected by setuptools
+    """
+    filename = basename(path)
+    name, version = name_version_fn(filename)
+    return "{0}-{1}.egg-info".format(name, version)
 
 class EggInst(object):
 
@@ -72,11 +132,13 @@ class EggInst(object):
 
 
     def install(self, extra_info=None):
+
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
 
         self.z = zipfile.ZipFile(self.path)
         self.arcnames = self.z.namelist()
+
         self.extract()
 
         if on_win:
@@ -158,6 +220,7 @@ class EggInst(object):
         else:
             from console import ProgressManager
 
+        is_custom_egg = eggmeta.is_custom_egg(self.path)
         n = 0
         size = sum(self.z.getinfo(name).file_size for name in self.arcnames)
         self.installed_size = size
@@ -170,17 +233,73 @@ class EggInst(object):
                 progress_type="installing", filename=self.fn,
                 disp_amount=human_bytes(self.installed_size),
                 super_id=getattr(self, 'super_id', None))
-        with progress:
-            for name in self.arcnames:
-                n += self.z.getinfo(name).file_size
-                self.write_arcname(name)
-                progress(step=n)
+
+        use_legacy_egg_info_format = has_legacy_egg_info_format(self.arcnames,
+                is_custom_egg)
+
+        if use_legacy_egg_info_format:
+            with progress:
+                for name in self.arcnames:
+                    n += self.z.getinfo(name).file_size
+
+                    if is_in_legacy_egg_info(name, is_custom_egg):
+                        self._write_legacy_egg_info_metadata(name)
+                    else:
+                        self.write_arcname(name)
+
+                    progress(step=n)
+
+        else:
+            with progress:
+                for name in self.arcnames:
+                    n += self.z.getinfo(name).file_size
+
+                    self.write_arcname(name)
+                    if should_copy_in_egg_info(name, is_custom_egg):
+                        self._write_standard_egg_info_metadata(name)
+
+                    progress(step=n)
+
+    def _write_legacy_egg_info_metadata(self, name):
+        name = os.path.normpath(name)
+        m = R_LEGACY_EGG_INFO.search(name)
+        if m:
+            legacy_egg_info_dir = m.group(1)
+            from_egg_info = os.path.relpath(name, legacy_egg_info_dir)
+
+            dest = join(self.pyloc, setuptools_egg_info_dir(self.path),
+                        from_egg_info)
+            self._write_egg_info_arcname(name, dest)
+        else:
+            raise ValueError(
+                    "BUG: Unexpected name for legacy egg info in {0}: {1}". \
+                    format(self.fn, name))
+
+    def _write_standard_egg_info_metadata(self, name):
+        name = os.path.normpath(name)
+        from_egg_info = os.path.relpath(name, EGG_INFO)
+        dest = join(self.pyloc, setuptools_egg_info_dir(self.path),
+                    from_egg_info)
+
+        self._write_egg_info_arcname(name, dest)
+
+    def _write_egg_info_arcname(self, name, dest):
+        ensure_dir(dest)
+        try:
+            source = self.z.open(name)
+        except KeyError as e:
+            # This path is taken for arcnames which are directories
+            pass
+        else:
+            try:
+                with file(dest, "wb") as target:
+                    shutil.copyfileobj(source, target)
+                    self.files.append(dest)
+            finally:
+                source.close()
 
 
     def get_dst(self, arcname):
-        if (arcname == 'EGG-INFO/PKG-INFO' and self.path.endswith('.egg')):
-            return join(self.site_packages, self.fn + '-info')
-
         for start, cond, dst_dir in [
             ('EGG-INFO/prefix/',  True,       self.prefix),
             ('EGG-INFO/usr/',     not on_win, self.prefix),
@@ -247,7 +366,7 @@ class EggInst(object):
         if self.noapp:
             return
 
-        path = join(self.meta_dir, APPINST_PATH)
+        path = join(self.meta_dir, eggmeta.APPINST_PATH)
         if not isfile(path):
             return
 
@@ -256,11 +375,22 @@ class EggInst(object):
         except ImportError:
             return
 
+        def _install_app():
+            try:
+                if remove:
+                    appinst.uninstall_from_dat(path, self.prefix)
+                else:
+                    appinst.install_from_dat(path, self.prefix)
+            except TypeError, e:
+                # Old appinst (<= 2.1.1) did not handle the prefix argument (2d
+                # arg)
+                if remove:
+                    appinst.uninstall_from_dat(path)
+                else:
+                    appinst.install_from_dat(path)
+
         try:
-            if remove:
-                appinst.uninstall_from_dat(path, self.prefix)
-            else:
-                appinst.install_from_dat(path, self.prefix)
+            _install_app()
         except Exception, e:
             print("Warning (%sinstalling application item):\n%r" %
                   ('un' if remove else '', e))

@@ -1,16 +1,12 @@
 import os
 import subprocess
 
+from setuptools import setup
 from distutils.util import convert_path
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
-
 MAJOR = 4
-MINOR = 6
-MICRO = 3
+MINOR = 7
+MICRO = 0
 
 IS_RELEASED = False
 
@@ -106,7 +102,7 @@ setup(
     ],
     entry_points = {
         "console_scripts": [
-             "enpkg = enstaller.main:main",
+             "enpkg = enstaller.main:main_noexc",
              "egginst = egginst.main:main",
              "update-patches = enstaller.patch:main",
         ],

@@ -1,3 +1,4 @@
+import contextlib
 import copy
 import functools
 import httplib
@@ -207,3 +208,19 @@ class ControlledEnv(object):
 
     def __iter__(self):
         return iter((k, v) for k, v in self._data.iteritems() if not k in self._ignored_keys)
+
+@contextlib.contextmanager
+def assert_same_fs(test_case, prefix):
+    all_files = []
+    for root, dirs, files in os.walk(prefix):
+        for f in files:
+            all_files.extend(os.path.join(root, f) for f in files)
+    old_state = set(all_files)
+
+    yield
+
+    for root, dirs, files in os.walk(prefix):
+        for f in files:
+            path = os.path.join(root, f)
+            if path not in old_state:
+                test_case.fail("Unexpected file: {}".format(path))

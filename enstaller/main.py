@@ -13,6 +13,7 @@ import os
 import re
 import sys
 import site
+import traceback
 import errno
 import string
 import datetime
@@ -773,6 +774,25 @@ def main(argv=None):
         else:
             install_req(enpkg, req, args)             # install (default)
 
+def main_noexc(argv=None):
+    if os.environ.get("ENSTALLER_DEBUG", None):
+        enstaller_debug = True
+    else:
+        enstaller_debug = False
+
+    try:
+        return main(argv)
+    except Exception as e:
+        msg = """\
+%s: Error: %s crashed (uncaught exception %s: %s).
+Please report this on enstaller issue tracker:
+    http://github.com/enthought/enstaller/issues"""
+        if enstaller_debug:
+            raise
+        else:
+            msg += "\nYou can get a full traceback by setting the ENSTALLER_DEBUG environment variable"
+            print(msg % ("enstaller", "enstaller", e.__class__, repr(e)))
+            sys.exit(1)
 
 if __name__ == '__main__':
-    main()
+    main_noexc()

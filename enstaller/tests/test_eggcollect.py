@@ -1,6 +1,11 @@
 import os
+import sys
 import time
-import unittest
+
+if sys.version_info[:2] < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 
 import os.path as op
 
@@ -37,7 +42,21 @@ def _install_eggs_set(eggs, prefix):
         egginst = EggInst(egg, prefix)
         egginst.install()
 
-class TestEggCollection(unittest.TestCase):
+class TestCase(unittest.TestCase):
+    def assertDictEqual(self, left, right, ignored_keys=None):
+        if ignored_keys is None:
+            ignored_keys = []
+        new_left = left.copy()
+        new_right = right.copy()
+        for ignored_key in ignored_keys:
+            new_left.pop(ignored_key, None)
+            new_right.pop(ignored_key, None)
+        return super(TestCase, self).assertDictEqual(left, right)
+
+    def assertInstalledInfoEqual(self, left, right):
+        return self.assertDictEqual(left, right, ["ctime"])
+
+class TestEggCollection(TestCase):
     def test_find_simple(self):
         with mkdtemp() as d:
             prefix = os.path.join(d, "env")
@@ -47,7 +66,7 @@ class TestEggCollection(unittest.TestCase):
             ec = EggCollection(prefix, False)
 
             info = ec.find(os.path.basename(DUMMY_EGG))
-            self.assertEqual(info, _dummy_installed_info(prefix))
+            self.assertInstalledInfoEqual(info, _dummy_installed_info(prefix))
 
             info = ec.find("dummy-1.eggg")
             self.assertTrue(info is None)
@@ -63,8 +82,9 @@ class TestEggCollection(unittest.TestCase):
 
             index = list(ec.query(name="dummy"))
             self.assertEqual(len(index), 1)
-            self.assertEqual(index[0],
-                             (os.path.basename(egg), _dummy_installed_info(prefix)))
+            key, installed_info = index[0]
+            self.assertEqual(key, os.path.basename(egg))
+            self.assertInstalledInfoEqual(installed_info, _dummy_installed_info(prefix))
 
             index = list(ec.query(name="yummy"))
             self.assertEqual(index, [])
@@ -93,7 +113,7 @@ def _create_joined_collection(prefixes, eggs):
         ecs.append(ec)
     return JoinedEggCollection(ecs)
 
-class TestJoinedEggCollection(unittest.TestCase):
+class TestJoinedEggCollection(TestCase):
     def test_find_simple(self):
         with mkdtemp() as d:
             egg = DUMMY_EGG
@@ -105,7 +125,7 @@ class TestJoinedEggCollection(unittest.TestCase):
             store = _create_joined_collection((prefix0, prefix1), eggs)
 
             info = store.find(egg_basename)
-            self.assertEqual(info, _dummy_installed_info(prefix0))
+            self.assertInstalledInfoEqual(info, _dummy_installed_info(prefix0))
             self.assertNotEqual(info, _dummy_installed_info(prefix1))
 
     def test_query_simple(self):
@@ -123,7 +143,7 @@ class TestJoinedEggCollection(unittest.TestCase):
             self.assertEqual(len(info), 1)
             entry = info[0]
             self.assertEqual(entry[0], os.path.basename(egg))
-            self.assertEqual(entry[1], _dummy_installed_info(prefix0))
+            self.assertInstalledInfoEqual(entry[1], _dummy_installed_info(prefix0))
 
     def test_query_precedence_lower_version_on_top(self):
         """

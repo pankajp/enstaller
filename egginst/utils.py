@@ -108,6 +108,12 @@ def makedirs(path):
         if e.errno != errno.EEXIST:
             raise
 
+def ensure_dir(path):
+    """
+    Create the parent directory of the give path, recursively is necessary.
+    """
+    makedirs(os.path.dirname(path))
+
 def is_zipinfo_symlink(zip_info):
     """Return True if the given zip_info instance refers to a symbolic link."""
     return zip_info.external_attr == ZIP_SOFTLINK_ATTRIBUTE_MAGIC
