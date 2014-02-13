@@ -327,7 +327,7 @@ class TestUpdatesCheck(unittest.TestCase):
             self.assertEqual(EPD_update, [])
             self.assertEqual(len(updates), 1)
             update0 = updates[0]
-            self.assertEqual(update0.keys(), ["current", "update"])
+            self.assertItemsEqual(update0.keys(), ["current", "update"])
             self.assertEqual(update0["current"]["version"], "1.0.1")
             self.assertEqual(update0["update"]["version"], "1.2.0")
 
@@ -371,7 +371,7 @@ class TestUpdatesCheck(unittest.TestCase):
             self.assertEqual(len(EPD_update), 1)
 
             epd_update0 = EPD_update[0]
-            self.assertEqual(epd_update0.keys(), ["current", "update"])
+            self.assertItemsEqual(epd_update0.keys(), ["current", "update"])
             self.assertEqual(epd_update0["current"]["version"], "7.2")
             self.assertEqual(epd_update0["update"]["version"], "7.3")
 
