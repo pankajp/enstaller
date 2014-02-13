@@ -1,5 +1,4 @@
 import errno
-import functools
 import os.path
 import re
 import shutil
@@ -17,8 +16,6 @@ else:
     import unittest
     def exception_code(ctx):
         return ctx.exception.code
-
-from cStringIO import StringIO
 
 import mock
 
@@ -652,7 +649,7 @@ class TestInstallReq(unittest.TestCase):
             error.errno = errno.EACCES
             m.side_effect = error
             enpkg = _create_prefix_with_eggs(self.prefix, [], remote_entries)
-            with self.assertRaises(SystemExit) as e:
+            with self.assertRaises(SystemExit):
                 install_req(enpkg, "nose", FakeOptions())
 
     @mock.patch("sys.platform", "linux2")
@@ -664,5 +661,5 @@ class TestInstallReq(unittest.TestCase):
         with mock.patch("enstaller.main.Enpkg.execute") as m:
             m.side_effect = OSError()
             enpkg = _create_prefix_with_eggs(self.prefix, [], remote_entries)
-            with self.assertRaises(OSError) as e:
+            with self.assertRaises(OSError):
                 install_req(enpkg, "nose", FakeOptions())
