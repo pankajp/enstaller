@@ -11,7 +11,6 @@ import os
 import re
 import sys
 import site
-import traceback
 import errno
 import string
 import datetime
@@ -28,8 +27,9 @@ from enstaller.proxy.api import setup_proxy
 from enstaller.utils import abs_expanduser, fill_url, exit_if_sudo_on_venv
 
 from enstaller.eggcollect import EggCollection
-from enstaller.enpkg import (Enpkg, EnpkgError, create_joined_store,
-    req_from_anything, get_default_remote)
+from enstaller.enpkg import (
+    Enpkg, EnpkgError, check_prefixes, create_joined_store, req_from_anything
+)
 from enstaller.resolve import Req, comparable_info
 from enstaller.egg_meta import is_valid_eggname, split_eggname
 
@@ -586,6 +586,7 @@ def main(argv=None):
     else:
         prefixes = [prefix, sys.prefix]
 
+    check_prefixes(prefixes)
     exit_if_sudo_on_venv(prefix)
 
     if args.verbose:
