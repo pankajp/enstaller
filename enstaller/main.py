@@ -226,8 +226,9 @@ def whats_new(enpkg):
     else:
         if EPD_update:
             new_EPD_version = VB_FMT % EPD_update[0]['update']
-            print("EPD", new_EPD_version, "is available. " \
-                "To update to it (with confirmation warning), run 'enpkg epd'.")
+            print("EPD", new_EPD_version, "is available. "
+                  "To update to it (with confirmation warning), run "
+                  "'enpkg epd'.")
         if updates:
             print(FMT % ('Name', 'installed', 'available'))
             print(60 * "=")
@@ -244,8 +245,9 @@ def update_all(enpkg, args):
     else:
         if EPD_update:
             new_EPD_version = VB_FMT % EPD_update[0]['update']
-            print("EPD", new_EPD_version, "is available. " \
-                "To update to it (with confirmation warning), run 'enpkg epd'.")
+            print("EPD", new_EPD_version, "is available. "
+                  "To update to it (with confirmation warning), "
+                  "run 'enpkg epd'.")
         if updates:
             print ("The following updates and their dependencies "
                    "will be installed")
@@ -375,7 +377,7 @@ def install_req(enpkg, req, opts):
         except Exception as e:
             print(e.message)
             # No credentials.
-            print("")
+            print()
             _prompt_for_auth()
 
     def _prompt_for_auth():
@@ -688,8 +690,8 @@ def main(argv=None):
 
     # Try to auto-update enstaller
     if update_enstaller(enpkg, args):
-        print("Enstaller has been updated.", \
-            "Please re-run your previous command.")
+        print("Enstaller has been updated.\n"
+              "Please re-run your previous command.")
         return
 
     if args.search:                               # --search
