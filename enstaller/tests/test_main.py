@@ -35,7 +35,8 @@ from enstaller.store.tests.common import MetadataOnlyStore
 
 from .common import MetaOnlyEggCollection, dummy_enpkg_entry_factory, \
     dummy_installed_egg_factory, mock_print, patched_read, \
-    dont_use_webservice, is_not_authenticated, is_authenticated, use_webservice
+    dont_use_webservice, is_not_authenticated, is_authenticated, use_webservice, \
+    PY_VER
 
 class TestEnstallerMainActions(unittest.TestCase):
     def test_print_version(self):
@@ -158,21 +159,47 @@ class TestInfoStrings(unittest.TestCase):
             self.assertEqual(install_time_string(enpkg, "ddummy"), "")
 
     def test_info_option(self):
+        self.maxDiff = None
+        r_output = textwrap.dedent("""\
+        Package: enstaller
+
+        Version: 4.6.2-1
+            Product: commercial
+            Available: True
+            Python version: {1}
+            Store location:{0}
+            Last modified: 0.0
+            Type: egg
+            MD5:{0}
+            Size: 1024
+            Requirements: None
+        Version: 4.6.3-1
+            Product: commercial
+            Available: True
+            Python version: {1}
+            Store location:{0}
+            Last modified: 0.0
+            Type: egg
+            MD5:{0}
+            Size: 1024
+            Requirements: None
+        """.format(" ", PY_VER))
         with mkdtemp() as d:
             entries = [dummy_enpkg_entry_factory("enstaller", "4.6.2", 1),
                        dummy_enpkg_entry_factory("enstaller", "4.6.3", 1)]
             enpkg = _create_prefix_with_eggs(d, remote_entries=entries)
 
-            info_option(enpkg, "enstaller")
+            with mock_print() as m:
+                info_option(enpkg, "enstaller")
+                self.assertMultiLineEqual(m.value, r_output)
 
     def test_print_installed(self):
         with mkdtemp() as d:
-            r_out = """\
-Name                 Version              Store
-============================================================
-dummy                1.0.1-1              -
-"""
-            installed_entries = [dummy_installed_egg_factory("dummy", "1.0.1", 1)]
+            r_out = textwrap.dedent("""\
+                Name                 Version              Store
+                ============================================================
+                dummy                1.0.1-1              -
+                """)
             ec = EggCollection(d, False)
             ec.install(os.path.basename(DUMMY_EGG), os.path.dirname(DUMMY_EGG))
 
@@ -180,10 +207,10 @@ dummy                1.0.1-1              -
                 print_installed(d)
                 self.assertEqual(m.value, r_out)
 
-            r_out = """\
-Name                 Version              Store
-============================================================
-"""
+            r_out = textwrap.dedent("""\
+                Name                 Version              Store
+                ============================================================
+                """)
 
             with mock_print() as m:
                 print_installed(d, pat=re.compile("no_dummy"))
@@ -195,13 +222,13 @@ class TestSearch(unittest.TestCase):
         with mkdtemp() as d:
             # XXX: isn't there a better way to ensure ws at the end of a line
             # are not eaten away ?
-            r_output = """\
-Name                   Versions           Product              Note
-================================================================================
-another_dummy          2.0.0-1            commercial           DUMMY_ANCHOR
-dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
-                       1.0.0-1            commercial           DUMMY_ANCHOR
-""".replace("DUMMY_ANCHOR", "")
+            r_output = textwrap.dedent("""\
+                Name                   Versions           Product              Note
+                ================================================================================
+                another_dummy          2.0.0-1            commercial           {0}
+                dummy                  0.9.8-1            commercial           {0}
+                                       1.0.0-1            commercial           {0}
+                """.format(""))
             entries = [dummy_enpkg_entry_factory("dummy", "1.0.0", 1),
                        dummy_enpkg_entry_factory("dummy", "0.9.8", 1),
                        dummy_enpkg_entry_factory("another_dummy", "2.0.0", 1)]
@@ -214,12 +241,12 @@ dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
     @mock.patch("enstaller.config.read", lambda: patched_read(use_webservice=False))
     def test_installed(self):
         with mkdtemp() as d:
-            r_output = """\
-Name                   Versions           Product              Note
-================================================================================
-dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
-                     * 1.0.1-1            commercial           DUMMY_ANCHOR
-""".replace("DUMMY_ANCHOR", "")
+            r_output = textwrap.dedent("""\
+                Name                   Versions           Product              Note
+                ================================================================================
+                dummy                  0.9.8-1            commercial           {0}
+                                     * 1.0.1-1            commercial           {0}
+                """.format(""))
             entries = [dummy_enpkg_entry_factory("dummy", "1.0.1", 1),
                        dummy_enpkg_entry_factory("dummy", "0.9.8", 1)]
             installed_entries = [dummy_installed_egg_factory("dummy", "1.0.1", 1)]
@@ -232,12 +259,12 @@ dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
     @mock.patch("enstaller.config.read", lambda: patched_read(use_webservice=False))
     def test_pattern(self):
         with mkdtemp() as d:
-            r_output = """\
-Name                   Versions           Product              Note
-================================================================================
-dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
-                     * 1.0.1-1            commercial           DUMMY_ANCHOR
-""".replace("DUMMY_ANCHOR", "")
+            r_output = textwrap.dedent("""\
+                Name                   Versions           Product              Note
+                ================================================================================
+                dummy                  0.9.8-1            commercial           {0}
+                                     * 1.0.1-1            commercial           {0}
+                """.format(""))
             entries = [dummy_enpkg_entry_factory("dummy", "1.0.1", 1),
                        dummy_enpkg_entry_factory("dummy", "0.9.8", 1),
                        dummy_enpkg_entry_factory("another_package", "2.0.0", 1)]
@@ -248,27 +275,27 @@ dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
                 search(enpkg, pat=re.compile("dummy"))
                 self.assertMultiLineEqual(m.value, r_output)
 
-            r_output = """\
-Name                   Versions           Product              Note
-================================================================================
-another_package        2.0.0-1            commercial           DUMMY_ANCHOR
-dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
-                     * 1.0.1-1            commercial           DUMMY_ANCHOR
-""".replace("DUMMY_ANCHOR", "")
+            r_output = textwrap.dedent("""\
+                Name                   Versions           Product              Note
+                ================================================================================
+                another_package        2.0.0-1            commercial           {0}
+                dummy                  0.9.8-1            commercial           {0}
+                                     * 1.0.1-1            commercial           {0}
+                """.format(""))
             with mock_print() as m:
                 search(enpkg, pat=re.compile(".*"))
                 self.assertMultiLineEqual(m.value, r_output)
 
     @mock.patch("enstaller.config.read", lambda: patched_read(use_webservice=True))
     def test_not_available(self):
-        r_output = """\
-Name                   Versions           Product              Note
-================================================================================
-another_package        2.0.0-1            commercial           not subscribed to
-dummy                  0.9.8-1            commercial           DUMMY_ANCHOR
-                       1.0.1-1            commercial           DUMMY_ANCHOR
+        r_output = textwrap.dedent("""\
+            Name                   Versions           Product              Note
+            ================================================================================
+            another_package        2.0.0-1            commercial           not subscribed to
+            dummy                  0.9.8-1            commercial           {0}
+                                   1.0.1-1            commercial           {0}
 
-""".replace("DUMMY_ANCHOR", "")
+            """.format(""))
         another_entry = dummy_enpkg_entry_factory("another_package", "2.0.0", 1)
         another_entry.available = False
 
@@ -354,12 +381,12 @@ class TestUpdatesCheck(unittest.TestCase):
     def test_whats_new_no_new_epd(self):
         # XXX: fragile, as it depends on dict ordering from
         # EggCollection.query_installed. We should sort the output instead.
-        r_output = """\
-Name                 installed            available
-============================================================
-scipy                0.12.0-1             0.13.0-1
-numpy                1.7.1-1              1.7.1-2
-"""
+        r_output = textwrap.dedent("""\
+            Name                 installed            available
+            ============================================================
+            scipy                0.12.0-1             0.13.0-1
+            numpy                1.7.1-1              1.7.1-2
+            """)
         installed_entries = [
             dummy_installed_egg_factory("numpy", "1.7.1", 1),
             dummy_installed_egg_factory("scipy", "0.12.0", 1)
