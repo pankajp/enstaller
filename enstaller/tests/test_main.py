@@ -659,7 +659,9 @@ class TestInstallReq(unittest.TestCase):
         ]
 
         with mock.patch("enstaller.main.Enpkg.execute") as m:
-            m.side_effect = OSError()
+            error = OSError()
+            error.errno = errno.EACCES
+            m.side_effect = error
             enpkg = _create_prefix_with_eggs(self.prefix, [], remote_entries)
             with self.assertRaises(OSError):
                 install_req(enpkg, "nose", FakeOptions())
