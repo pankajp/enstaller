@@ -1,8 +1,8 @@
 .. image:: https://travis-ci.org/enthought/enstaller.png
   :target: https://travis-ci.org/enthought/enstaller
 
-.. image:: https://coveralls.io/repos/enthought/enstaller/badge.png
-  :target: https://coveralls.io/r/enthought/enstaller
+.. image:: https://coveralls.io/repos/enthought/enstaller/badge.png?branch=master
+  :target: https://coveralls.io/r/enthought/enstaller?branch=master
 
 
 The Enstaller (version 4) project is a package management and installation
