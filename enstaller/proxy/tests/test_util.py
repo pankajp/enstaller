@@ -9,8 +9,10 @@ else:
 import mock
 
 from egginst.testing_utils import ControlledEnv
+from enstaller.errors import InvalidConfiguration
 from enstaller.proxy.util import get_proxy_info, get_proxystr, \
     install_proxy_handlers, setup_proxy
+
 
 PROXY_HOST = "PROXY_HOST"
 PROXY_PORT = "PROXY_PORT"
@@ -31,12 +33,15 @@ class TestGetProxyInfo(unittest.TestCase):
         self.assertEqual(get_proxy_info("http://john:doe@acme.com:8080"),
                          {"host": "http://acme.com", "port": 8080, "user": "john",
                           "pass": "doe"})
+        self.assertEqual(get_proxy_info("acme.com:8080"),
+                         {"host": "http://acme.com", "port": 8080, "user": None,
+                          "pass": None})
+
 
     def test_from_empty_string(self):
         with mock.patch("enstaller.proxy.util.os.environ", ControlledEnv(_IGNORED_KEYS)):
-            self.assertEqual(get_proxy_info(""),
-                             {"host": None, "port": 80, "user": None,
-                              "pass": None})
+            with self.assertRaises(InvalidConfiguration):
+                get_proxy_info("")
 
         env = ControlledEnv()
         env[PROXY_USER] = "john"
@@ -55,10 +60,9 @@ class TestGetProxyStr(unittest.TestCase):
 
         self.assertEqual(get_proxystr(pinfo), "http://john:doe@acme.com:8080")
 
-    @unittest.expectedFailure
     def test_empty_pinfo(self):
-        pinfo = {}
-        self.assertEqual(get_proxystr(pinfo), "")
+        with self.assertRaises(InvalidConfiguration):
+            get_proxystr({})
 
     def test_simple_without_scheme(self):
         pinfo = {"host": "acme.com", "user": "john", "pass": "doe", "port": 8080}
@@ -122,9 +126,6 @@ class TestProxySetup(unittest.TestCase):
 
     @mock.patch("os.environ", ControlledEnv(_IGNORED_KEYS))
     def test_setup_proxy_empty_host(self):
-        with mock.patch("urllib2.install_opener") as mocked:
-            proxystr = ""
-            installed = setup_proxy(proxystr)
-
-            self.assertFalse(installed)
-            self.assertFalse(mocked.called)
+        with mock.patch("urllib2.install_opener"):
+            with self.assertRaises(InvalidConfiguration):
+                setup_proxy("")

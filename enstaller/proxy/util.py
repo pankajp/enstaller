@@ -14,6 +14,7 @@ import os
 import urllib2
 import urlparse
 
+from enstaller.errors import InvalidConfiguration
 
 def get_proxystr(pinfo):
     """ Get proxystr from a dictionary of proxy info.
@@ -29,6 +30,9 @@ def get_proxystr(pinfo):
             proxystr = '%(user)s:%(pass)s@%(host)s:%(port)s' % pinfo
         else:
             proxystr = '%(host)s:%(port)s' % pinfo
+    else:
+        # FIXME: fix pinfo configuration so that it cannot be invalid once created
+        raise InvalidConfiguration("Invalid proxy info: {0}".format(pinfo))
 
     return proxystr
 
@@ -75,7 +79,7 @@ def get_proxy_info(proxystr=None):
 
     Returns dictionary of identified proxy information.
 
-    Raises ValueError on any configuration error.
+    Raises InvalidConfiguration on any configuration error.
 
     """
 
@@ -92,6 +96,10 @@ def get_proxy_info(proxystr=None):
     # Parse the passed proxy string
     else:
         parts = urlparse.urlparse(proxystr)
+        if parts.netloc == "":
+            proxystr = "http://{0}".format(proxystr)
+            parts = urlparse.urlparse(proxystr)
+
         _, hostport = urllib2.splituser(parts.netloc)
         host, _ = urllib2.splitport(hostport)
 
@@ -111,6 +119,12 @@ def get_proxy_info(proxystr=None):
         if passwd is None or len(passwd) < 1:
             import getpass
             proxy_info['pass'] = getpass.getpass()
+
+    if proxy_info["host"] is None or len(proxy_info["host"]) < 1:
+        raise InvalidConfiguration("Invalid proxy configuration '{0}': "
+                                   "proxy string should be of the form "
+                                   "'http://host:port' or 'http://host'". \
+                                   format(proxystr))
 
     return proxy_info
 
