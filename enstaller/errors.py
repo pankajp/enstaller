@@ -1,8 +1,12 @@
-class EnpkgException(Exception):
+class EnstallerException(Exception):
     pass
 
-class InvalidConfiguration(EnpkgException):
+class InvalidConfiguration(EnstallerException):
     pass
 
-class AuthFailedError(EnpkgException):
+class AuthFailedError(EnstallerException):
     pass
+
+class EnpkgError(EnstallerException):
+    # FIXME: why is this a class-level attribute ?
+    req = None

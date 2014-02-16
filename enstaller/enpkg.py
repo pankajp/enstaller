@@ -8,6 +8,7 @@ import threading
 
 import enstaller
 
+from enstaller.errors import EnpkgError
 from store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
 from store.joined import JoinedStore
 
@@ -99,10 +100,6 @@ def get_writable_local_dir(prefix):
            'Using a temporary cache for index and eggs.\n' %
            prefix)
     return tempfile.mkdtemp()
-
-
-class EnpkgError(Exception):
-    req = None
 
 
 def get_default_remote(prefixes):
