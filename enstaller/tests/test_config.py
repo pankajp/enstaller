@@ -259,10 +259,10 @@ class TestGetAuth(unittest.TestCase):
                 return get(arg)
 
         with mock.patch("enstaller.config.get", mocked_get):
-            with mock.patch("enstaller.config.keyring"):
-                with mock.patch("enstaller.config.change_auth") as mocked_change_auth:
-                    get_auth()
-                    mocked_change_auth.assert_called_with(FAKE_USER, FAKE_PASSWORD)
+            mocked_keyring = mock.Mock(["get_password"])
+            with mock.patch("enstaller.config.keyring", mocked_keyring):
+                self.assertFalse(mocked_keyring.get_password.called)
+                self.assertEqual(get_auth(), (FAKE_USER, FAKE_PASSWORD))
 
     @mock.patch("enstaller.config.keyring", None)
     def test_without_auth_or_keyring(self):

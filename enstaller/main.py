@@ -658,6 +658,12 @@ def main(argv=None):
         config.checked_change_auth(username, password, enpkg.remote)
         return
 
+    if config.get_auth() == (None, None):
+        msg = ("No authentication configured, required to continue. To "
+               "login, type 'enpkg --userpass'.")
+        print(msg)
+        sys.exit(-1)
+
     if args.dry_run:
         def print_actions(actions):
             for item in actions:
