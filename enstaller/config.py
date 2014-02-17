@@ -496,6 +496,28 @@ def print_config(remote, prefix):
         print e
     print subscription_message(user)
 
+def is_auth_configured():
+    """
+    Returns True if enstaller configuration file has authentication
+    information.
+
+    Note
+    ----
+    This only checks whether the auth is configured, not whether the
+    authentication information is correct.
+    """
+    # FIXME: this does not really belong here, and should be put in the
+    # configuration object once it is not a module-level global
+    auth = get("EPD_auth")
+    if auth:
+        return True
+    else:
+        username = get("EPD_username")
+        if username and keyring:
+            return True
+        else:
+            return False
+
 class AuthenticatorStore(object):
     def __init__(self):
         self._auth = None
