@@ -538,7 +538,7 @@ def main(argv=None):
     if prefix != sys.prefix:
         warnings.warn("Using the --prefix option is potentially dangerous. "
                       "You should use enpkg installed in {0} instead.". \
-                      format(sys.prefix))
+                      format(opts.prefix))
 
     if opts.list:
         if args:
