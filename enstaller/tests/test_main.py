@@ -573,7 +573,7 @@ class TestInstallReq(unittest.TestCase):
                 with self.assertRaises(SystemExit) as e:
                     install_req(enpkg, "nose", FakeOptions())
                 subscription_message.assert_called()
-                self.assertEqual(e.exception.code, 1)
+                self.assertEqual(exception_code(e), 1)
 
     @is_authenticated
     @use_webservice
