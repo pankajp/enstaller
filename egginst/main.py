@@ -535,6 +535,10 @@ def main(argv=None):
         return
 
     prefix = abspath(opts.prefix)
+    if prefix != sys.prefix:
+        warnings.warn("Using the --prefix option is potentially dangerous. "
+                      "You should use enpkg installed in {0} instead.". \
+                      format(sys.prefix))
 
     if opts.list:
         if args:
