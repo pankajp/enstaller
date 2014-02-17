@@ -12,7 +12,7 @@ from getpass import getpass
 from os.path import isfile, join
 
 from enstaller import __version__
-from enstaller.errors import AuthFailedError
+from enstaller.errors import AuthFailedError, InvalidConfiguration
 from utils import PY_VER, abs_expanduser, fill_url
 
 def __import_new_keyring():
@@ -523,6 +523,10 @@ class AuthenticatorStore(object):
         self._auth = None
 
     def load_auth(self):
+        """
+        Load authentication information from enstaller configuration file (and
+        potentially keyring).
+        """
         if self._auth is None:
             self._auth = self._get_auth()
         return self._auth
@@ -530,10 +534,16 @@ class AuthenticatorStore(object):
     def _get_auth(self):
         old_auth = get("EPD_auth")
         if old_auth:
-            return tuple(old_auth.decode('base64').split(':'))
+            decoded_auth = old_auth.decode('base64')
+            parts = decoded_auth.split(":")
+            if len(parts) != 2:
+                raise InvalidConfiguration("Authentication string is corrupted")
+            else:
+                return tuple(parts)
 
         username = get("EPD_username")
         if username:
+            password = None
             if keyring:
                 password = keyring.get_password(KEYRING_SERVICE_NAME, username)
             if password:

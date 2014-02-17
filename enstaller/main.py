@@ -43,6 +43,8 @@ FMT = '%-20s %-20s %s'
 VB_FMT = '%(version)s-%(build)s'
 FMT4 = '%-20s %-20s %-20s %s'
 
+PLEASE_AUTH_MESSAGE = ("No authentication configured, required to continue."
+                       "To login, type 'enpkg --userpass'.")
 
 def env_option(prefixes):
     print("Prefixes:")
@@ -289,27 +291,21 @@ def pretty_print_packages(info_list):
 def install_req(enpkg, req, opts):
     """
     Try to execute the install actions.
-
-    If 'use_webservice', check the user's credentials and prompt the
-    user to input them if not authenticated.
     """
-    # Below is a slightly complicated state machine that attempts to "do
-    # the right thing" if the install initially fails.  Basically, the
-    # flow is to try the install, prompt the user for credentials if "No
-    # subscription" for the package and the user isn't authenticated,
-    # then try the install once more if the credentials are valid.
-
     # Unix exit-status codes
     FAILURE = 1
-    SUCCESS = 0
     req = req_from_anything(req)
+
+    def _print_invalid_permissions():
+        user = config.authenticate(config.get_auth())
+        print("No package found to fulfill your requirement at your "
+              "subscription level:")
+        for line in config.subscription_message(user).splitlines():
+            print(" " * 4 + line)
 
     def _perform_install(last_try=False):
         """
         Try to perform the install.
-
-        If 'use_webservice' and the install fails, check the user's
-        credentials (_check_auth), else _done.
         """
         try:
             mode = 'root' if opts.no_deps else 'recur'
@@ -329,10 +325,8 @@ def install_req(enpkg, req, opts):
                     print("Versions for package %r are:\n%s" % (req.name,
                         pretty_print_packages(info_list)))
                     if any(not i.get('available', True) for i in info_list):
-                        if config.get('use_webservice') and not(last_try):
-                            _check_auth()
-                        else:
-                            _done(FAILURE)
+                        _print_invalid_permissions()
+                    _done(FAILURE)
                 else:
                     print(e.message)
                     _done(FAILURE)
@@ -349,10 +343,8 @@ def install_req(enpkg, req, opts):
                                "%r are:\n%s") % (
                             e.req.name, pretty_print_packages(info_list)))
                         if any(not i.get('available', True) for i in info_list):
-                            if config.get('use_webservice') and not(last_try):
-                                _check_auth()
-                            else:
-                                _done(FAILURE)
+                            _print_invalid_permissions()
+                        _done(FAILURE)
             _done(FAILURE)
         except OSError as e:
             if e.errno == errno.EACCES and sys.platform == 'darwin':
@@ -361,41 +353,6 @@ def install_req(enpkg, req, opts):
                 _done(FAILURE)
             else:
                 raise
-
-    def _check_auth():
-        """
-        Check the user's credentials against the web API.
-        """
-        user = {}
-        try:
-            user = config.authenticate(config.get_auth())
-            assert(user['is_authenticated'])
-            # An EPD Free user who is trying to install a package not in
-            # EPD free.  Print out subscription level and fail.
-            print(config.subscription_message(user))
-            _done(FAILURE)
-        except Exception as e:
-            print(e.message)
-            # No credentials.
-            print()
-            _prompt_for_auth()
-
-    def _prompt_for_auth():
-        """
-        Prompt the user for credentials and save them and retry the
-        install if the credentials validate.
-        """
-        # prompt for username and password
-        username, password = config.input_auth()
-        user = config.checked_change_auth(username, password)
-        # FIXME: This is a hack...  shouldn't have to change
-        # enpkg.userpass or enpkg._connected manually
-        if user:
-            enpkg.userpass = (username, password)
-            enpkg._connected = False
-            _perform_install(last_try=True)
-        else:
-            _done(FAILURE)
 
     def _done(exit_status):
         sys.exit(exit_status)
@@ -658,11 +615,17 @@ def main(argv=None):
         config.checked_change_auth(username, password, enpkg.remote)
         return
 
-    if config.get_auth() == (None, None):
-        msg = ("No authentication configured, required to continue. To "
-               "login, type 'enpkg --userpass'.")
-        print(msg)
+    if not config.is_auth_configured():
+        print(PLEASE_AUTH_MESSAGE)
         sys.exit(-1)
+
+    try:
+        auth = config.get_auth()
+    except InvalidConfiguration:
+        print(PLEASE_AUTH_MESSAGE)
+        sys.exit(-1)
+    else:
+        config.authenticate(auth, enpkg.remote)
 
     if args.dry_run:
         def print_actions(actions):
