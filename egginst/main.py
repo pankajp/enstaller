@@ -401,7 +401,7 @@ class EggInst(object):
         if not isfile(path):
             return
         from subprocess import call
-        call([sys.executable, '-E', path, '--prefix', self.prefix],
+        call([scripts.executable, '-E', path, '--prefix', self.prefix],
              cwd=dirname(path))
 
 
@@ -535,6 +535,10 @@ def main(argv=None):
         return
 
     prefix = abspath(opts.prefix)
+    if prefix != sys.prefix:
+        warnings.warn("Using the --prefix option is potentially dangerous. "
+                      "You should use enpkg installed in {0} instead.". \
+                      format(opts.prefix))
 
     if opts.list:
         if args:
