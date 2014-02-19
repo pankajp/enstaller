@@ -44,16 +44,25 @@ class CheckedChangeAuthTestCase(unittest.TestCase):
         self.assertTrue(usr.get('is_authenticated'))
         self.assertTrue(usr.get('has_subscription'))
 
-    @patch('enstaller.config.authenticate',
-            side_effect=AuthFailedError())
-    def test_no_acct(self, mock1):
-        config = Configuration()
-        config.set_auth("usr", "password")
+    def test_no_acct(self):
+        def mocked_authenticate(configuration, remote=None):
+            if configuration.get_auth() != ("valid_user", "valid_password"):
+                raise AuthFailedError()
+            else:
+                return {"is_authenticated": True}
 
-        usr = config._checked_change_auth(self.f)
+        with patch('enstaller.config.authenticate', mocked_authenticate):
+            config = Configuration()
+            config.set_auth("invalid_user", "invalid_password")
 
-        self.assertFalse(usr.get('is_authenticated', False))
-        self.assertEqual(usr, {})
+            with self.assertRaises(AuthFailedError):
+                usr = config._checked_change_auth(self.f)
+
+            config = Configuration()
+            config.set_auth("valid_user", "valid_password")
+            usr = config._checked_change_auth(self.f)
+
+            self.assertEqual(usr, {"is_authenticated": True})
 
     @patch('enstaller.config.authenticate', return_value=old_auth_user)
     def test_remote_success(self, mock1):
@@ -69,9 +78,8 @@ class CheckedChangeAuthTestCase(unittest.TestCase):
         with self.assertRaises(InvalidConfiguration):
             config.set_auth(None, None)
 
-    @patch('enstaller.config.keyring')
-    def test_empty_strings(self, mock1):
-        config = Configuration()
+    def test_empty_strings(self):
+        config = Configuration(use_keyring=False)
         config.set_auth("", "")
 
         with self.assertRaises(InvalidConfiguration):

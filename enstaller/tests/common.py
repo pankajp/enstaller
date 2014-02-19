@@ -84,3 +84,6 @@ def is_authenticated(f):
 def is_not_authenticated(f):
     return mock.patch("enstaller.main.authenticate",
                       lambda ignored: {"is_authenticated": False})(f)
+
+def make_keyring_unavailable(f):
+    return mock.patch("enstaller.config.keyring", None)(f)

@@ -24,7 +24,7 @@ from enstaller.config import (AuthFailedError, authenticate,
     web_auth)
 from enstaller.config import Configuration, PythonConfigurationParser
 
-from .common import patched_read
+from .common import make_keyring_unavailable
 
 def compute_creds(username, password):
     return "{0}:{1}".format(username, password).encode("base64").rstrip()
@@ -86,11 +86,10 @@ class TestWriteConfig(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.d)
 
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_simple(self):
         config = Configuration()
         config.set_auth(FAKE_USER, FAKE_PASSWORD)
-
         config.write(self.f)
 
         config = Configuration.from_file(self.f)
@@ -101,7 +100,7 @@ class TestWriteConfig(unittest.TestCase):
         self.assertEqual(config.use_webservice, True)
         self.assertEqual(config.webservice_entry_point, get_default_url())
 
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_simple_with_proxy(self):
         proxystr = "http://acme.com:3128"
 
@@ -112,6 +111,7 @@ class TestWriteConfig(unittest.TestCase):
         config = Configuration.from_file(self.f)
         self.assertEqual(config.proxy, proxystr)
 
+    @make_keyring_unavailable
     @mock.patch("enstaller.config.sys.platform", "linux2")
     @mock.patch("enstaller.config.os.getuid", lambda: 0)
     def test_use_system_path_under_root(self):
@@ -219,7 +219,7 @@ class TestGetAuth(unittest.TestCase):
             mocked_keyring.get_password.assert_called_with("Enthought.com",
                                                            FAKE_USER)
 
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_with_auth(self):
         config = Configuration()
         config.set_auth(FAKE_USER, FAKE_PASSWORD)
@@ -239,12 +239,12 @@ class TestGetAuth(unittest.TestCase):
             self.assertFalse(mocked_keyring.get_password.called)
             self.assertEqual(config.get_auth(), (FAKE_USER, FAKE_PASSWORD))
 
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_without_auth_or_keyring(self):
         config = Configuration()
         self.assertEqual(config.get_auth(), (None, None))
 
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_deprecated_get_auth(self):
         with mkdtemp() as d:
             f = os.path.join(d, "enstaller4rc")
@@ -256,7 +256,7 @@ class TestGetAuth(unittest.TestCase):
                 self.assertEqual(get_auth(), (FAKE_USER, FAKE_PASSWORD))
 
 class TestChangeAuth(unittest.TestCase):
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_change_existing_config_file(self):
         r_new_password = "ouioui_dans_sa_petite_voiture"
         with tempfile.NamedTemporaryFile(delete=False) as fp:
@@ -271,7 +271,7 @@ class TestChangeAuth(unittest.TestCase):
 
         self.assertEqual(new_config.get_auth(), (FAKE_USER, r_new_password))
 
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_change_existing_config_file_empty_username(self):
         with tempfile.NamedTemporaryFile(delete=False) as fp:
             fp.write("EPD_auth = '{0}'".format(FAKE_CREDS))
@@ -301,7 +301,7 @@ class TestChangeAuth(unittest.TestCase):
             self.assertNotRegexpMatches(f.read(), "EPD_auth")
 
 
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_change_empty_config_file_empty_username(self):
         with tempfile.NamedTemporaryFile(delete=False) as fp:
             fp.write("")
@@ -312,7 +312,7 @@ class TestChangeAuth(unittest.TestCase):
         config.set_auth(FAKE_USER, FAKE_PASSWORD)
         self.assertEqual(config.get_auth(), (FAKE_USER, FAKE_PASSWORD))
 
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_no_config_file(self):
         with tempfile.NamedTemporaryFile(delete=False) as fp:
             fp.write("")
@@ -329,7 +329,7 @@ class TestChangeAuth(unittest.TestCase):
     # FIXME: do we really want to revert the behaviour of change_auth() with
     # auth == (None, None) to do nothing ?
     @unittest.expectedFailure
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_change_config_file_empty_auth(self):
         config_data = "EPD_auth = '{0}'".format(FAKE_CREDS)
         with tempfile.NamedTemporaryFile(delete=False) as fp:
@@ -403,7 +403,7 @@ class TestSubscriptionLevel(unittest.TestCase):
         self.assertIsNone(subscription_level(user_info))
 
 class TestAuthenticationConfiguration(unittest.TestCase):
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_without_configuration_no_keyring(self):
         with tempfile.NamedTemporaryFile(delete=False) as fp:
             fp.write("")
@@ -419,7 +419,7 @@ class TestAuthenticationConfiguration(unittest.TestCase):
             config = Configuration.from_file(fp.name)
             self.assertFalse(config.is_auth_configured)
 
-    @mock.patch("enstaller.config.keyring", None)
+    @make_keyring_unavailable
     def test_with_configuration_no_keyring(self):
         with tempfile.NamedTemporaryFile(delete=False) as fp:
             auth_line = "EPD_auth = '{0}'".format(FAKE_CREDS)
