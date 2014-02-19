@@ -592,7 +592,9 @@ def main(argv=None):
     else:
         prefixes = [prefix, sys.prefix]
 
-    check_prefixes(prefixes)
+    if args.user:
+        check_prefixes(prefixes)
+
     exit_if_sudo_on_venv(prefix)
 
     if args.verbose:
