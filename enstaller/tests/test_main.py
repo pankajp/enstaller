@@ -376,8 +376,6 @@ class TestUpdatesCheck(unittest.TestCase):
             self.assertEqual(epd_update0["update"]["version"], "7.3")
 
     def test_whats_new_no_new_epd(self):
-        # XXX: fragile, as it depends on dict ordering from
-        # EggCollection.query_installed. We should sort the output instead.
         r_output = textwrap.dedent("""\
             Name                 installed            available
             ============================================================
@@ -398,7 +396,10 @@ class TestUpdatesCheck(unittest.TestCase):
 
             with mock_print() as m:
                 whats_new(enpkg)
-                self.assertMultiLineEqual(m.value, r_output)
+                # FIXME: we splitlines and compared wo caring about order, as
+                # the actual line order depends on dict ordering from
+                # EggCollection.query_installed.
+                self.assertItemsEqual(m.value.splitlines(), r_output.splitlines())
 
     def test_whats_new_new_epd(self):
         r_output = "EPD 7.3-2 is available. To update to it (with " \
