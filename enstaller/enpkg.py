@@ -82,6 +82,7 @@ def check_prefixes(prefixes):
         if not index_order == sorted(index_order):
             warnings.warn("Order of path prefixes doesn't match PYTHONPATH")
 
+
 def get_writable_local_dir(prefix):
     local_dir = get_repository_cache(prefix)
     if not os.access(local_dir, os.F_OK):
@@ -155,7 +156,6 @@ class Enpkg(object):
         else:
             self.userpass = userpass
 
-        check_prefixes(prefixes)
         self.prefixes = prefixes
         self.hook = hook
         self.evt_mgr = evt_mgr
