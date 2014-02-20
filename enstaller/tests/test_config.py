@@ -23,6 +23,7 @@ from enstaller.config import (AuthFailedError, authenticate,
     get_auth, get_default_url, get_path, input_auth, subscription_level,
     web_auth)
 from enstaller.config import Configuration, PythonConfigurationParser
+from enstaller.errors import InvalidConfiguration
 
 from .common import make_keyring_unavailable
 
@@ -209,15 +210,13 @@ class TestGetAuth(unittest.TestCase):
 
     def test_with_keyring(self):
         with mock.patch("enstaller.config.keyring") as mocked_keyring:
-            attrs = {"get_password.return_value": FAKE_PASSWORD}
-            mocked_keyring.configure_mock(**attrs)
-
             config = Configuration()
             config.set_auth(FAKE_USER, FAKE_PASSWORD)
 
             self.assertEqual(config.get_auth(), (FAKE_USER, FAKE_PASSWORD))
-            mocked_keyring.get_password.assert_called_with("Enthought.com",
-                                                           FAKE_USER)
+            mocked_keyring.set_password.assert_called_with("Enthought.com",
+                                                           FAKE_USER,
+                                                           FAKE_PASSWORD)
 
     @make_keyring_unavailable
     def test_with_auth(self):
@@ -452,3 +451,47 @@ class TestConfigurationParsing(unittest.TestCase):
 
         data = PythonConfigurationParser().parse(s)
         self.assertEqual(data, r_data)
+
+    @make_keyring_unavailable
+    def test_epd_auth_wo_keyring(self):
+        s = StringIO("EPD_auth = '{0}'".format(FAKE_CREDS))
+
+        config = Configuration.from_file(s)
+        self.assertEqual(config.EPD_auth, FAKE_CREDS)
+        self.assertEqual(config.EPD_username, FAKE_USER)
+
+    @make_keyring_unavailable
+    def test_epd_username_wo_keyring(self):
+        """
+        Ensure config auth correctly reports itself as non configured when
+        using EPD_auth but keyring is not available to get password.
+        """
+        s = StringIO("EPD_username = '{0}'".format(FAKE_USER))
+
+        config = Configuration.from_file(s)
+        self.assertFalse(config.is_auth_configured)
+        with self.assertRaises(InvalidConfiguration):
+            config.EPD_auth
+
+    @mock.patch("enstaller.config.keyring")
+    def test_epd_username_with_keyring(self, mocked_keyring):
+        mocked_keyring.get_password = lambda service, username: FAKE_PASSWORD
+
+        s = StringIO("EPD_username = '{0}'".format(FAKE_USER))
+        config = Configuration.from_file(s)
+
+        self.assertTrue(config.use_keyring)
+        self.assertEqual(config.EPD_username, FAKE_USER)
+        self.assertEqual(config.EPD_auth, FAKE_CREDS)
+
+    @mock.patch("enstaller.config.keyring")
+    def test_epd_auth_with_keyring(self, mocked_keyring):
+        """
+        Ensure config is properly setup in keyring mode when using EPD_auth
+        """
+        s = StringIO("EPD_auth = '{0}'".format(FAKE_CREDS))
+        config = Configuration.from_file(s)
+
+        self.assertTrue(config.use_keyring)
+        self.assertEqual(config.EPD_username, FAKE_USER)
+        self.assertEqual(config.EPD_auth, FAKE_CREDS)

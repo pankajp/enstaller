@@ -160,6 +160,17 @@ def _create_default_config():
     config = Configuration()
     config.write(config._default_filename())
 
+def _decode_auth(s):
+    parts = base64.decodestring(s).split(":")
+    if len(parts) == 2:
+        return tuple(parts)
+    else:
+        raise InvalidConfiguration("Invalid auth line")
+
+def _encode_auth(username, password):
+    s = "{0}:{1}".format(username, password)
+    return base64.encodestring(s).rstrip()
+
 class Configuration(object):
     @classmethod
     def _get_default_config(cls, create_if_not_exists=False):
@@ -172,10 +183,38 @@ class Configuration(object):
 
     @classmethod
     def from_file(cls, filename, use_keyring=None):
+        """
+        Create a new Configuration instance from the given file.
+
+        Parameters
+        ----------
+        filename: str or file-like object
+            If a string, is understood as a filename to open. Understood as a
+            file-like object otherwise.
+        """
+        accepted_keys_as_is = {
+            "proxy", "noapp", "use_webservice", "autoupdate",
+            "prefix", "local", "IndexedRepos", "webservice_entry_point",
+            "repository_cache"
+        }
+
         def _create(fp):
             ret = cls(use_keyring)
             for k, v in parser.parse(fp.read()).iteritems():
-                setattr(ret, k, v)
+                if k in accepted_keys_as_is:
+                    setattr(ret, k, v)
+                elif k == "EPD_auth":
+                    username, password = _decode_auth(v)
+                    ret._username = username
+                    ret._password = password
+                elif k == "EPD_username":
+                    ret._username = v
+                    if keyring is None:
+                        ret._password = None
+                    else:
+                        ret._password = keyring.get_password(KEYRING_SERVICE_NAME, v)
+                else:
+                    warnings.warn("Unsupported configuration setting {0}, ignored".format(k))
             return ret
 
         parser = PythonConfigurationParser()
@@ -183,13 +222,11 @@ class Configuration(object):
             with open(filename, "rt") as fp:
                 return _create(fp)
         else:
-            return _create(fp)
+            return _create(filename)
 
     def __init__(self, use_keyring=None):
         self.proxy = None
         self.noapp = False
-        self._EPD_auth = None
-        self._EPD_username = None
         self.use_webservice = True
         self.autoupdate =  True
 
@@ -199,6 +236,9 @@ class Configuration(object):
         self._webservice_entry_point = fill_url(get_default_url())
 
         self.repository_cache = self.local
+
+        self._username = None
+        self._password = None
 
         if use_keyring is None:
             self._use_keyring = keyring is not None
@@ -216,52 +256,29 @@ class Configuration(object):
         return self._use_keyring
 
     def set_auth(self, username, password):
-        self.EPD_auth = None
-        self.EPD_username = None
-
         if username is None or password is None:
             raise InvalidConfiguration(
                     "invalid authentication arguments: "
                     "{0}:{1}".format(username, password))
+        else:
+            self._username = username
+            self._password = password
 
-        self.EPD_username = username
-        self.EPD_auth = base64.encodestring('%s:%s' % (username, password))
 
-        if self.use_keyring:
-            keyring.set_password(KEYRING_SERVICE_NAME, username, password)
+            if self.use_keyring:
+                keyring.set_password(KEYRING_SERVICE_NAME, username, password)
 
     def reset_auth(self):
         if self.use_keyring:
-            if self.EPD_username is None:
+            if self._username is None:
                 raise ValueError("Cannot reset auth if not set up.")
             keyring.set_password(KEYRING_SERVICE_NAME, self.EPD_username, "")
 
-        self.EPD_auth = None
-        self.EPD_username = None
+        self._username = None
+        self._password = None
 
     def get_auth(self):
-        if not self.use_keyring:
-            auth = self.EPD_auth
-            if auth is None:
-                return (None, None)
-            else:
-                decoded_auth = auth.decode('base64')
-                parts = decoded_auth.split(":")
-                if len(parts) != 2:
-                    raise InvalidConfiguration("Authentication string is corrupted")
-                else:
-                    return tuple(parts)
-        elif self.EPD_username is not None:
-            username = self.EPD_username
-            password = None
-            if self.use_keyring:
-                password = keyring.get_password(KEYRING_SERVICE_NAME, username)
-            if password:
-                return username, password
-            else:
-                return None, None
-        else:
-            return None, None
+        return (self._username, self._password)
 
     def _default_filename(self):
         if sys.platform != 'win32' and os.getuid() == 0:
@@ -278,7 +295,7 @@ class Configuration(object):
             if self.use_keyring:
                 authline = 'EPD_username = %r' % self.EPD_username
             else:
-                authline = 'EPD_auth = %r' % self.EPD_auth.strip()
+                authline = 'EPD_auth = %r' % self.EPD_auth
             auth_section = textwrap.dedent("""
             # EPD subscriber authentication is required to access the EPD
             # repository.  To change your credentials, use the 'enpkg --userpass'
@@ -326,7 +343,7 @@ class Configuration(object):
             if self.use_keyring:
                 authline = 'EPD_username = %r' % self.EPD_username
             else:
-                authline = 'EPD_auth = %r' % self.EPD_auth.strip()
+                authline = 'EPD_auth = %r' % self.EPD_auth
 
             if pat.search(data):
                 data = pat.sub(authline, data)
@@ -359,22 +376,8 @@ class Configuration(object):
         This only checks whether the auth is configured, not whether the
         authentication information is correct.
         """
-        # FIXME: this does not really belong here, and should be put in the
-        # configuration object once it is not a module-level global
-        if self.use_keyring:
-            if self.EPD_username:
-                return True
-            else:
-                return False
-        elif not self.use_keyring:
-            if self.EPD_auth:
-                username, password = base64.decodestring(self.EPD_auth).split(":")
-                if username:
-                    return True
-                else:
-                    return False
-            else:
-                return False
+        if self._username and self._password:
+            return True
         else:
             return False
 
@@ -412,28 +415,28 @@ class Configuration(object):
 
     @property
     def EPD_username(self):
-        return self._EPD_username
+        return self._username
 
     @EPD_username.setter
     def EPD_username(self, value):
-        self._EPD_username = value
+        self._username = value
 
     @property
     def EPD_auth(self):
-        return self._EPD_auth
+        if not self.is_auth_configured:
+            raise InvalidConfiguration("EPD_auth is not available when "
+                                       "auth has not been configured.")
+        return _encode_auth(self._username, self._password)
 
     @EPD_auth.setter
     def EPD_auth(self, value):
-        if value is None:
-            self._EPD_auth = value
+        try:
+            username, password = _decode_auth(value)
+        except Exception:
+            raise InvalidConfiguration("Invalid EPD_auth value")
         else:
-            try:
-                username, password = base64.decodestring(value).split(":")
-            except Exception:
-                raise InvalidConfiguration("Invalid EPD_auth value")
-            else:
-                self.EPD_username = username
-                self._EPD_auth = value
+            self._username = username
+            self._password = password
 
 def get_auth():
     warnings.warn("get_auth deprecated, use Configuration.get_auth instead",
