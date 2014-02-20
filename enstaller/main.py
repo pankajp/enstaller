@@ -9,7 +9,9 @@ from __future__ import print_function
 
 import argparse
 import collections
+import ntpath
 import os
+import posixpath
 import re
 import sys
 import site
