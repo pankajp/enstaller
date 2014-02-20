@@ -1,5 +1,7 @@
 import errno
+import ntpath
 import os.path
+import posixpath
 import re
 import shutil
 import sys
@@ -25,7 +27,9 @@ from egginst.tests.common import mkdtemp, DUMMY_EGG
 
 from enstaller.enpkg import Enpkg
 from enstaller.eggcollect import EggCollection, JoinedEggCollection
-from enstaller.main import disp_store_info, epd_install_confirm, info_option, \
+from enstaller.errors import InvalidPythonPathConfiguration
+from enstaller.main import check_prefixes, disp_store_info, \
+    epd_install_confirm, get_package_path, info_option, \
     install_req, install_time_string, main, name_egg, print_installed, search, \
     update_all, updates_check, update_enstaller, whats_new
 from enstaller.store.tests.common import MetadataOnlyStore
@@ -128,6 +132,68 @@ class TestMisc(unittest.TestCase):
         for non_yes in ("n", "N", "no", "NO", "dummy"):
             with mock.patch("__builtin__.raw_input", lambda ignored: non_yes):
                 self.assertFalse(epd_install_confirm())
+
+    @mock.patch("sys.platform", "linux2")
+    def test_get_package_path_unix(self):
+        prefix = "/foo"
+        r_site_packages = os.path.join(prefix, "lib", "python" + PY_VER, "site-packages")
+
+        self.assertEqual(get_package_path(prefix), r_site_packages)
+
+    @mock.patch("sys.platform", "win32")
+    def test_get_package_path_windows(self):
+        prefix = "c:\\foo"
+        r_site_packages = ntpath.join(prefix, "lib", "site-packages")
+
+        self.assertEqual(get_package_path(prefix), r_site_packages)
+
+    @mock.patch("sys.platform", "linux2")
+    def test_check_prefixes_unix(self):
+        prefixes = ["/foo", "/bar"]
+        site_packages = [posixpath.join(prefix,
+                                        "lib/python{0}/site-packages". \
+                                        format(PY_VER))
+                         for prefix in prefixes]
+
+        with mock.patch("sys.path", site_packages):
+            check_prefixes(prefixes)
+
+        with mock.patch("sys.path", site_packages[::-1]):
+            with self.assertRaises(InvalidPythonPathConfiguration) as e:
+                check_prefixes(prefixes)
+            message = e.exception.message
+            self.assertEqual(message, "Order of path prefixes doesn't match PYTHONPATH")
+
+        with mock.patch("sys.path", []):
+            with self.assertRaises(InvalidPythonPathConfiguration) as e:
+                check_prefixes(prefixes)
+            message = e.exception.message
+            self.assertEqual(message,
+                             "Expected to find {0} in PYTHONPATH". \
+                             format(site_packages[0]))
+
+    @mock.patch("sys.platform", "win32")
+    def test_check_prefixes_win32(self):
+        prefixes = ["c:\\foo", "c:\\bar"]
+        site_packages = [ntpath.join(prefix, "lib", "site-packages")
+                         for prefix in prefixes]
+
+        with mock.patch("sys.path", site_packages):
+            check_prefixes(prefixes)
+
+        with mock.patch("sys.path", site_packages[::-1]):
+            with self.assertRaises(InvalidPythonPathConfiguration) as e:
+                check_prefixes(prefixes)
+            message = e.exception.message
+            self.assertEqual(message, "Order of path prefixes doesn't match PYTHONPATH")
+
+        with mock.patch("sys.path", []):
+            with self.assertRaises(InvalidPythonPathConfiguration) as e:
+                check_prefixes(prefixes)
+            message = e.exception.message
+            self.assertEqual(message,
+                             "Expected to find {0} in PYTHONPATH". \
+                             format(site_packages[0]))
 
 def _create_prefix_with_eggs(prefix, installed_entries=None, remote_entries=None):
     if remote_entries is None:

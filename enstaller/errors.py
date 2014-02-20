@@ -1,6 +1,9 @@
 class EnstallerException(Exception):
     pass
 
+class InvalidPythonPathConfiguration(EnstallerException):
+    pass
+
 class InvalidConfiguration(EnstallerException):
     pass
 

@@ -49,40 +49,6 @@ def req_from_anything(arg):
     return Req(arg)
 
 
-def get_package_path(prefix):
-    """Return site-packages path for the given repo prefix.
-
-    Note: on windows the path is lowercased and returned.
-    """
-    if sys.platform == 'win32':
-        return ntpath.join(prefix, 'Lib', 'site-packages').lower()
-    else:
-        postfix = 'lib/python{0}.{1}/site-packages'.format(*sys.version_info)
-        return join(prefix, postfix)
-
-
-def check_prefixes(prefixes):
-    """
-    Check that package prefixes lead to site-packages that are on the python
-    path and that the order of the prefixes matches the python path.
-    """
-    index_order = []
-    if sys.platform == 'win32':
-        sys_path = [x.lower() for x in sys.path]
-    else:
-        sys_path = sys.path
-    for prefix in prefixes:
-        path = get_package_path(prefix)
-        try:
-            index_order.append(sys_path.index(path))
-        except ValueError:
-            warnings.warn("Expected to find %s in PYTHONPATH" % path)
-            break
-    else:
-        if not index_order == sorted(index_order):
-            warnings.warn("Order of path prefixes doesn't match PYTHONPATH")
-
-
 def get_writable_local_dir(prefix):
     local_dir = get_repository_cache(prefix)
     if not os.access(local_dir, os.F_OK):
