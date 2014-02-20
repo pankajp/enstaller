@@ -17,6 +17,7 @@ import errno
 import string
 import datetime
 import textwrap
+import warnings
 from argparse import ArgumentParser
 from os.path import isfile, join
 
@@ -25,12 +26,13 @@ from enstaller._version import is_released as IS_RELEASED
 from egginst.utils import bin_dir_name, rel_site_packages
 from enstaller import __version__
 import enstaller.config as config
+from enstaller.errors import InvalidPythonPathConfiguration
 from enstaller.proxy.api import setup_proxy
 from enstaller.utils import abs_expanduser, fill_url, exit_if_sudo_on_venv
 
 from enstaller.eggcollect import EggCollection
 from enstaller.enpkg import (
-    Enpkg, EnpkgError, check_prefixes, create_joined_store, req_from_anything
+    Enpkg, EnpkgError, create_joined_store, req_from_anything
 )
 from enstaller.resolve import Req, comparable_info
 from enstaller.egg_meta import is_valid_eggname, split_eggname
@@ -467,6 +469,38 @@ def update_enstaller(enpkg, opts):
         print("Can't update enstaller:", e)
     return updated
 
+def get_package_path(prefix):
+    """Return site-packages path for the given repo prefix.
+
+    Note: on windows the path is lowercased and returned.
+    """
+    if sys.platform == 'win32':
+        return ntpath.join(prefix, 'Lib', 'site-packages').lower()
+    else:
+        postfix = 'lib/python{0}.{1}/site-packages'.format(*sys.version_info)
+        return join(prefix, postfix)
+
+
+def check_prefixes(prefixes):
+    """
+    Check that package prefixes lead to site-packages that are on the python
+    path and that the order of the prefixes matches the python path.
+    """
+    index_order = []
+    if sys.platform == 'win32':
+        sys_path = [x.lower() for x in sys.path]
+    else:
+        sys_path = sys.path
+    for prefix in prefixes:
+        path = get_package_path(prefix)
+        try:
+            index_order.append(sys_path.index(path))
+        except ValueError:
+            raise InvalidPythonPathConfiguration("Expected to find %s in PYTHONPATH" % (path,))
+    else:
+        if not index_order == sorted(index_order):
+            raise InvalidPythonPathConfiguration("Order of path prefixes doesn't match PYTHONPATH")
+
 
 def main(argv=None):
     if argv is None:
@@ -593,7 +627,11 @@ def main(argv=None):
         prefixes = [prefix, sys.prefix]
 
     if args.user:
-        check_prefixes(prefixes)
+        try:
+            check_prefixes(prefixes)
+        except InvalidPythonPathConfiguration:
+            warnings.warn("Using the --user option, but your PYTHONPATH is not setup " \
+                          "accordingly")
 
     exit_if_sudo_on_venv(prefix)
 
