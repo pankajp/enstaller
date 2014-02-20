@@ -156,15 +156,19 @@ IndexedRepos = [
 #autoupdate = False
 """
 
+def _create_default_config():
+    config = Configuration()
+    config.write(config._default_filename())
 
 class Configuration(object):
     @classmethod
-    def _get_default_config(cls):
+    def _get_default_config(cls, create_if_not_exists=False):
         config_filename = get_path()
-        if config_filename is not None:
-            return cls.from_file(config_filename)
-        else:
+        if config_filename is None:
+            _create_default_config()
             return cls()
+        else:
+            return cls.from_file(config_filename)
 
     @classmethod
     def from_file(cls, filename):

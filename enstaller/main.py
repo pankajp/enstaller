@@ -472,8 +472,6 @@ def main(argv=None):
     except AttributeError:
         user_base = abs_expanduser('~/.local')
 
-    config = Configuration._get_default_config()
-
     p = ArgumentParser(description=__doc__)
     p.add_argument('cnames', metavar='NAME', nargs='*',
                    help='package(s) to work on')
@@ -543,6 +541,8 @@ def main(argv=None):
 
     if args.sys_config:                           # --sys-config
         config.get_path = lambda: config.system_config_path
+
+    config = Configuration._get_default_config(create_if_not_exists=True)
 
     # Check for incompatible actions and options
     # Action options which take no package name pattern:
