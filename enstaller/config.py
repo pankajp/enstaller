@@ -192,11 +192,11 @@ class Configuration(object):
             If a string, is understood as a filename to open. Understood as a
             file-like object otherwise.
         """
-        accepted_keys_as_is = {
+        accepted_keys_as_is = set([
             "proxy", "noapp", "use_webservice", "autoupdate",
             "prefix", "local", "IndexedRepos", "webservice_entry_point",
             "repository_cache"
-        }
+        ])
 
         def _create(fp):
             ret = cls(use_keyring)
