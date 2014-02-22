@@ -46,7 +46,8 @@ def write_exe(dst, script_type='console_scripts'):
 
     rm_rf(dst)
     try:
-        open(dst, 'wb').write(data)
+        with open(dst, 'wb') as fp:
+            fp.write(data)
     except IOError:
         # When bootstrapping, the file egginst.exe is in use and can therefore
         # not be rewritten, which is OK since its content is always the same.
