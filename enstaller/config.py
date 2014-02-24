@@ -512,11 +512,7 @@ def is_auth_configured():
     if auth:
         return True
     else:
-        username = get("EPD_username")
-        if username and keyring:
-            return True
-        else:
-            return False
+        return get("EPD_username") and keyring
 
 class AuthenticatorStore(object):
     def __init__(self):
