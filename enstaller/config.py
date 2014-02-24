@@ -306,18 +306,16 @@ class Configuration(object):
         else:
             auth_section = ''
 
-        py_ver = PY_VER
-        sys_prefix = sys.prefix
-        version = __version__
-
         if self.proxy:
             proxy_line = 'proxy = %r' % self.proxy
         else:
             proxy_line = ('#proxy = <proxy string>  '
                           '# e.g. "http://<user>:<passwd>@123.0.1.2:8080"')
 
+        variables = {"py_ver": PY_VER, "sys_prefix": sys.prefix, "version": __version__,
+                     "proxy_line": proxy_line, "auth_section": auth_section}
         with open(filename, "wt") as fo:
-            fo.write(RC_TMPL % locals())
+            fo.write(RC_TMPL % variables)
 
     def _change_auth(self, filename=None):
         if filename is None:
