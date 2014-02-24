@@ -584,3 +584,32 @@ class TestConfiguration(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 config.reset_auth()
+
+    def test_set_prefix(self):
+        homedir = os.path.expanduser("~")
+
+        config = Configuration()
+        config.prefix = "~/.env"
+
+        self.assertEqual(config.prefix, os.path.join(homedir, ".env"))
+
+    def test_set_local(self):
+        homedir = os.path.expanduser("~")
+
+        config = Configuration()
+        config.local = "~/.env/LOCAL-REPO"
+
+        self.assertEqual(config.local, os.path.join(homedir, ".env", "LOCAL-REPO"))
+
+    def test_set_epd_auth(self):
+        config = Configuration()
+        config.EPD_auth = FAKE_CREDS
+
+        self.assertEqual(config._username, FAKE_USER)
+        self.assertEqual(config._password, FAKE_PASSWORD)
+
+    def test_set_invalid_epd_auth(self):
+        config = Configuration()
+
+        with self.assertRaises(InvalidConfiguration):
+            config.EPD_auth = FAKE_USER
