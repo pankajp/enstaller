@@ -26,7 +26,6 @@ from enstaller import __version__
 from enstaller.config import (AuthFailedError, authenticate,
     get_auth, get_default_url, get_path, home_config_path, input_auth,
     print_config, subscription_level, web_auth)
-from enstaller.config import _encode_auth
 from enstaller.config import (
     KEYRING_SERVICE_NAME, Configuration, PythonConfigurationParser)
 from enstaller.errors import InvalidConfiguration, InvalidFormat
@@ -493,6 +492,14 @@ class TestConfigurationParsing(unittest.TestCase):
         with self.assertRaises(InvalidFormat):
             PythonConfigurationParser().parse("EPD_auth = 1 + 2")
 
+        with self.assertRaises(InvalidFormat):
+            PythonConfigurationParser().parse("1 + 2")
+
+    def test_parse_simple_unsupported_entry(self):
+        # XXX: ideally, we would like to check for the warning, but doing so is
+        # a bit too painful as it has not been backported to unittest2
+        PythonConfigurationParser().parse("nono = 'le petit robot'")
+
     @make_keyring_unavailable
     def test_epd_auth_wo_keyring(self):
         s = StringIO("EPD_auth = '{0}'".format(FAKE_CREDS))
@@ -576,6 +583,11 @@ class TestConfigurationPrint(unittest.TestCase):
             self.assertMultiLineEqual(m.value, r_output)
 
 class TestConfiguration(unittest.TestCase):
+    def test_parse_simple_unsupported_entry(self):
+        # XXX: ideally, we would like to check for the warning, but doing so is
+        # a bit too painful as it has not been backported to unittest2
+        Configuration.from_file(StringIO("nono = 'le petit robot'"))
+
     def test_keyring_argument(self):
         with make_keyring_unavailable_context():
             config = Configuration()
