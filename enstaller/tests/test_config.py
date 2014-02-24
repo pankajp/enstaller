@@ -27,6 +27,7 @@ from enstaller.config import (AuthFailedError, authenticate,
 from enstaller.config import (
     KEYRING_SERVICE_NAME, Configuration, PythonConfigurationParser)
 from enstaller.errors import InvalidConfiguration, InvalidFormat
+from enstaller.utils import PY_VER
 
 from .common import (make_keyring_available_context, make_keyring_unavailable,
                      make_keyring_unavailable_context, mock_print,
@@ -529,7 +530,7 @@ class TestConfigurationPrint(unittest.TestCase):
     maxDiff = None
 
     OUTPUT_TEMPLATE = textwrap.dedent("""\
-        Python version: 2.7
+        Python version: {pyver}
         enstaller version: {version}
         sys.prefix: {sys_prefix}
         platform: {platform}
@@ -544,7 +545,7 @@ class TestConfigurationPrint(unittest.TestCase):
             IndexedRepos: (not used)
         No valid auth information in configuration, cannot authenticate.
         You are not logged in.  To log in, type 'enpkg --userpass'.
-    """).format(sys_prefix=sys.prefix, version=__version__,
+    """).format(pyver=PY_VER, sys_prefix=sys.prefix, version=__version__,
                 platform=platform.platform(), arch=platform.architecture()[0])
 
     def test_simple(self):
