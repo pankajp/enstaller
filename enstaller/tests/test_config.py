@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os.path
 import platform
@@ -22,8 +23,8 @@ import enstaller.config
 from enstaller import __version__
 
 from enstaller.config import (AuthFailedError, authenticate,
-    get_auth, get_default_url, get_path, input_auth, print_config,
-    subscription_level, web_auth)
+    get_auth, get_default_url, get_path, home_config_path, input_auth,
+    print_config, subscription_level, web_auth)
 from enstaller.config import (
     KEYRING_SERVICE_NAME, Configuration, PythonConfigurationParser)
 from enstaller.errors import InvalidConfiguration, InvalidFormat
@@ -39,6 +40,14 @@ def compute_creds(username, password):
 FAKE_USER = "john.doe"
 FAKE_PASSWORD = "fake_password"
 FAKE_CREDS = compute_creds(FAKE_USER, FAKE_PASSWORD)
+
+
+@contextlib.contextmanager
+def mock_default_filename_context(ret):
+    with mock.patch("enstaller.config.Configuration._default_filename") as m:
+        m.configure_mock(**{"return_value": ret})
+        yield m
+
 
 class TestGetPath(unittest.TestCase):
     def test_home_config_exists(self):
@@ -639,3 +648,27 @@ class TestConfiguration(unittest.TestCase):
 
         with self.assertRaises(InvalidConfiguration):
             config.EPD_auth = FAKE_USER
+
+    @without_default_configuration
+    def test_get_default_configuration_fails_without_file(self):
+        """Ensure _get_default_config fails if no default config file is
+        found.
+        """
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            pass
+
+        with mock_default_filename_context(fp.name):
+            with self.assertRaises(InvalidConfiguration):
+                Configuration._get_default_config()
+
+            Configuration._get_default_config(create_if_not_exists=True)
+            self.assertTrue(os.path.exists(home_config_path))
+
+    @without_default_configuration
+    def test_get_default_configuration_with_file(self):
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            fp.write("EPD_username = 'nono'")
+
+        with mock.patch("enstaller.config.get_path", lambda: fp.name):
+            config = Configuration._get_default_config()
+            self.assertEqual(config.EPD_username, "nono")

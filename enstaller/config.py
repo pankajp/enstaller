@@ -193,8 +193,11 @@ class Configuration(object):
     def _get_default_config(cls, create_if_not_exists=False):
         config_filename = get_path()
         if config_filename is None:
-            _create_default_config()
-            return cls()
+            if create_if_not_exists:
+                _create_default_config()
+                return cls()
+            else:
+                raise InvalidConfiguration("No configuration found.")
         else:
             return cls.from_file(config_filename)
 
