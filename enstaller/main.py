@@ -400,7 +400,7 @@ def _create_enstaller_update_enpkg(enpkg, version=None):
     installed_repo = MockedStore()
     remote = JoinedStore([enpkg.remote, installed_repo])
     return Enpkg(remote, prefixes=prefixes, hook=hook,
-                 evt_mgr=evt_mgr, verbose=verbose)
+                 evt_mgr=evt_mgr, verbose=verbose, config=enpkg.config)
 
 
 def update_enstaller(enpkg, opts):

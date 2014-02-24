@@ -22,13 +22,13 @@ from history import History
 # Included for backward compatibility
 from enstaller.config import Configuration
 
-def create_joined_store(urls):
+def create_joined_store(config, urls):
     stores = []
     for url in urls:
         if url.startswith('file://'):
             stores.append(LocalIndexedStore(url[7:]))
         elif url.startswith(('http://', 'https://')):
-            stores.append(RemoteHTTPIndexedStore(url))
+            stores.append(RemoteHTTPIndexedStore(url, config.local))
         elif isdir(url):
             stores.append(LocalIndexedStore(url))
         else:
@@ -38,7 +38,7 @@ def create_joined_store(urls):
 
 def get_default_kvs(config):
     url = config.webservice_entry_point
-    return RemoteHTTPIndexedStore(url)
+    return RemoteHTTPIndexedStore(url, config.local)
 
 
 def req_from_anything(arg):
