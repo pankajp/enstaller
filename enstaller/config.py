@@ -2,7 +2,6 @@
 # Author: Ilan Schnell <ischnell@enthought.com>
 from __future__ import print_function
 
-import _ast
 import ast
 import base64
 import json
@@ -93,7 +92,7 @@ class PythonConfigurationParser(ast.NodeVisitor):
         return self._data
 
     def generic_visit(self, node):
-        if type(node) != _ast.Module:
+        if type(node) != ast.Module:
             raise InvalidFormat("Unexpected expression @ line {0}".
                                 format(node.lineno))
         super(PythonConfigurationParser, self).generic_visit(node)
