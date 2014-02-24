@@ -19,7 +19,7 @@ from os.path import isfile, join
 
 from enstaller import __version__
 from enstaller.errors import (
-    AuthFailedError, EnstallerException, InvalidConfiguration)
+    AuthFailedError, EnstallerException, InvalidConfiguration, InvalidFormat)
 from utils import PY_VER, abs_expanduser, fill_url
 
 
@@ -94,14 +94,19 @@ class PythonConfigurationParser(ast.NodeVisitor):
 
     def generic_visit(self, node):
         if type(node) != _ast.Module:
-            raise ValueError("Unexpected expression @ line {0}".
-                             format(node.lineno))
+            raise InvalidFormat("Unexpected expression @ line {0}".
+                                format(node.lineno))
         super(PythonConfigurationParser, self).generic_visit(node)
 
     def visit_Assign(self, node):
-        value = ast.literal_eval(node.value)
-        for target in node.targets:
-            self._data[target.id] = value
+        try:
+            value = ast.literal_eval(node.value)
+        except ValueError:
+            msg = "Invalid configuration syntax at line {0}".format(node.lineno)
+            raise InvalidFormat(msg)
+        else:
+            for target in node.targets:
+                self._data[target.id] = value
 
 
 RC_TMPL = """\

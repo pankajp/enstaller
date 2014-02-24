@@ -26,7 +26,7 @@ from enstaller.config import (AuthFailedError, authenticate,
     subscription_level, web_auth)
 from enstaller.config import (
     KEYRING_SERVICE_NAME, Configuration, PythonConfigurationParser)
-from enstaller.errors import InvalidConfiguration
+from enstaller.errors import InvalidConfiguration, InvalidFormat
 
 from .common import (make_keyring_available_context, make_keyring_unavailable,
                      make_keyring_unavailable_context, mock_print,
@@ -476,6 +476,10 @@ class TestConfigurationParsing(unittest.TestCase):
 
         data = PythonConfigurationParser().parse(s)
         self.assertEqual(data, r_data)
+
+    def test_parse_simple_invalid_file(self):
+        with self.assertRaises(InvalidFormat):
+            PythonConfigurationParser().parse("EPD_auth = 1 + 2")
 
     @make_keyring_unavailable
     def test_epd_auth_wo_keyring(self):
