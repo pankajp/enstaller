@@ -683,7 +683,7 @@ class TestConfiguration(unittest.TestCase):
                 Configuration._get_default_config()
 
             Configuration._get_default_config(create_if_not_exists=True)
-            self.assertTrue(os.path.exists(home_config_path))
+            self.assertTrue(os.path.exists(fp.name))
 
     @without_default_configuration
     def test_get_default_configuration_with_file(self):
