@@ -29,7 +29,8 @@ from enstaller.config import (
 from enstaller.errors import InvalidConfiguration
 
 from .common import (make_keyring_available_context, make_keyring_unavailable,
-                     make_keyring_unavailable_context, mock_print)
+                     make_keyring_unavailable_context, mock_print,
+                     without_default_configuration)
 
 def compute_creds(username, password):
     return "{0}:{1}".format(username, password).encode("base64").rstrip()
@@ -213,7 +214,7 @@ class TestGetAuth(unittest.TestCase):
         shutil.rmtree(self.d)
 
     def test_with_keyring(self):
-        with mock.patch("enstaller.config.keyring") as mocked_keyring:
+        with make_keyring_available_context() as mocked_keyring:
             config = Configuration()
             config.set_auth(FAKE_USER, FAKE_PASSWORD)
 
@@ -257,6 +258,11 @@ class TestGetAuth(unittest.TestCase):
 
             with mock.patch("enstaller.config.get_path", lambda: f):
                 self.assertEqual(get_auth(), (FAKE_USER, FAKE_PASSWORD))
+
+    @without_default_configuration
+    def test_without_existing_configuration(self):
+        with self.assertRaises(InvalidConfiguration):
+            get_auth()
 
 class TestChangeAuth(unittest.TestCase):
     @make_keyring_unavailable

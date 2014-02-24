@@ -88,6 +88,9 @@ def is_not_authenticated(f):
 def make_keyring_unavailable(f):
     return mock.patch("enstaller.config.keyring", None)(f)
 
+def without_default_configuration(f):
+    return mock.patch("enstaller.config.get_path", lambda: None)(f)
+
 # Context managers to force certain configuration
 @contextlib.contextmanager
 def make_keyring_unavailable_context():
