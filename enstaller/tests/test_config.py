@@ -264,7 +264,7 @@ class TestGetAuth(unittest.TestCase):
         with self.assertRaises(InvalidConfiguration):
             get_auth()
 
-class TestChangeAuth(unittest.TestCase):
+class TestWriteAndChangeAuth(unittest.TestCase):
     @make_keyring_unavailable
     def test_change_existing_config_file(self):
         r_new_password = "ouioui_dans_sa_petite_voiture"
@@ -295,20 +295,21 @@ class TestChangeAuth(unittest.TestCase):
         self.assertEqual(new_config.get_auth(), (None, None))
 
     def test_change_existing_config_file_with_keyring(self):
+        r_output = "EPD_username = '{0}'".format(FAKE_USER)
+
         with tempfile.NamedTemporaryFile(delete=False) as fp:
             fp.write("EPD_auth = '{0}'".format(FAKE_CREDS))
 
-        with mock.patch("enstaller.config.keyring") as mocked_keyring:
+        with make_keyring_available_context() as mocked_keyring:
             config = Configuration.from_file(fp.name)
             config.set_auth("user", "dummy")
-            config.write(fp.name)
+            config._change_auth(fp.name)
 
             mocked_keyring.set_password.assert_called_with("Enthought.com", "user", "dummy")
 
         with open(fp.name, "rt") as f:
             self.assertRegexpMatches(f.read(), "EPD_username")
             self.assertNotRegexpMatches(f.read(), "EPD_auth")
-
 
     @make_keyring_unavailable
     def test_change_empty_config_file_empty_username(self):
@@ -334,6 +335,20 @@ class TestChangeAuth(unittest.TestCase):
 
         new_config = Configuration.from_file(fp.name)
         self.assertEqual(new_config.get_auth(), (FAKE_USER, FAKE_PASSWORD))
+
+    @make_keyring_unavailable
+    def test_change_auth_wo_existing_auth(self):
+        r_output = "EPD_auth = '{0}'\n".format(FAKE_CREDS)
+
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            fp.write("")
+
+        config = Configuration.from_file(fp.name)
+        config.set_auth(FAKE_USER, FAKE_PASSWORD)
+        config._change_auth(fp.name)
+
+        with open(fp.name) as fp:
+            self.assertMultiLineEqual(fp.read(), r_output)
 
     # FIXME: do we really want to revert the behaviour of change_auth() with
     # auth == (None, None) to do nothing ?
