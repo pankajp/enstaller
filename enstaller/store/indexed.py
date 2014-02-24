@@ -2,9 +2,6 @@ import json
 import urlparse
 import urllib2
 from collections import defaultdict
-from os.path import join
-
-from enstaller.config import Configuration
 
 from base import AbstractStore
 from cached import CachedHandler
@@ -94,11 +91,8 @@ class LocalIndexedStore(IndexedStore):
 
 class RemoteHTTPIndexedStore(IndexedStore):
 
-    def __init__(self, url, cache_dir=None):
+    def __init__(self, url, cache_dir):
         super(RemoteHTTPIndexedStore, self).__init__()
-        if cache_dir is None:
-            # FIXME: pass config explicitly
-            cache_dir = Configuration._get_default_config().local
 
         self.root = url
         self.cache_dir = cache_dir
