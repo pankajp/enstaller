@@ -18,8 +18,10 @@ from getpass import getpass
 from os.path import isfile, join
 
 from enstaller import __version__
-from enstaller.errors import AuthFailedError, EnstallerException, InvalidConfiguration
+from enstaller.errors import (
+    AuthFailedError, EnstallerException, InvalidConfiguration)
 from utils import PY_VER, abs_expanduser, fill_url
+
 
 def __import_new_keyring():
     """
@@ -34,6 +36,7 @@ def __import_new_keyring():
     if keyring.get_keyring().priority < 0:
         keyring = None
     return keyring
+
 
 def __import_old_keyring():
     import keyring
@@ -50,6 +53,7 @@ def __import_old_keyring():
     if keyring.get_keyring().supported() < 0:
         keyring = None
     return keyring
+
 
 try:
     import keyring
@@ -71,9 +75,11 @@ config_fn = ".enstaller4rc"
 home_config_path = abs_expanduser("~/" + config_fn)
 system_config_path = join(sys.prefix, config_fn)
 
+
 def get_default_url():
     import plat
     return 'https://api.enthought.com/eggs/%s/' % plat.custom_plat
+
 
 class PythonConfigurationParser(ast.NodeVisitor):
     def __init__(self):
@@ -88,13 +94,15 @@ class PythonConfigurationParser(ast.NodeVisitor):
 
     def generic_visit(self, node):
         if type(node) != _ast.Module:
-            raise ValueError("Unexpected expression @ line {0}".format(node.lineno))
+            raise ValueError("Unexpected expression @ line {0}".
+                             format(node.lineno))
         super(PythonConfigurationParser, self).generic_visit(node)
 
     def visit_Assign(self, node):
         value = ast.literal_eval(node.value)
         for target in node.targets:
             self._data[target.id] = value
+
 
 RC_TMPL = """\
 # enstaller configuration file
@@ -156,9 +164,11 @@ IndexedRepos = [
 #autoupdate = False
 """
 
+
 def _create_default_config():
     config = Configuration()
     config.write(config._default_filename())
+
 
 def _decode_auth(s):
     parts = base64.decodestring(s).split(":")
@@ -167,9 +177,11 @@ def _decode_auth(s):
     else:
         raise InvalidConfiguration("Invalid auth line")
 
+
 def _encode_auth(username, password):
     s = "{0}:{1}".format(username, password)
     return base64.encodestring(s).rstrip()
+
 
 class Configuration(object):
     @classmethod
@@ -212,9 +224,11 @@ class Configuration(object):
                     if keyring is None:
                         ret._password = None
                     else:
-                        ret._password = keyring.get_password(KEYRING_SERVICE_NAME, v)
+                        ret._password = \
+                            keyring.get_password(KEYRING_SERVICE_NAME, v)
                 else:
-                    warnings.warn("Unsupported configuration setting {0}, ignored".format(k))
+                    warnings.warn("Unsupported configuration setting {0}, "
+                                  "ignored".format(k))
             return ret
 
         parser = PythonConfigurationParser()
@@ -228,7 +242,7 @@ class Configuration(object):
         self.proxy = None
         self.noapp = False
         self.use_webservice = True
-        self.autoupdate =  True
+        self.autoupdate = True
 
         self._prefix = sys.prefix
         self._local = join(sys.prefix, 'LOCAL-REPO')
@@ -244,12 +258,14 @@ class Configuration(object):
             self._use_keyring = keyring is not None
         elif use_keyring is True:
             if keyring is None:
-                raise InvalidConfiguration("Requested using keyring, but no keyring available.")
+                raise InvalidConfiguration("Requested using keyring, but "
+                                           "no keyring available.")
             self._use_keyring = use_keyring
         elif use_keyring is False:
             self._use_keyring = use_keyring
         else:
-            raise InvalidConfiguration("Invalid value for use_keyring: {0}".format(use_keyring))
+            raise InvalidConfiguration("Invalid value for use_keyring: {0}".
+                                       format(use_keyring))
 
     @property
     def use_keyring(self):
@@ -258,12 +274,11 @@ class Configuration(object):
     def set_auth(self, username, password):
         if username is None or password is None:
             raise InvalidConfiguration(
-                    "invalid authentication arguments: "
-                    "{0}:{1}".format(username, password))
+                "invalid authentication arguments: "
+                "{0}:{1}".format(username, password))
         else:
             self._username = username
             self._password = password
-
 
             if self.use_keyring:
                 keyring.set_password(KEYRING_SERVICE_NAME, username, password)
@@ -436,6 +451,7 @@ class Configuration(object):
             self._username = username
             self._password = password
 
+
 def get_auth():
     warnings.warn("get_auth deprecated, use Configuration.get_auth instead",
                   DeprecationWarning)
@@ -444,6 +460,7 @@ def get_auth():
             "No enstaller configuration found, no "
             "authentication information available")
     return Configuration._get_default_config().get_auth()
+
 
 def get_path():
     """
@@ -473,7 +490,7 @@ just press Enter.
 
 
 def web_auth(auth,
-        api_url='https://api.enthought.com/accounts/user/info/'):
+             api_url='https://api.enthought.com/accounts/user/info/'):
     """
     Authenticate a user's credentials (an `auth` tuple of username,
     password) using the web API.  Return a dictionary containing user
@@ -563,6 +580,7 @@ def prepend_url(url):
     f.write(data)
     f.close()
 
+
 def authenticate(configuration, remote=None):
     """
     Attempt to authenticate the user's credentials by the appropriate
@@ -602,7 +620,7 @@ def authenticate(configuration, remote=None):
             user = dict(is_authenticated=True)
         except KeyError:
             raise AuthFailedError('Authentication failed:'
-                    ' Invalid user login.')
+                                  ' Invalid user login.')
         except Exception as e:
             raise AuthFailedError('Authentication failed: %s.' % e)
     return user
