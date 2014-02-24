@@ -1,3 +1,4 @@
+import base64
 import contextlib
 import json
 import os.path
@@ -25,6 +26,7 @@ from enstaller import __version__
 from enstaller.config import (AuthFailedError, authenticate,
     get_auth, get_default_url, get_path, home_config_path, input_auth,
     print_config, subscription_level, web_auth)
+from enstaller.config import _encode_auth
 from enstaller.config import (
     KEYRING_SERVICE_NAME, Configuration, PythonConfigurationParser)
 from enstaller.errors import InvalidConfiguration, InvalidFormat
@@ -498,6 +500,13 @@ class TestConfigurationParsing(unittest.TestCase):
         config = Configuration.from_file(s)
         self.assertEqual(config.EPD_auth, FAKE_CREDS)
         self.assertEqual(config.EPD_username, FAKE_USER)
+
+    @make_keyring_unavailable
+    def test_epd_invalid_auth(self):
+        s = StringIO("EPD_auth = '{0}'".format(base64.encodestring(FAKE_USER).rstrip()))
+
+        with self.assertRaises(InvalidConfiguration):
+            Configuration.from_file(s)
 
     @make_keyring_unavailable
     def test_epd_username_wo_keyring(self):
