@@ -7,17 +7,9 @@ import mock
 
 from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
-import enstaller.config
-
 from enstaller.eggcollect import AbstractEggCollection
 from enstaller.egg_meta import split_eggname
 from enstaller.utils import PY_VER
-
-def patched_read(**kw):
-    config = {}
-    config.update(enstaller.config.Configuration()._dict)
-    config.update(**kw)
-    return config
 
 def dummy_enpkg_entry_factory(name, version, build):
     data = {"egg_basename": name, "packages": [], "python": PY_VER,
