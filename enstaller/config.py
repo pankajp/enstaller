@@ -216,6 +216,7 @@ class Configuration(object):
             "prefix", "local", "IndexedRepos", "webservice_entry_point",
             "repository_cache"
         ])
+        parser = PythonConfigurationParser()
 
         def _create(fp):
             ret = cls(use_keyring)
@@ -238,7 +239,6 @@ class Configuration(object):
                                   "ignored".format(k))
             return ret
 
-        parser = PythonConfigurationParser()
         if isinstance(filename, basestring):
             with open(filename, "rt") as fp:
                 return _create(fp)
