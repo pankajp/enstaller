@@ -1,5 +1,6 @@
 # Copyright by Enthought, Inc.
 # Author: Ilan Schnell <ischnell@enthought.com>
+from __future__ import print_function
 
 import _ast
 import ast
@@ -361,7 +362,7 @@ class Configuration(object):
 
         user = authenticate(self, remote)
         self._change_auth(filename)
-        print subscription_message(self, user)
+        print(subscription_message(self, user))
         return user
 
     @property
@@ -461,11 +462,11 @@ def input_auth():
     Prompt user for username and password.  Return (username, password)
     tuple or (None, None) if left blank.
     """
-    print """\
+    print("""\
 Please enter the email address (or username) and password for your
 EPD or EPD Free subscription.  If you are not subscribed to EPD,
 just press Enter.
-"""
+""")
     username = raw_input('Email (or username): ').strip()
     if not username:
         return None, None
@@ -609,25 +610,25 @@ def authenticate(configuration, remote=None):
 
 
 def print_config(config, remote, prefix):
-    print "Python version:", PY_VER
-    print "enstaller version:", __version__
-    print "sys.prefix:", sys.prefix
-    print "platform:", platform.platform()
-    print "architecture:", platform.architecture()[0]
-    print "use_webservice:", config.use_webservice
-    print "config file:", get_path()
-    print "settings:"
-    print "    prefix = %s" % prefix
-    print "    %s = %r" % ("local", config.local)
-    print "    %s = %r" % ("noapp", config.noapp)
-    print "    %s = %r" % ("proxy", config.proxy)
-    print "    IndexedRepos:", '(not used)' if config.use_webservice else ''
+    print("Python version:", PY_VER)
+    print("enstaller version:", __version__)
+    print("sys.prefix:", sys.prefix)
+    print("platform:", platform.platform())
+    print("architecture:", platform.architecture()[0])
+    print("use_webservice:", config.use_webservice)
+    print("config file:", get_path())
+    print("settings:")
+    print("    prefix = %s" % prefix)
+    print("    %s = %r" % ("local", config.local))
+    print("    %s = %r" % ("noapp", config.noapp))
+    print("    %s = %r" % ("proxy", config.proxy))
+    print("    IndexedRepos:", '(not used)' if config.use_webservice else '')
     for repo in config.IndexedRepos:
-        print '        %r' % repo
+        print('        %r' % repo)
 
     user = {}
     try:
         user = authenticate(config, remote)
     except Exception as e:
-        print e
-    print subscription_message(config, user)
+        print(e)
+    print(subscription_message(config, user))
