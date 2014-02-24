@@ -5,7 +5,6 @@ from __future__ import print_function
 import _ast
 import ast
 import base64
-import copy
 import json
 import re
 import os
