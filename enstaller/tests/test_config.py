@@ -1,5 +1,6 @@
 import json
 import os.path
+import platform
 import shutil
 import sys
 import tempfile
@@ -18,14 +19,15 @@ import mock
 from egginst.tests.common import mkdtemp
 
 import enstaller.config
+from enstaller import __version__
 
 from enstaller.config import (AuthFailedError, authenticate,
-    get_auth, get_default_url, get_path, input_auth, subscription_level,
-    web_auth)
+    get_auth, get_default_url, get_path, input_auth, print_config,
+    subscription_level, web_auth)
 from enstaller.config import Configuration, PythonConfigurationParser
 from enstaller.errors import InvalidConfiguration
 
-from .common import make_keyring_unavailable
+from .common import make_keyring_unavailable, mock_print
 
 def compute_creds(username, password):
     return "{0}:{1}".format(username, password).encode("base64").rstrip()
@@ -495,3 +497,34 @@ class TestConfigurationParsing(unittest.TestCase):
         self.assertTrue(config.use_keyring)
         self.assertEqual(config.EPD_username, FAKE_USER)
         self.assertEqual(config.EPD_auth, FAKE_CREDS)
+
+class TestConfigurationPrint(unittest.TestCase):
+    maxDiff = None
+
+    OUTPUT_TEMPLATE = textwrap.dedent("""\
+        Python version: 2.7
+        enstaller version: {version}
+        sys.prefix: {sys_prefix}
+        platform: {platform}
+        architecture: {arch}
+        use_webservice: True
+        config file: {{config_file}}
+        settings:
+            prefix = {{prefix}}
+            local = '{{prefix}}/LOCAL-REPO'
+            noapp = False
+            proxy = None
+            IndexedRepos: (not used)
+        No valid auth information in configuration, cannot authenticate.
+        You are not logged in.  To log in, type 'enpkg --userpass'.
+    """).format(sys_prefix=sys.prefix, version=__version__,
+                platform=platform.platform(), arch=platform.architecture()[0])
+
+    def test_simple(self):
+        config = Configuration()
+        r_output = self.OUTPUT_TEMPLATE.format(prefix=config.prefix,
+                                               config_file=get_path())
+
+        with mock_print() as m:
+            print_config(config, None, config.prefix)
+            self.assertMultiLineEqual(m.value, r_output)
