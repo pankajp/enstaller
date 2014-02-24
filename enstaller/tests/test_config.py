@@ -24,10 +24,12 @@ from enstaller import __version__
 from enstaller.config import (AuthFailedError, authenticate,
     get_auth, get_default_url, get_path, input_auth, print_config,
     subscription_level, web_auth)
-from enstaller.config import Configuration, PythonConfigurationParser
+from enstaller.config import (
+    KEYRING_SERVICE_NAME, Configuration, PythonConfigurationParser)
 from enstaller.errors import InvalidConfiguration
 
-from .common import make_keyring_unavailable, mock_print
+from .common import (make_keyring_available_context, make_keyring_unavailable,
+                     make_keyring_unavailable_context, mock_print)
 
 def compute_creds(username, password):
     return "{0}:{1}".format(username, password).encode("base64").rstrip()
@@ -528,3 +530,57 @@ class TestConfigurationPrint(unittest.TestCase):
         with mock_print() as m:
             print_config(config, None, config.prefix)
             self.assertMultiLineEqual(m.value, r_output)
+
+class TestConfiguration(unittest.TestCase):
+    def test_keyring_argument(self):
+        with make_keyring_unavailable_context():
+            config = Configuration()
+            self.assertFalse(config.use_keyring)
+
+            config = Configuration(use_keyring=False)
+            self.assertFalse(config.use_keyring)
+
+            with self.assertRaises(InvalidConfiguration):
+                config = Configuration(use_keyring=True)
+
+        with make_keyring_available_context():
+            config = Configuration()
+            self.assertTrue(config.use_keyring)
+
+            config = Configuration(use_keyring=True)
+            self.assertTrue(config.use_keyring)
+
+            config = Configuration(use_keyring=False)
+            self.assertFalse(config.use_keyring)
+
+    @make_keyring_unavailable
+    def test_reset_auth_without_keyring(self):
+        config = Configuration()
+        config.set_auth(FAKE_USER, FAKE_PASSWORD)
+
+        config.reset_auth()
+
+        self.assertIsNone(config._username)
+        self.assertIsNone(config._password)
+        self.assertFalse(config.is_auth_configured)
+
+    def test_reset_auth_with_keyring(self):
+        with make_keyring_available_context() as m:
+            config = Configuration()
+            config.set_auth(FAKE_USER, FAKE_PASSWORD)
+
+            config.reset_auth()
+
+            m.set_password.assert_called_with(KEYRING_SERVICE_NAME, FAKE_USER, "")
+            self.assertIsNone(config._username)
+            self.assertIsNone(config._password)
+            self.assertTrue(config.use_keyring)
+            self.assertFalse(config.is_auth_configured)
+
+    def test_reset_auth_with_keyring_failure(self):
+        """Ensure reset_auth failed with keyring if no user is set up."""
+        with make_keyring_available_context():
+            config = Configuration()
+
+            with self.assertRaises(ValueError):
+                config.reset_auth()

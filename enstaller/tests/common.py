@@ -87,3 +87,16 @@ def is_not_authenticated(f):
 
 def make_keyring_unavailable(f):
     return mock.patch("enstaller.config.keyring", None)(f)
+
+# Context managers to force certain configuration
+@contextlib.contextmanager
+def make_keyring_unavailable_context():
+    with mock.patch("enstaller.config.keyring", None) as context:
+        yield context
+
+# Context managers to force certain configuration
+@contextlib.contextmanager
+def make_keyring_available_context():
+    m = mock.Mock(["get_password", "set_password"])
+    with mock.patch("enstaller.config.keyring", m) as context:
+        yield context
