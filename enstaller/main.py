@@ -303,7 +303,7 @@ def install_req(enpkg, req, opts):
         for line in config.subscription_message(user).splitlines():
             print(" " * 4 + line)
 
-    def _perform_install(last_try=False):
+    def _perform_install():
         """
         Try to perform the install.
         """
