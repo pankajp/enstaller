@@ -640,23 +640,6 @@ class TestInstallReq(unittest.TestCase):
                 with self.assertRaises(SystemExit) as e:
                     install_req(enpkg, "nose", FakeOptions())
                 subscription_message.assert_called()
-                self.assertEqual(e.exception.code, 1)
-
-    @is_not_authenticated
-    @use_webservice
-    @mock.patch("enstaller.config.input_auth", lambda: (None, None))
-    def test_install_not_available_not_authenticated(self):
-        nose = dummy_enpkg_entry_factory("nose", "1.3.0", 1)
-        nose.available = False
-        remote_entries = [nose]
-
-        enpkg = _create_prefix_with_eggs(self.prefix, [], remote_entries)
-
-        with mock.patch("enstaller.main.Enpkg.execute"):
-            with mock.patch("enstaller.config.checked_change_auth") as m:
-                with self.assertRaises(SystemExit) as e:
-                    install_req(enpkg, "nose", FakeOptions())
-                m.assert_called_with(None, None)
                 self.assertEqual(exception_code(e), 1)
 
     @is_authenticated
@@ -669,8 +652,9 @@ class TestInstallReq(unittest.TestCase):
         of the dependency.
         Available versions of the required package 'numpy' are:
             1.7.1 (no subscription)
-        You are logged in as None.
-        Subscription level: EPD
+        No package found to fulfill your requirement at your subscription level:
+            You are logged in as None.
+            Subscription level: EPD
         """)
 
         self.maxDiff = None

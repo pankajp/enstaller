@@ -12,7 +12,7 @@ from getpass import getpass
 from os.path import isfile, join
 
 from enstaller import __version__
-from enstaller.errors import AuthFailedError
+from enstaller.errors import AuthFailedError, InvalidConfiguration
 from utils import PY_VER, abs_expanduser, fill_url
 
 def __import_new_keyring():
@@ -222,22 +222,7 @@ def get_auth():
     """
     Retrieve the saved `auth` (username, password) tuple.
     """
-    password = None
-    old_auth = get('EPD_auth')
-    if old_auth:
-        username, password = old_auth.decode('base64').split(':')
-        if not keyring:
-            return username, password
-        else:
-            change_auth(username, password)
-    username = get('EPD_username')
-    if username and keyring:
-        password = keyring.get_password(KEYRING_SERVICE_NAME, username)
-    if username and password:
-        return username, password
-    else:
-        return None, None
-
+    return AuthenticatorStore().load_auth()
 
 
 def web_auth(auth,
@@ -366,6 +351,8 @@ def clear_auth():
 
 
 def change_auth(username, password):
+    pat = re.compile(r'^(EPD_auth|EPD_username)\s*=.*$', re.M)
+
     # clear the cache so the next get_auth is correct
     clear_cache()
 
@@ -373,14 +360,22 @@ def change_auth(username, password):
     if path is None:
         write(username, password)
         return
-    fi = open(path)
-    data = fi.read()
-    fi.close()
 
     if username is None and password is None:
         return
 
-    if username and password:
+    with open(path) as fi:
+        data = fi.read()
+
+    if username == '':
+        data = pat.sub('', data)
+        with open(path, 'w') as fo:
+            fo.write(data)
+        return
+    else:
+        if not password:
+            raise ValueError("No password -- this is a bug.")
+
         if keyring:
             keyring.set_password(KEYRING_SERVICE_NAME, username, password)
             authline = 'EPD_username = %r' % username
@@ -388,20 +383,15 @@ def change_auth(username, password):
             auth = ('%s:%s' % (username, password)).encode('base64')
             authline = 'EPD_auth = %r' % auth.strip()
 
-    pat = re.compile(r'^(EPD_auth|EPD_username)\s*=.*$', re.M)
+        if pat.search(data):
+            data = pat.sub(authline, data)
+        else:
+            lines = data.splitlines()
+            lines.insert(10, authline)
+            data = '\n'.join(lines) + '\n'
 
-    if username == '':
-        data = pat.sub('', data)
-    elif pat.search(data):
-        data = pat.sub(authline, data)
-    else:
-        lines = data.splitlines()
-        lines.insert(10, authline)
-        data = '\n'.join(lines) + '\n'
-    fo = open(path, 'w')
-    fo.write(data)
-    fo.close()
-
+        with open(path, 'w') as fo:
+            fo.write(data)
 
 def checked_change_auth(username, password, remote=None):
     """
@@ -505,3 +495,56 @@ def print_config(remote, prefix):
     except Exception as e:
         print e
     print subscription_message(user)
+
+def is_auth_configured():
+    """
+    Returns True if enstaller configuration file has authentication
+    information.
+
+    Note
+    ----
+    This only checks whether the auth is configured, not whether the
+    authentication information is correct.
+    """
+    # FIXME: this does not really belong here, and should be put in the
+    # configuration object once it is not a module-level global
+    auth = get("EPD_auth")
+    if auth:
+        return True
+    else:
+        return get("EPD_username") and keyring
+
+class AuthenticatorStore(object):
+    def __init__(self):
+        self._auth = None
+
+    def load_auth(self):
+        """
+        Load authentication information from enstaller configuration file (and
+        potentially keyring).
+        """
+        if self._auth is None:
+            self._auth = self._get_auth()
+        return self._auth
+
+    def _get_auth(self):
+        old_auth = get("EPD_auth")
+        if old_auth:
+            decoded_auth = old_auth.decode('base64')
+            parts = decoded_auth.split(":")
+            if len(parts) != 2:
+                raise InvalidConfiguration("Authentication string is corrupted")
+            else:
+                return tuple(parts)
+
+        username = get("EPD_username")
+        if username:
+            password = None
+            if keyring:
+                password = keyring.get_password(KEYRING_SERVICE_NAME, username)
+            if password:
+                return username, password
+            else:
+                return None, None
+        else:
+            return None, None

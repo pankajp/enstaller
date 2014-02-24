@@ -17,7 +17,7 @@ import enstaller.config
 
 from enstaller.config import AuthFailedError, authenticate, change_auth, \
     clear_cache, get, get_auth, get_default_url, get_path, input_auth, \
-    subscription_level, web_auth, write
+    is_auth_configured, subscription_level, web_auth, write
 
 from .common import patched_read
 
@@ -259,10 +259,10 @@ class TestGetAuth(unittest.TestCase):
                 return get(arg)
 
         with mock.patch("enstaller.config.get", mocked_get):
-            with mock.patch("enstaller.config.keyring"):
-                with mock.patch("enstaller.config.change_auth") as mocked_change_auth:
-                    get_auth()
-                    mocked_change_auth.assert_called_with(FAKE_USER, FAKE_PASSWORD)
+            mocked_keyring = mock.Mock(["get_password"])
+            with mock.patch("enstaller.config.keyring", mocked_keyring):
+                self.assertFalse(mocked_keyring.get_password.called)
+                self.assertEqual(get_auth(), (FAKE_USER, FAKE_PASSWORD))
 
     @mock.patch("enstaller.config.keyring", None)
     def test_without_auth_or_keyring(self):
@@ -402,3 +402,45 @@ class TestSubscriptionLevel(unittest.TestCase):
 
         user_info = {"has_subscription": False, "is_authenticated": False}
         self.assertIsNone(subscription_level(user_info))
+
+class TestAuthenticationConfiguration(unittest.TestCase):
+    def setUp(self):
+        clear_cache()
+
+    def tearDown(self):
+        clear_cache()
+
+    @mock.patch("enstaller.config.keyring", None)
+    def test_without_configuration_no_keyring(self):
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            fp.write("")
+
+        with mock.patch("enstaller.config.get_path", lambda: fp.name):
+            self.assertFalse(is_auth_configured())
+
+    def test_without_configuration_with_keyring(self):
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            fp.write("")
+
+        with mock.patch("enstaller.config.keyring"):
+            with mock.patch("enstaller.config.get_path", lambda: fp.name):
+                self.assertFalse(is_auth_configured())
+
+    @mock.patch("enstaller.config.keyring", None)
+    def test_with_configuration_no_keyring(self):
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            auth_line = "EPD_auth = '{0}'".format(FAKE_CREDS)
+            fp.write(auth_line)
+
+        with mock.patch("enstaller.config.get_path", lambda: fp.name):
+            self.assertTrue(is_auth_configured())
+
+    def test_with_configuration_with_keyring(self):
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            auth_line = "EPD_username = '{0}'".format(FAKE_USER)
+            fp.write(auth_line)
+
+        mocked_keyring = mock.Mock(["get_password"])
+        with mock.patch("enstaller.config.keyring", mocked_keyring):
+            with mock.patch("enstaller.config.get_path", lambda: fp.name):
+                self.assertTrue(is_auth_configured())
