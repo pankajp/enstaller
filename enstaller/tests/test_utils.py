@@ -109,7 +109,7 @@ class TestExitIfSudoOnVenv(unittest.TestCase):
     def test_venv_sudo(self):
         d = tempfile.mkdtemp()
         pyvenv = os.path.join(d, "pyvenv.cfg")
-        with open(pyvenv, "wt") as fp:
+        with open(pyvenv, "w") as fp:
             fp.write("")
 
         self.assertRaises(SystemExit, lambda: exit_if_sudo_on_venv(d))
@@ -119,7 +119,7 @@ class TestExitIfSudoOnVenv(unittest.TestCase):
     def test_venv_no_sudo(self):
         d = tempfile.mkdtemp()
         pyvenv = os.path.join(d, "pyvenv.cfg")
-        with open(pyvenv, "wt") as fp:
+        with open(pyvenv, "w") as fp:
             fp.write("")
 
         exit_if_sudo_on_venv(d)

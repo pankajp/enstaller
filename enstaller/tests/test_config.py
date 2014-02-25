@@ -242,7 +242,7 @@ class TestGetAuth(unittest.TestCase):
         self.assertEqual(config.get_auth(), (FAKE_USER, FAKE_PASSWORD))
 
     def test_with_auth_and_keyring(self):
-        with open(self.f, "wt") as fp:
+        with open(self.f, "w") as fp:
             fp.write("EPD_auth = '{0}'".format(FAKE_CREDS))
         config = Configuration.from_file(self.f)
 

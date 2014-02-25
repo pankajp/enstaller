@@ -156,7 +156,7 @@ class TestLocalIndexedStore(unittest.TestCase):
             dummy_entry.s3index_key: dummy_entry.s3index_data
         }
 
-        with open(os.path.join(self.d, "index.json"), "wt") as fp:
+        with open(os.path.join(self.d, "index.json"), "w") as fp:
             json.dump(dummy_index, fp)
 
         store = LocalIndexedStore(self.d)
@@ -179,7 +179,7 @@ class TestLocalIndexedStore(unittest.TestCase):
         self.assertEqual(len(result), 0)
 
     def test_get_data_missing_key(self):
-        with open(os.path.join(self.d, "index.json"), "wt") as fp:
+        with open(os.path.join(self.d, "index.json"), "w") as fp:
             json.dump({}, fp)
 
         store = LocalIndexedStore(self.d)
@@ -196,7 +196,7 @@ def _local_store_factory(entries, basedir):
         shutil.copy(egg, d)
         dummy_index[entry.s3index_key] = entry.s3index_data
 
-    with open(os.path.join(d, "index.json"), "wt") as fp:
+    with open(os.path.join(d, "index.json"), "w") as fp:
         json.dump(dummy_index, fp)
 
     return LocalIndexedStore(d)

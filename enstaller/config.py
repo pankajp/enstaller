@@ -336,7 +336,7 @@ class Configuration(object):
 
         variables = {"py_ver": PY_VER, "sys_prefix": sys.prefix, "version": __version__,
                      "proxy_line": proxy_line, "auth_section": auth_section}
-        with open(filename, "wt") as fo:
+        with open(filename, "w") as fo:
             fo.write(RC_TMPL % variables)
 
     def _change_auth(self, filename=None):
