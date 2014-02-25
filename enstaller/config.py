@@ -350,13 +350,13 @@ class Configuration(object):
             return
         else:
             pat = re.compile(r'^(EPD_auth|EPD_username)\s*=.*$', re.M)
-            with open(filename, 'rt') as fi:
+            with open(filename, 'r') as fi:
                 data = fi.read()
 
             if not self.is_auth_configured:
                 if pat.search(data):
                     data = pat.sub("", data)
-                with open(filename, 'wt') as fo:
+                with open(filename, 'w') as fo:
                     fo.write(data)
                 return
 
@@ -372,7 +372,7 @@ class Configuration(object):
                 lines.append(authline)
                 data = '\n'.join(lines) + '\n'
 
-            with open(filename, 'wt') as fo:
+            with open(filename, 'w') as fo:
                 fo.write(data)
 
     def _checked_change_auth(self, filename=None, remote=None):
