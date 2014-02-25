@@ -389,7 +389,7 @@ class Configuration(object):
     @property
     def is_auth_configured(self):
         """
-        Returns True if authentication is setup for this configuration object.
+        Returns True if authentication is set up for this configuration object.
 
         Note
         ----
