@@ -318,7 +318,7 @@ class TestWriteAndChangeAuth(unittest.TestCase):
 
             mocked_keyring.set_password.assert_called_with("Enthought.com", "user", "dummy")
 
-        with open(fp.name, "rt") as f:
+        with open(fp.name, "r") as f:
             self.assertRegexpMatches(f.read(), "EPD_username")
             self.assertNotRegexpMatches(f.read(), "EPD_auth")
 
@@ -374,7 +374,7 @@ class TestWriteAndChangeAuth(unittest.TestCase):
         config.set_auth(None, None)
         config._change_auth(fp.name)
 
-        with open(fp.name, "rt") as fp:
+        with open(fp.name, "r") as fp:
             self.assertEqual(fp.read(), config_data)
 
 class TestAuthenticate(unittest.TestCase):

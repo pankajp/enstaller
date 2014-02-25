@@ -240,7 +240,7 @@ class Configuration(object):
             return ret
 
         if isinstance(filename, basestring):
-            with open(filename, "rt") as fp:
+            with open(filename, "r") as fp:
                 return _create(fp)
         else:
             return _create(filename)

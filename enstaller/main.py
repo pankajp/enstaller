@@ -735,7 +735,7 @@ def main(argv=None):
         return
 
     if args.requirements:
-        with open(args.requirements, "rt") as fp:
+        with open(args.requirements, "r") as fp:
             for req in fp:
                 args.no_deps = True
                 install_req(enpkg, req, args)
