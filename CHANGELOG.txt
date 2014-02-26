@@ -6,9 +6,17 @@ Main highlights:
   * authentication handling has been streamlined. When credentials are missing
     and/or invalid, enpkg displays an error message instead of crashing (#144).
 
+Bug fixes:
+
+  * #144: enpkg crashed when credentials were invalid, or when requesting
+    packages requiring credentials while not authenticated.
+  * #149: handle invalid proxy strings gracefully.
+
 Internals:
 
-  * enstaller internal configuration is not a singleton anymore.
+  * enstaller internal configuration is not a singleton anymore. Enpkg class
+    may be passed a configuration object.
+  * configuration is properly parsed instead of being exec'd.
 
 2013-12-16   4.6.3:
 -------------------
