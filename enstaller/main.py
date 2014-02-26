@@ -693,7 +693,7 @@ def main(argv=None):
             authenticate(config, enpkg.remote)
         except AuthFailedError as e:
             login, _ = config.get_auth()
-            print("Could not authenticate with user '{0}'".format(login))
+            print("Could not authenticate with user '{0}'.".format(login))
             print("You can change your authentication details with 'enpkg --userpass'")
             sys.exit(-1)
 

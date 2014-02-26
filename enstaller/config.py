@@ -171,7 +171,9 @@ IndexedRepos = [
 
 def _create_default_config():
     config = Configuration()
-    config.write(config._default_filename())
+    path = config._default_filename()
+    config.write(path)
+    return path
 
 
 def _decode_auth(s):
@@ -193,8 +195,8 @@ class Configuration(object):
         config_filename = get_path()
         if config_filename is None:
             if create_if_not_exists:
-                _create_default_config()
-                return cls()
+                path = _create_default_config()
+                return cls.from_file(path)
             else:
                 raise InvalidConfiguration("No configuration found.")
         else:

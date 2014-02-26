@@ -106,8 +106,10 @@ def make_keyring_available_context():
 @contextlib.contextmanager
 def make_default_configuration_path(path):
     with mock.patch("enstaller.config.Configuration._default_filename",
-                    lambda self: path) as context:
-        yield context
+                    lambda self: path):
+        with mock.patch("enstaller.config.get_path",
+                        lambda: path) as context:
+            yield context
 
 @contextlib.contextmanager
 def mock_input_auth(username, password):
