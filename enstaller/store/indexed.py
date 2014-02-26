@@ -2,12 +2,10 @@ import json
 import urlparse
 import urllib2
 from collections import defaultdict
-from os.path import join
 
 from base import AbstractStore
 from cached import CachedHandler
 from compressed import CompressedHandler
-from enstaller import config
 
 
 class IndexedStore(AbstractStore):
@@ -93,11 +91,10 @@ class LocalIndexedStore(IndexedStore):
 
 class RemoteHTTPIndexedStore(IndexedStore):
 
-    def __init__(self, url, cache_dir=None):
+    def __init__(self, url, cache_dir):
         super(RemoteHTTPIndexedStore, self).__init__()
+
         self.root = url
-        if cache_dir is None:
-            cache_dir = config.get('local')
         self.cache_dir = cache_dir
 
     def info(self):

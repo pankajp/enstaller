@@ -19,6 +19,7 @@ from egginst.main import EggInst
 from egginst.tests.common import mkdtemp, DUMMY_EGG, NOSE_1_2_1, NOSE_1_3_0
 from egginst.utils import makedirs
 
+from enstaller.config import Configuration
 from enstaller.egg_meta import split_eggname
 from enstaller.eggcollect import EggCollection, JoinedEggCollection
 from enstaller.enpkg import Enpkg, EnpkgError
@@ -30,14 +31,14 @@ from enstaller.store.indexed import LocalIndexedStore, RemoteHTTPIndexedStore
 from enstaller.store.tests.common import EggsStore, MetadataOnlyStore
 from enstaller.utils import PY_VER
 
-from .common import dummy_enpkg_entry_factory, patched_read
+from .common import dummy_enpkg_entry_factory
 
 class TestMisc(unittest.TestCase):
-    @mock.patch("enstaller.config.read",
-                lambda: patched_read(webservice_entry_point="http://acme.com"))
     def test_get_default_kvs(self):
-        store = get_default_kvs()
-        self.assertEqual(store.root, "http://acme.com")
+        config = Configuration()
+        config.webservice_entry_point = "http://acme.com"
+        store = get_default_kvs(config)
+        self.assertEqual(store.root, "http://acme.com/")
 
     def test_req_from_anything_egg_string(self):
         req_string = "numpy-1.8.0-1.egg"
@@ -65,17 +66,20 @@ class TestMisc(unittest.TestCase):
         self.assertEqual(req.build, None)
 
     def test_writable_local_dir_writable(self):
+        config = Configuration()
         with mkdtemp() as d:
-            with mock.patch("enstaller.enpkg.get_repository_cache", lambda x: x):
-                self.assertEqual(get_writable_local_dir(d), d)
+            config.repository_cache = d
+            self.assertEqual(get_writable_local_dir(config), d)
 
     def test_writable_local_dir_non_writable(self):
         fake_dir = "/some/dummy_dir/hopefully/doesnt/exists"
-        with mock.patch("enstaller.enpkg.get_repository_cache", lambda x: fake_dir):
-            def mocked_makedirs(d):
-                raise OSError("mocked makedirs")
-            with mock.patch("os.makedirs", mocked_makedirs):
-                self.assertNotEqual(get_writable_local_dir("/foo"), "/foo")
+
+        config = Configuration()
+        config.repository_cache = fake_dir
+        def mocked_makedirs(d):
+            raise OSError("mocked makedirs")
+        with mock.patch("os.makedirs", mocked_makedirs):
+            self.assertNotEqual(get_writable_local_dir(config), "/foo")
 
 class TestEnstallerUpdateHack(unittest.TestCase):
     def test_scenario1(self):
@@ -103,7 +107,7 @@ class TestEnstallerUpdateHack(unittest.TestCase):
         repo.connect()
 
         enpkg = Enpkg(repo, prefixes=prefixes, hook=None,
-                      evt_mgr=None, verbose=False)
+                      evt_mgr=None, verbose=False, config=Configuration())
         new_enpkg = _create_enstaller_update_enpkg(enpkg, local_version)
         return new_enpkg._install_actions_enstaller(local_version)
 
@@ -111,7 +115,7 @@ class TestCreateJoinedStores(unittest.TestCase):
     def test_simple_dir(self):
         with mkdtemp() as d:
             urls = [d]
-            store = create_joined_store(urls)
+            store = create_joined_store(Configuration(), urls)
             self.assertEqual(len(store.repos), 1)
 
             store = store.repos[0]
@@ -120,7 +124,7 @@ class TestCreateJoinedStores(unittest.TestCase):
 
     def test_simple_file_scheme(self):
         urls = ["file:///foo"]
-        store = create_joined_store(urls)
+        store = create_joined_store(Configuration(), urls)
         self.assertEqual(len(store.repos), 1)
 
         store = store.repos[0]
@@ -129,7 +133,7 @@ class TestCreateJoinedStores(unittest.TestCase):
 
     def test_simple_http_scheme(self):
         urls = ["http://acme.com/repo"]
-        store = create_joined_store(urls)
+        store = create_joined_store(Configuration(), urls)
         self.assertEqual(len(store.repos), 1)
 
         store = store.repos[0]
@@ -154,7 +158,7 @@ class TestEnpkg(unittest.TestCase):
 
         with mkdtemp() as d:
             enpkg = Enpkg(repo, prefixes=[d], hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             queried_entries = enpkg.info_list_name("numpy")
 
             self.assertEqual(len(queried_entries), 3)
@@ -172,7 +176,7 @@ class TestEnpkg(unittest.TestCase):
 
         with mkdtemp() as d:
             enpkg = Enpkg(repo, prefixes=[d], hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             queried_entries = enpkg.info_list_name("numpy")
 
             self.assertEqual(len(queried_entries), 2)
@@ -190,7 +194,7 @@ class TestEnpkg(unittest.TestCase):
 
         with mkdtemp() as d:
             enpkg = Enpkg(repo, prefixes=[d], hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             r = dict(enpkg.query(name="numpy"))
             self.assertEqual(set(r.keys()),
                              set(entry.s3index_key for entry in entries))
@@ -213,9 +217,9 @@ class TestEnpkg(unittest.TestCase):
 
         with mkdtemp() as d:
             enpkg = Enpkg(repo, prefixes=[d], hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             enpkg = Enpkg(repo, prefixes=[d], hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             enpkg.ec.install(os.path.basename(local_egg),
                              os.path.dirname(local_egg))
 
@@ -241,7 +245,7 @@ class TestEnpkgActions(unittest.TestCase):
 
         with mkdtemp() as d:
             enpkg = Enpkg(repo, prefixes=[d], hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             actions = enpkg.install_actions("numpy")
 
             self.assertEqual(actions, r_actions)
@@ -257,7 +261,7 @@ class TestEnpkgActions(unittest.TestCase):
 
         with mkdtemp() as d:
             enpkg = Enpkg(repo, prefixes=[d], hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             with self.assertRaises(EnpkgError):
                 enpkg.install_actions("scipy")
 
@@ -274,7 +278,7 @@ class TestEnpkgActions(unittest.TestCase):
 
             local_repo = JoinedEggCollection([EggCollection(d, False, None)])
             enpkg = Enpkg(repo, prefixes=[d], hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             enpkg.ec = local_repo
 
             self.assertTrue(local_repo.find(os.path.basename(DUMMY_EGG)))
@@ -292,7 +296,7 @@ class TestEnpkgActions(unittest.TestCase):
 
         with mkdtemp() as d:
             enpkg = Enpkg(repo, prefixes=[d], hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             with self.assertRaises(EnpkgError):
                 enpkg.remove_actions("numpy")
 
@@ -330,7 +334,7 @@ class TestEnpkgActions(unittest.TestCase):
             local_repo = JoinedEggCollection([EggCollection(l1, False, None),
                                               EggCollection(l0, False, None)])
             enpkg = Enpkg(repo, prefixes=[l1, l0], hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             enpkg.ec = local_repo
 
             actions = enpkg.install_actions("nose")
@@ -354,7 +358,7 @@ class TestEnpkgExecute(unittest.TestCase):
 
         with mock.patch("enstaller.enpkg.Enpkg.fetch") as mocked_fetch:
             enpkg = Enpkg(repo, prefixes=self.prefixes, hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             enpkg.ec = mock.MagicMock()
             enpkg.execute([("fetch_{0}".format(fetch_opcode), egg)])
 
@@ -377,7 +381,7 @@ class TestEnpkgExecute(unittest.TestCase):
 
         with mock.patch("enstaller.enpkg.Enpkg.fetch") as mocked_fetch:
             enpkg = Enpkg(repo, prefixes=self.prefixes, hook=None,
-                          evt_mgr=None, verbose=False)
+                          evt_mgr=None, verbose=False, config=Configuration())
             local_repo = JoinedEggCollection([
                 EggCollection(prefix, False, None) for prefix in
                 self.prefixes])
@@ -404,7 +408,7 @@ class TestEnpkgRevert(unittest.TestCase):
         repo.connect()
 
         enpkg = Enpkg(repo, prefixes=self.prefixes, hook=None,
-                      evt_mgr=None, verbose=False)
+                      evt_mgr=None, verbose=False, config=Configuration())
         enpkg.revert_actions(0)
 
         with self.assertRaises(EnpkgError):
@@ -418,7 +422,7 @@ class TestEnpkgRevert(unittest.TestCase):
         repo.connect()
 
         enpkg = Enpkg(repo, prefixes=self.prefixes, hook=None,
-                      evt_mgr=None, verbose=False)
+                      evt_mgr=None, verbose=False, config=Configuration())
         actions = enpkg.install_actions("dummy")
         enpkg.execute(actions)
 

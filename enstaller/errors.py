@@ -7,6 +7,9 @@ class InvalidPythonPathConfiguration(EnstallerException):
 class InvalidConfiguration(EnstallerException):
     pass
 
+class InvalidFormat(InvalidConfiguration):
+    pass
+
 class AuthFailedError(EnstallerException):
     pass
 

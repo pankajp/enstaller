@@ -7,17 +7,9 @@ import mock
 
 from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
-import enstaller.config
-
 from enstaller.eggcollect import AbstractEggCollection
 from enstaller.egg_meta import split_eggname
 from enstaller.utils import PY_VER
-
-def patched_read(**kw):
-    config = {}
-    config.update(enstaller.config.default)
-    config.update(**kw)
-    return config
 
 def dummy_enpkg_entry_factory(name, version, build):
     data = {"egg_basename": name, "packages": [], "python": PY_VER,
@@ -78,17 +70,28 @@ class MetaOnlyEggCollection(AbstractEggCollection):
 
 # Decorators to force a certain configuration
 def is_authenticated(f):
-    return mock.patch("enstaller.config.authenticate",
+    return mock.patch("enstaller.main.authenticate",
                       lambda ignored: {"is_authenticated": True})(f)
 
 def is_not_authenticated(f):
-    return mock.patch("enstaller.config.authenticate",
+    return mock.patch("enstaller.main.authenticate",
                       lambda ignored: {"is_authenticated": False})(f)
 
-def use_webservice(f):
-    return mock.patch("enstaller.config.read",
-                      lambda: patched_read(use_webservice=True))(f)
+def make_keyring_unavailable(f):
+    return mock.patch("enstaller.config.keyring", None)(f)
 
-def dont_use_webservice(f):
-    return mock.patch("enstaller.config.read",
-                      lambda: patched_read(use_webservice=False))(f)
+def without_default_configuration(f):
+    return mock.patch("enstaller.config.get_path", lambda: None)(f)
+
+# Context managers to force certain configuration
+@contextlib.contextmanager
+def make_keyring_unavailable_context():
+    with mock.patch("enstaller.config.keyring", None) as context:
+        yield context
+
+# Context managers to force certain configuration
+@contextlib.contextmanager
+def make_keyring_available_context():
+    m = mock.Mock(["get_password", "set_password"])
+    with mock.patch("enstaller.config.keyring", m) as context:
+        yield context

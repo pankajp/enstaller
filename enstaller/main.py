@@ -27,17 +27,18 @@ from enstaller import __version__ as __ENSTALLER_VERSION__
 from enstaller._version import is_released as IS_RELEASED
 from egginst.utils import bin_dir_name, rel_site_packages
 from enstaller import __version__
-import enstaller.config as config
 from enstaller.errors import InvalidPythonPathConfiguration
+from enstaller.config import (Configuration, authenticate,
+    input_auth, print_config, subscription_message)
 from enstaller.proxy.api import setup_proxy
 from enstaller.utils import abs_expanduser, fill_url, exit_if_sudo_on_venv
 
 from enstaller.eggcollect import EggCollection
-from enstaller.enpkg import (
-    Enpkg, EnpkgError, create_joined_store, req_from_anything
-)
+from enstaller.enpkg import (Enpkg, EnpkgError, create_joined_store,
+    req_from_anything)
 from enstaller.resolve import Req, comparable_info
 from enstaller.egg_meta import is_valid_eggname, split_eggname
+from enstaller.errors import AuthFailedError, InvalidConfiguration
 
 from enstaller.store.joined import JoinedStore
 from enstaller.store.indexed import IndexedStore
@@ -200,13 +201,13 @@ def search(enpkg, pat=None):
     # if the user's search returns any packages that are not available
     # to them, attempt to authenticate and print out their subscriber
     # level
-    if config.get('use_webservice') and not(SUBSCRIBED):
+    if enpkg.config.use_webservice and not(SUBSCRIBED):
         user = {}
         try:
-            user = config.authenticate(config.get_auth())
+            user = authenticate(enpkg.config)
         except Exception as e:
             print(e.message)
-        print(config.subscription_message(user))
+        print(subscription_message(enpkg.config, user))
 
 
 def updates_check(enpkg):
@@ -274,12 +275,12 @@ def epd_install_confirm():
     yn = raw_input("Are you sure that you wish to proceed? (y/[n]) ")
     return yn.lower() in set(['y', 'yes'])
 
-def add_url(url, verbose):
+def add_url(config, url, verbose):
     url = fill_url(url)
-    if url in config.get('IndexedRepos'):
+    if url in config.IndexedRepos:
         print("Already configured:", url)
         return
-    config.prepend_url(url)
+    prepend_url(url)
 
 def pretty_print_packages(info_list):
     packages = {}
@@ -301,10 +302,10 @@ def install_req(enpkg, req, opts):
     req = req_from_anything(req)
 
     def _print_invalid_permissions():
-        user = config.authenticate(config.get_auth())
+        user = authenticate(enpkg.config)
         print("No package found to fulfill your requirement at your "
               "subscription level:")
-        for line in config.subscription_message(user).splitlines():
+        for line in subscription_message(enpkg.config, user).splitlines():
             print(" " * 4 + line)
 
     def _perform_install():
@@ -399,7 +400,7 @@ def _create_enstaller_update_enpkg(enpkg, version=None):
     installed_repo = MockedStore()
     remote = JoinedStore([enpkg.remote, installed_repo])
     return Enpkg(remote, prefixes=prefixes, hook=hook,
-                 evt_mgr=evt_mgr, verbose=verbose)
+                 evt_mgr=evt_mgr, verbose=verbose, config=enpkg.config)
 
 
 def update_enstaller(enpkg, opts):
@@ -410,7 +411,7 @@ def update_enstaller(enpkg, opts):
     """
     updated = False
     # exit early if autoupdate=False
-    if not config.get('autoupdate', True):
+    if not enpkg.config.autoupdate:
         return updated
     if not IS_RELEASED:
         return updated
@@ -540,6 +541,8 @@ def main(argv=None):
     if args.sys_config:                           # --sys-config
         config.get_path = lambda: config.system_config_path
 
+    config = Configuration._get_default_config(create_if_not_exists=True)
+
     # Check for incompatible actions and options
     # Action options which take no package name pattern:
     simple_standalone_actions = (args.config, args.env, args.userpass,
@@ -577,7 +580,7 @@ def main(argv=None):
     elif args.prefix:
         prefix = args.prefix
     else:
-        prefix = config.get('prefix', sys.prefix)
+        prefix = config.prefix
 
     # now make prefixes
     if prefix == sys.prefix:
@@ -632,43 +635,50 @@ def main(argv=None):
 
     if args.proxy:                                # --proxy
         setup_proxy(args.proxy)
-    elif config.get('proxy'):
-        setup_proxy(config.get('proxy'))
+    elif config.proxy:
+        setup_proxy(config.proxy)
     else:
         setup_proxy()
 
     evt_mgr = None
 
-    if config.get('use_webservice'):
+    if config.use_webservice:
         remote = None # Enpkg will create the default
     else:
-        urls = [fill_url(u) for u in config.get('IndexedRepos')]
-        remote = create_joined_store(urls)
+        urls = [fill_url(u) for u in config.IndexedRepos]
+        remote = create_joined_store(config, urls)
 
     enpkg = Enpkg(remote, prefixes=prefixes, hook=args.hook,
-                  evt_mgr=evt_mgr, verbose=args.verbose)
+                  evt_mgr=evt_mgr, verbose=args.verbose, config=config)
 
 
     if args.config:                               # --config
-        config.print_config(enpkg.remote, prefixes[0])
+        print_config(config, enpkg.remote, prefixes[0])
         return
 
     if args.userpass:                             # --userpass
-        username, password = config.input_auth()
-        config.checked_change_auth(username, password, enpkg.remote)
+        username, password = input_auth()
+        config.set_auth(username, password)
+        config._checked_change_auth()
         return
 
-    if not config.is_auth_configured():
+    if not config.is_auth_configured:
         print(PLEASE_AUTH_MESSAGE)
         sys.exit(-1)
 
     try:
-        auth = config.get_auth()
+        config.get_auth()
     except InvalidConfiguration:
         print(PLEASE_AUTH_MESSAGE)
         sys.exit(-1)
     else:
-        config.authenticate(auth, enpkg.remote)
+        try:
+            authenticate(config, enpkg.remote)
+        except AuthFailedError as e:
+            login, _ = config.get_auth()
+            print("Could not authenticate with user '{0}'".format(login))
+            print("You can change your authentication details with 'enpkg --userpass'")
+            sys.exit(-1)
 
     if args.dry_run:
         def print_actions(actions):
@@ -682,7 +692,7 @@ def main(argv=None):
         return
 
     if args.add_url:                              # --add-url
-        add_url(args.add_url, args.verbose)
+        add_url(enpkg.config, args.add_url, args.verbose)
         return
 
     if args.revert:                               # --revert
@@ -725,7 +735,7 @@ def main(argv=None):
         return
 
     if args.requirements:
-        with open(args.requirements, "rt") as fp:
+        with open(args.requirements, "r") as fp:
             for req in fp:
                 args.no_deps = True
                 install_req(enpkg, req, args)
