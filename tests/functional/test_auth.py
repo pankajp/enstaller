@@ -9,7 +9,7 @@ else:
 
 import mock
 
-from enstaller.main import main
+from enstaller.main import main_noexc
 from enstaller.config import _encode_auth
 
 from enstaller.tests.common import (
@@ -28,7 +28,7 @@ class TestAuth(unittest.TestCase):
         """
         with mock_print() as m:
             with self.assertRaises(SystemExit):
-                main()
+                main_noexc()
 
         self.assertEqual(m.value, "No authentication configured, required "
                                   "to continue.To login, type 'enpkg --userpass'.\n")
@@ -41,7 +41,7 @@ class TestAuth(unittest.TestCase):
         """
         with mock.patch("__builtin__.raw_input", return_value="") as m:
             with self.assertRaises(SystemExit):
-                main(["--userpass"])
+                main_noexc(["--userpass"])
 
         self.assertEqual(m.call_count, 3)
 
@@ -60,7 +60,7 @@ class TestAuth(unittest.TestCase):
             with make_default_configuration_path(filename):
                 with mock_input_auth("nono", "robot"):
                     with self.assertRaises(SystemExit):
-                        main(["--userpass"])
+                        main_noexc(["--userpass"])
 
         self.assertMultiLineEqual(m.value, r_output)
 
@@ -81,6 +81,6 @@ class TestAuth(unittest.TestCase):
         with mock_print() as m:
             with make_default_configuration_path(filename):
                 with self.assertRaises(SystemExit):
-                    main(["nono"])
+                    main_noexc(["nono"])
 
         self.assertMultiLineEqual(m.value, r_output)
