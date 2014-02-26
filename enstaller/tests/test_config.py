@@ -496,9 +496,12 @@ class TestConfigurationParsing(unittest.TestCase):
             PythonConfigurationParser().parse("1 + 2")
 
     def test_parse_simple_unsupported_entry(self):
-        # XXX: ideally, we would like to check for the warning, but doing so is
-        # a bit too painful as it has not been backported to unittest2
-        PythonConfigurationParser().parse("nono = 'le petit robot'")
+        # XXX: ideally, we would like something like with self.assertWarns to
+        # check for the warning, but backporting the python 3.3 code to
+        # unittest2 is a bit painful.
+        with mock.patch("enstaller.config.warnings.warn") as m:
+            Configuration.from_file(StringIO("nono = 'le petit robot'"))
+            m.assert_called_with('Unsupported configuration setting nono, ignored')
 
     @make_keyring_unavailable
     def test_epd_auth_wo_keyring(self):
