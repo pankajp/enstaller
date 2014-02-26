@@ -690,25 +690,6 @@ class TestInstallReq(unittest.TestCase):
                     install_req(enpkg, "scipy", FakeOptions())
                 self.assertMultiLineEqual(m.value, r_output)
 
-    #@is_not_authenticated
-    #def test_recursive_install_unavailable_dependency_non_authenticated(self):
-    #    config = Configuration._get_default_config()
-    #    config.use_webservice = False
-
-    #    numpy = dummy_enpkg_entry_factory("numpy", "1.7.1", 1)
-    #    numpy.available = False
-    #    scipy = dummy_enpkg_entry_factory("scipy", "0.12.0", 1)
-    #    scipy.packages = [Dependency.from_spec_string("numpy 1.7.1")]
-
-    #    remote_entries = [numpy, scipy]
-
-    #    with mock.patch("enstaller.main.Enpkg.execute"):
-    #        with mock.patch("enstaller.config.subscription_message") as m:
-    #            enpkg = _create_prefix_with_eggs(config, self.prefix, [], remote_entries)
-    #            with self.assertRaises(SystemExit):
-    #                install_req(enpkg, "scipy", FakeOptions())
-    #            m.assert_not_called()
-
     @mock.patch("sys.platform", "darwin")
     def test_os_error_darwin(self):
         config = Configuration()
