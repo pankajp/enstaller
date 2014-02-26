@@ -668,9 +668,26 @@ def main(argv=None):
         return
 
     if args.userpass:                             # --userpass
-        username, password = input_auth()
+        n_trials = 3
+        for i in range(n_trials):
+            username, password = input_auth()
+            if username:
+                break
+            else:
+                print("Please enter a non empty username ({0} trial(s) left)". \
+                      format(n_trials - i - 1))
+        else:
+            print("No valid username entered (no modification was written).")
+            sys.exit(-1)
+
         config.set_auth(username, password)
-        config._checked_change_auth()
+        try:
+            config._checked_change_auth()
+        except AuthFailedError as e:
+            msg = ("Could not authenticate. Please check your credentials "
+                   "and try again.\nNo modification was written.")
+            print(msg)
+            sys.exit(-1)
         return
 
     if not config.is_auth_configured:
@@ -687,7 +704,7 @@ def main(argv=None):
             authenticate(config, enpkg.remote)
         except AuthFailedError as e:
             login, _ = config.get_auth()
-            print("Could not authenticate with user '{0}'".format(login))
+            print("Could not authenticate with user '{0}'.".format(login))
             print("You can change your authentication details with 'enpkg --userpass'")
             sys.exit(-1)
 
