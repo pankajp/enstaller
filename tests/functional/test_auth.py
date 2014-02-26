@@ -50,8 +50,8 @@ class TestAuth(unittest.TestCase):
         """
         Ensure enpkg --userpass doesn't crash when creds are invalid
         """
-        r_output = "Could not authenticate, please try again (did you enter " \
-                   "the right credentials ?).\nNo modification was written\n"
+        r_output = ("Could not authenticate. Please check your credentials "
+                    "and try again.\nNo modification was written.\n")
 
         with tempfile.NamedTemporaryFile(delete=False) as fp:
             filename = fp.name

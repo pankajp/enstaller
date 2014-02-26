@@ -673,8 +673,8 @@ def main(argv=None):
         try:
             config._checked_change_auth()
         except AuthFailedError as e:
-            msg = ("Could not authenticate, please try again (did you enter the "
-                   "right credentials ?).\nNo modification was written")
+            msg = ("Could not authenticate. Please check your credentials "
+                   "and try again.\nNo modification was written.")
             print(msg)
             sys.exit(-1)
         return
