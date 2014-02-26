@@ -9,6 +9,7 @@ from okonomiyaki.repositories.enpkg import EnpkgS3IndexEntry
 
 from enstaller.eggcollect import AbstractEggCollection
 from enstaller.egg_meta import split_eggname
+from enstaller.errors import AuthFailedError
 from enstaller.utils import PY_VER
 
 def dummy_enpkg_entry_factory(name, version, build):
@@ -83,6 +84,12 @@ def make_keyring_unavailable(f):
 def without_default_configuration(f):
     return mock.patch("enstaller.config.get_path", lambda: None)(f)
 
+def fail_authenticate(f):
+    m = mock.Mock(side_effect=AuthFailedError())
+    main = mock.patch("enstaller.main.authenticate", m)
+    config = mock.patch("enstaller.config.authenticate", m)
+    return main(config(f))
+
 # Context managers to force certain configuration
 @contextlib.contextmanager
 def make_keyring_unavailable_context():
@@ -97,7 +104,13 @@ def make_keyring_available_context():
         yield context
 
 @contextlib.contextmanager
-def with_default_configuration_path(path):
+def make_default_configuration_path(path):
     with mock.patch("enstaller.config.Configuration._default_filename",
                     lambda self: path) as context:
+        yield context
+
+@contextlib.contextmanager
+def mock_input_auth(username, password):
+    with mock.patch("enstaller.main.input_auth",
+                    return_value=(username, password)) as context:
         yield context

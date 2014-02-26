@@ -670,7 +670,13 @@ def main(argv=None):
             sys.exit(-1)
 
         config.set_auth(username, password)
-        config._checked_change_auth()
+        try:
+            config._checked_change_auth()
+        except AuthFailedError as e:
+            msg = ("Could not authenticate, please try again (did you enter the "
+                   "right credentials ?).\nNo modification was written")
+            print(msg)
+            sys.exit(-1)
         return
 
     if not config.is_auth_configured:

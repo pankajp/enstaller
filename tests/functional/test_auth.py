@@ -1,4 +1,5 @@
 import sys
+import tempfile
 
 if sys.version_info[:2] < (2, 7):
     import unittest2 as unittest
@@ -9,7 +10,9 @@ import mock
 
 from enstaller.main import main
 
-from enstaller.tests.common import without_default_configuration, mock_print
+from enstaller.tests.common import (
+    without_default_configuration, mock_print, make_default_configuration_path,
+    fail_authenticate, mock_input_auth)
 
 
 class TestAuth(unittest.TestCase):
@@ -36,3 +39,22 @@ class TestAuth(unittest.TestCase):
                 main(["--userpass"])
 
         self.assertEqual(m.call_count, 3)
+
+    @fail_authenticate
+    def test_userpass_with_config(self):
+        """
+        Ensure enpkg --userpass doesn't crash when creds are invalid
+        """
+        r_output = "Could not authenticate, please try again (did you enter " \
+                   "the right credentials ?).\nNo modification was written\n"
+
+        with tempfile.NamedTemporaryFile(delete=False) as fp:
+            filename = fp.name
+
+        with mock_print() as m:
+            with make_default_configuration_path(filename):
+                with mock_input_auth("nono", "robot"):
+                    with self.assertRaises(SystemExit):
+                        main(["--userpass"])
+
+        self.assertMultiLineEqual(m.value, r_output)
