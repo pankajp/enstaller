@@ -464,7 +464,7 @@ def check_prefixes(prefixes):
 
 def needs_to_downgrade_enstaller(enpkg, reqs):
     """
-    Returns True if the running enstaller would be downgraded by satifsying the
+    Returns True if the running enstaller would be downgraded by satisfying the
     list of requirements.
     """
     for req in reqs:
@@ -769,7 +769,7 @@ def main(argv=None):
 
     # This code assumes we have already upgraded enstaller if needed
     if needs_to_downgrade_enstaller(enpkg, reqs):
-        warnings.warn("enstaller in requirement list: enstaller will be downgraded !")
+        warnings.warn("Enstaller in requirement list: enstaller will be downgraded !")
     else:
         print("Enstaller is already up to date, not upgrading.")
         reqs = [req for req in reqs if req.name != "enstaller"]
