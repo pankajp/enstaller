@@ -1,3 +1,15 @@
+2014-00-00   4.7.0:
+-------------------
+
+Main highlights:
+
+  * authentication handling has been streamlined. When credentials are missing
+    and/or invalid, enpkg displays an error message instead of crashing (#144).
+
+Internals:
+
+  * enstaller internal configuration is not a singleton anymore.
+
 2013-12-16   4.6.3:
 -------------------
 
