@@ -462,6 +462,17 @@ def check_prefixes(prefixes):
             raise InvalidPythonPathConfiguration("Order of path prefixes doesn't match PYTHONPATH")
 
 
+def needs_to_downgrade_enstaller(enpkg, reqs):
+    """
+    Returns True if the running enstaller would be downgraded by satisfying the
+    list of requirements.
+    """
+    for req in reqs:
+        if req.name == "enstaller" and req.version is not None:
+            return True
+    return False
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
@@ -755,6 +766,13 @@ def main(argv=None):
             reqs.append(Req(name + ' ' + version))
         else:
             reqs.append(Req(arg))
+
+    # This code assumes we have already upgraded enstaller if needed
+    if needs_to_downgrade_enstaller(enpkg, reqs):
+        warnings.warn("Enstaller in requirement list: enstaller will be downgraded !")
+    else:
+        print("Enstaller is already up to date, not upgrading.")
+        reqs = [req for req in reqs if req.name != "enstaller"]
 
     if args.verbose:
         print("Requirements:")
