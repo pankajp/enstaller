@@ -487,8 +487,7 @@ def input_auth():
     """
     print("""\
 Please enter the email address (or username) and password for your
-EPD or EPD Free subscription.  If you are not subscribed to EPD,
-just press Enter.
+EPD or EPD Free subscription.
 """)
     username = raw_input('Email (or username): ').strip()
     if not username:

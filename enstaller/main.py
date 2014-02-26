@@ -657,7 +657,18 @@ def main(argv=None):
         return
 
     if args.userpass:                             # --userpass
-        username, password = input_auth()
+        n_trials = 3
+        for i in range(n_trials):
+            username, password = input_auth()
+            if username:
+                break
+            else:
+                print("Please enter a non empty username ({0} trial(s) left)". \
+                      format(n_trials - i - 1))
+        else:
+            print("No valid username entered (no modification was written).")
+            sys.exit(-1)
+
         config.set_auth(username, password)
         config._checked_change_auth()
         return

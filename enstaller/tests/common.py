@@ -95,3 +95,9 @@ def make_keyring_available_context():
     m = mock.Mock(["get_password", "set_password"])
     with mock.patch("enstaller.config.keyring", m) as context:
         yield context
+
+@contextlib.contextmanager
+def with_default_configuration_path(path):
+    with mock.patch("enstaller.config.Configuration._default_filename",
+                    lambda self: path) as context:
+        yield context
