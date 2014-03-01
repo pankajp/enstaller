@@ -390,7 +390,10 @@ def _create_enstaller_update_enpkg(enpkg, version=None):
                 self._groups[info['name']].append(key)
 
         def get_data(self, key):
-            pass
+            """Dummy so that we can instantiate this class."""
+
+        def info(self):
+            """Dummy so that we can instantiate this class."""
 
     prefixes = enpkg.prefixes
     hook = enpkg.hook

@@ -18,11 +18,11 @@ class AbstractStore(object):
     @property
     @abstractmethod
     def is_connected(self):
-        raise NotImplementedError
+        """Return True if the store is connected, False otherwise."""
 
+    @abstractmethod
     def info(self):
         """Return some info about the store (url, name, etc...)."""
-        raise NotImplementedError()
 
     @abstractmethod
     def get(self, key):
@@ -34,28 +34,6 @@ class AbstractStore(object):
             The key of the value to retrieve.
         """
 
-    def set(self, key, value, buffer_size=1048576):
-        """Set the value at the given key.
-
-        Parameters
-        ----------
-        key: str
-            The key to be set
-        value: buffer
-            The value to be set
-        """
-        raise NotImplementedError()
-
-    def delete(self, key):
-        """Delete the value at the given key.
-
-        Parameters
-        ----------
-        key: str
-            The key to be deleted
-        """
-        raise NotImplementedError()
-
     @abstractmethod
     def get_data(self, key):
         """Return the data associated to the given key."""
@@ -63,18 +41,6 @@ class AbstractStore(object):
     @abstractmethod
     def get_metadata(self, key, select=None):
         """Return the data associated to the given key."""
-
-    def set_data(self, key, data):
-        """Set the data at the given key."""
-        raise NotImplementedError()
-
-    def set_metadata(self, key, metadata):
-        """Set the metadata at the given key."""
-        raise NotImplementedError()
-
-    def update_metadata(self, key, metadata):
-        """Update the metadata of the given key."""
-        raise NotImplementedError()
 
     @abstractmethod
     def exists(self, key):

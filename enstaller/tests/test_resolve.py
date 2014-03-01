@@ -42,6 +42,8 @@ class DummyStore(IndexedStore):
     def get_data(self, key):
         pass
 
+    def info(self):
+        pass
 
 def eggs_rs(c, req_string):
     return c.install_sequence(Req(req_string))
