@@ -35,7 +35,7 @@ def main(argv=None):
     else:
         auth = tuple(auth.split(":"))
 
-    url = URL_TEMPLATE % plat
+    url = URL_TEMPLATE % namespace.platform
 
     print "Using user {}".format(auth[0])
     url += "index.json"
@@ -44,7 +44,7 @@ def main(argv=None):
 
     res = requests.get(url, auth=auth)
     with open("index-{}.json".format(platform), "wt") as fp:
-        fp.write(json.dumps(res.json, sort_keys=True, indent=4,
+        fp.write(json.dumps(res.json(), sort_keys=True, indent=4,
                             separators=(',', ': ')))
 
 if __name__ == "__main__":
