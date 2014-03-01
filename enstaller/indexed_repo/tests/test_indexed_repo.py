@@ -14,6 +14,8 @@ from enstaller.indexed_repo.requirement import (Req, dist_as_req,
 
 from enstaller.utils import path_to_uri
 
+HERE_DIR = abspath(dirname(__file__))
+
 class TestDistNaming(unittest.TestCase):
 
     def test_split_dist(self):
@@ -179,7 +181,7 @@ class TestChain0(unittest.TestCase):
     def setUp(self):
         c = Chain(verbose=0)
         for fn in ['index-add.txt', 'index-5.1.txt', 'index-5.0.txt']:
-            repo = "{0}/".format(path_to_uri(dirname(__file__)))
+            repo = "{0}/".format(path_to_uri(HERE_DIR))
             c.add_repo(repo, fn)
 
         self.c = c
@@ -214,7 +216,7 @@ class TestChain1(unittest.TestCase):
         for name in 'epd', 'gpl':
             # XXX: relying on having a '/' is horrible, but that assumption is made
             # in enough places through the code that we don't want to change it.
-            repo = "{0}/".format(path_to_uri(posixpath.join(dirname(__file__), name)))
+            repo = "{0}/".format(path_to_uri(posixpath.join(HERE_DIR, name)))
             c.add_repo(repo, 'index-7.1.txt')
             repos[name] = repo
         self.c = c
@@ -279,7 +281,7 @@ class TestChain2(unittest.TestCase):
         repos = {}
         c = Chain(verbose=0)
         for name in 'open', 'runner', 'epd':
-            repo = "{0}/".format(path_to_uri(posixpath.join(dirname(__file__), name)))
+            repo = "{0}/".format(path_to_uri(posixpath.join(HERE_DIR, name)))
             c.add_repo(repo, 'index-7.1.txt')
             repos[name] = repo
         self.c = c
