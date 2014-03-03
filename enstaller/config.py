@@ -75,6 +75,39 @@ home_config_path = abs_expanduser("~/" + config_fn)
 system_config_path = join(sys.prefix, config_fn)
 
 
+def _canopyr_hack_location():
+    return os.path.join(sys.prefix, "USE_CANOPYR_HACK")
+
+def _canopyr_hack_path():
+    with open(_canopyr_hack_location()) as fp:
+        return fp.read().strip()
+
+def use_canopy_order():
+    if hasattr(sys, "real_prefix"):
+        return True
+    elif os.path.exists(_canopyr_hack_location()):
+        return True
+    else:
+        return False
+
+def configuration_search_order():
+    paths = []
+    use_canopyr_hack = os.path.exists(_canopyr_hack_location())
+
+    if use_canopyr_hack:
+        paths.append(sys.prefix)
+        paths.append(_canopyr_hack_path())
+        paths.append(abs_expanduser("~"))
+    elif hasattr(sys, "real_prefix"):
+        paths.append(sys.prefix)
+        paths.append(abs_expanduser("~"))
+        paths.append(sys.real_prefix)
+    else:
+        paths.append(abs_expanduser("~"))
+        paths.append(sys.prefix)
+
+    return [os.path.normpath(p) for p in paths]
+
 def get_default_url():
     import plat
     return 'https://api.enthought.com/eggs/%s/' % plat.custom_plat
