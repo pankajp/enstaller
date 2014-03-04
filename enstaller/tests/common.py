@@ -81,9 +81,6 @@ def is_not_authenticated(f):
 def make_keyring_unavailable(f):
     return mock.patch("enstaller.config.keyring", None)(f)
 
-def without_default_configuration(f):
-    return mock.patch("enstaller.config.get_path", lambda: None)(f)
-
 def fail_authenticate(f):
     m = mock.Mock(side_effect=AuthFailedError())
     main = mock.patch("enstaller.main.authenticate", m)
@@ -105,11 +102,9 @@ def make_keyring_available_context():
 
 @contextlib.contextmanager
 def make_default_configuration_path(path):
-    with mock.patch("enstaller.config.Configuration._default_filename",
-                    lambda self: path):
-        with mock.patch("enstaller.config.get_path",
-                        lambda: path) as context:
-            yield context
+    with mock.patch("enstaller.main.get_config_filename",
+                    lambda ignored: path) as context:
+        yield context
 
 @contextlib.contextmanager
 def mock_input_auth(username, password):

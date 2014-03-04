@@ -20,20 +20,20 @@ import mock
 
 from egginst.tests.common import mkdtemp
 
-import enstaller.config
 from enstaller import __version__
 
-from enstaller.config import (AuthFailedError, authenticate,
-    get_auth, get_default_url, get_path, home_config_path, input_auth,
-    print_config, subscription_level, web_auth)
+from enstaller.config import (AuthFailedError, abs_expanduser, authenticate,
+    configuration_read_search_order, get_auth, get_default_url, get_path,
+    input_auth, print_config, subscription_level, web_auth)
 from enstaller.config import (
-    KEYRING_SERVICE_NAME, Configuration, PythonConfigurationParser)
+    HOME_ENSTALLER4RC, KEYRING_SERVICE_NAME, SYS_PREFIX_ENSTALLER4RC,
+    Configuration, PythonConfigurationParser)
 from enstaller.errors import InvalidConfiguration, InvalidFormat
 from enstaller.utils import PY_VER
 
 from .common import (make_keyring_available_context, make_keyring_unavailable,
                      make_keyring_unavailable_context, mock_print,
-                     without_default_configuration)
+                     )
 
 def compute_creds(username, password):
     return "{0}:{1}".format(username, password).encode("base64").rstrip()
@@ -52,31 +52,31 @@ def mock_default_filename_context(ret):
 
 class TestGetPath(unittest.TestCase):
     def test_home_config_exists(self):
+        home_dir = abs_expanduser("~")
         def mocked_isfile(p):
-            if p == enstaller.config.home_config_path:
+            if os.path.dirname(p) == home_dir:
                 return True
             else:
                 return os.path.isfile(p)
 
         with mock.patch("enstaller.config.isfile", mocked_isfile):
-            self.assertEqual(get_path(), enstaller.config.home_config_path)
+            self.assertEqual(get_path(), HOME_ENSTALLER4RC)
 
     def test_home_config_doesnt_exist(self):
         def mocked_isfile(p):
-            if p == enstaller.config.home_config_path:
+            if p == HOME_ENSTALLER4RC:
                 return False
-            elif p == enstaller.config.system_config_path:
+            elif p == SYS_PREFIX_ENSTALLER4RC:
                 return True
             else:
                 return os.path.isfile(p)
 
         with mock.patch("enstaller.config.isfile", mocked_isfile):
-            self.assertEqual(get_path(), enstaller.config.system_config_path)
+            self.assertEqual(get_path(), SYS_PREFIX_ENSTALLER4RC)
 
     def test_no_config(self):
         def mocked_isfile(p):
-            if p in (enstaller.config.home_config_path,
-                     enstaller.config.system_config_path):
+            if os.path.dirname(p) in configuration_read_search_order():
                 return False
             else:
                 return os.path.isfile(p)
@@ -128,22 +128,13 @@ class TestWriteConfig(unittest.TestCase):
         config = Configuration.from_file(self.f)
         self.assertEqual(config.proxy, proxystr)
 
-    @make_keyring_unavailable
-    @mock.patch("enstaller.config.sys.platform", "linux2")
-    @mock.patch("enstaller.config.os.getuid", lambda: 0)
-    def test_use_system_path_under_root(self):
-        with mock.patch("__builtin__.open") as m:
-            config = Configuration()
-            config.write()
-            self.assertTrue(m.called_with(enstaller.config.system_config_path))
-
     def test_keyring_call(self):
         with mock.patch("__builtin__.open"):
             mocked_keyring = mock.MagicMock(["get_password", "set_password"])
             with mock.patch("enstaller.config.keyring", mocked_keyring):
                 config = Configuration()
                 config.set_auth(FAKE_USER, FAKE_PASSWORD)
-                config.write()
+                config.write("dummy_config.rc")
 
                 r_args = ("Enthought.com", FAKE_USER, FAKE_PASSWORD)
                 self.assertTrue(mocked_keyring.set_password.call_with(r_args))
@@ -270,10 +261,10 @@ class TestGetAuth(unittest.TestCase):
             with mock.patch("enstaller.config.get_path", lambda: f):
                 self.assertEqual(get_auth(), (FAKE_USER, FAKE_PASSWORD))
 
-    @without_default_configuration
     def test_without_existing_configuration(self):
-        with self.assertRaises(InvalidConfiguration):
-            get_auth()
+        with mock.patch("enstaller.config.get_path", lambda: None):
+            with self.assertRaises(InvalidConfiguration):
+                get_auth()
 
 class TestWriteAndChangeAuth(unittest.TestCase):
     @make_keyring_unavailable
@@ -672,27 +663,3 @@ class TestConfiguration(unittest.TestCase):
 
         with self.assertRaises(InvalidConfiguration):
             config.EPD_auth = FAKE_USER
-
-    @without_default_configuration
-    def test_get_default_configuration_fails_without_file(self):
-        """Ensure _get_default_config fails if no default config file is
-        found.
-        """
-        with tempfile.NamedTemporaryFile(delete=False) as fp:
-            pass
-
-        with mock_default_filename_context(fp.name):
-            with self.assertRaises(InvalidConfiguration):
-                Configuration._get_default_config()
-
-            Configuration._get_default_config(create_if_not_exists=True)
-            self.assertTrue(os.path.exists(fp.name))
-
-    @without_default_configuration
-    def test_get_default_configuration_with_file(self):
-        with tempfile.NamedTemporaryFile(delete=False) as fp:
-            fp.write("EPD_username = 'nono'")
-
-        with mock.patch("enstaller.config.get_path", lambda: fp.name):
-            config = Configuration._get_default_config()
-            self.assertEqual(config.EPD_username, "nono")

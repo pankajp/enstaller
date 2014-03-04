@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import sys
 import tempfile
 import textwrap
@@ -13,8 +15,10 @@ from enstaller.main import main_noexc
 from enstaller.config import _encode_auth
 
 from enstaller.tests.common import (
-    without_default_configuration, mock_print, make_default_configuration_path,
+    mock_print, make_default_configuration_path,
     fail_authenticate, mock_input_auth)
+
+from .common import without_default_configuration
 
 FAKE_USER = "nono"
 FAKE_PASSWORD = "le petit robot"
@@ -28,7 +32,7 @@ class TestAuth(unittest.TestCase):
         """
         with mock_print() as m:
             with self.assertRaises(SystemExit):
-                main_noexc()
+                main_noexc([])
 
         self.assertEqual(m.value, "No authentication configured, required "
                                   "to continue.To login, type 'enpkg --userpass'.\n")

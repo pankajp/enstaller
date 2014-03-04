@@ -70,43 +70,34 @@ else:
 
 KEYRING_SERVICE_NAME = 'Enthought.com'
 
-config_fn = ".enstaller4rc"
-home_config_path = abs_expanduser("~/" + config_fn)
-system_config_path = join(sys.prefix, config_fn)
+
+def under_venv():
+    return hasattr(sys, "real_prefix")
 
 
-def _canopyr_hack_location():
-    return os.path.join(sys.prefix, "USE_CANOPYR_HACK")
-
-def _canopyr_hack_path():
-    with open(_canopyr_hack_location()) as fp:
-        return fp.read().strip()
-
-def use_canopy_order():
-    if hasattr(sys, "real_prefix"):
-        return True
-    elif os.path.exists(_canopyr_hack_location()):
-        return True
+def real_prefix():
+    if under_venv():
+        return sys.real_prefix
     else:
-        return False
+        return sys.prefix
 
-def configuration_search_order():
-    paths = []
-    use_canopyr_hack = os.path.exists(_canopyr_hack_location())
 
-    if use_canopyr_hack:
-        paths.append(sys.prefix)
-        paths.append(_canopyr_hack_path())
-        paths.append(abs_expanduser("~"))
-    elif hasattr(sys, "real_prefix"):
-        paths.append(sys.prefix)
-        paths.append(abs_expanduser("~"))
-        paths.append(sys.real_prefix)
-    else:
-        paths.append(abs_expanduser("~"))
-        paths.append(sys.prefix)
+ENSTALLER4RC_FILENAME = ".enstaller4rc"
+SYS_PREFIX_ENSTALLER4RC = os.path.join(real_prefix(), ENSTALLER4RC_FILENAME)
+HOME_ENSTALLER4RC = os.path.join(abs_expanduser("~"), ENSTALLER4RC_FILENAME)
+
+
+def configuration_read_search_order():
+    """
+    Return a list of directories where to look for the configuration file.
+    """
+    paths = [
+        abs_expanduser("~"),
+        real_prefix(),
+    ]
 
     return [os.path.normpath(p) for p in paths]
+
 
 def get_default_url():
     import plat
@@ -202,13 +193,6 @@ IndexedRepos = [
 """
 
 
-def _create_default_config():
-    config = Configuration()
-    path = config._default_filename()
-    config.write(path)
-    return path
-
-
 def _decode_auth(s):
     parts = base64.decodestring(s).split(":")
     if len(parts) == 2:
@@ -222,16 +206,21 @@ def _encode_auth(username, password):
     return base64.encodestring(s).rstrip()
 
 
+def write_default_config(filename, use_keyring=None):
+    if os.path.isfile(filename):
+        msg = "File '{0}' already exists, not overwriting."
+        raise EnstallerException(msg.format(filename))
+    else:
+        config = Configuration(use_keyring=use_keyring)
+        config.write(filename)
+
+
 class Configuration(object):
     @classmethod
-    def _get_default_config(cls, create_if_not_exists=False):
+    def _get_default_config(cls):
         config_filename = get_path()
         if config_filename is None:
-            if create_if_not_exists:
-                path = _create_default_config()
-                return cls.from_file(path)
-            else:
-                raise InvalidConfiguration("No configuration found.")
+            raise InvalidConfiguration("No default configuration found.")
         else:
             return cls.from_file(config_filename)
 
@@ -337,16 +326,7 @@ class Configuration(object):
     def get_auth(self):
         return (self._username, self._password)
 
-    def _default_filename(self):
-        if sys.platform != 'win32' and os.getuid() == 0:
-            return system_config_path
-        else:
-            return home_config_path
-
-    def write(self, filename=None):
-        if filename is None:
-            filename = self._default_filename()
-
+    def write(self, filename):
         username, password = self.get_auth()
         if username and password:
             if self.use_keyring:
@@ -374,43 +354,34 @@ class Configuration(object):
         with open(filename, "w") as fo:
             fo.write(RC_TMPL % variables)
 
-    def _change_auth(self, filename=None):
-        if filename is None:
-            filename = self._default_filename()
+    def _change_auth(self, filename):
+        pat = re.compile(r'^(EPD_auth|EPD_username)\s*=.*$', re.M)
+        with open(filename, 'r') as fi:
+            data = fi.read()
 
-        # XXX: should we really just write the file in this case instead of
-        # erroring-out ?
-        if not os.path.isfile(filename):
-            self.write(filename)
-            return
-        else:
-            pat = re.compile(r'^(EPD_auth|EPD_username)\s*=.*$', re.M)
-            with open(filename, 'r') as fi:
-                data = fi.read()
-
-            if not self.is_auth_configured:
-                if pat.search(data):
-                    data = pat.sub("", data)
-                with open(filename, 'w') as fo:
-                    fo.write(data)
-                return
-
-            if self.use_keyring:
-                authline = 'EPD_username = %r' % self.EPD_username
-            else:
-                authline = 'EPD_auth = %r' % self.EPD_auth
-
+        if not self.is_auth_configured:
             if pat.search(data):
-                data = pat.sub(authline, data)
-            else:
-                lines = data.splitlines()
-                lines.append(authline)
-                data = '\n'.join(lines) + '\n'
-
+                data = pat.sub("", data)
             with open(filename, 'w') as fo:
                 fo.write(data)
+            return
 
-    def _checked_change_auth(self, filename=None, remote=None):
+        if self.use_keyring:
+            authline = 'EPD_username = %r' % self.EPD_username
+        else:
+            authline = 'EPD_auth = %r' % self.EPD_auth
+
+        if pat.search(data):
+            data = pat.sub(authline, data)
+        else:
+            lines = data.splitlines()
+            lines.append(authline)
+            data = '\n'.join(lines) + '\n'
+
+        with open(filename, 'w') as fo:
+            fo.write(data)
+
+    def _checked_change_auth(self, filename, remote=None):
         if not self.is_auth_configured:
             raise InvalidConfiguration("No auth configured: cannot "
                                        "change auth.")
@@ -508,10 +479,12 @@ def get_path():
     """
     Return the absolute path to the config file.
     """
-    if isfile(home_config_path):
-        return home_config_path
-    if isfile(system_config_path):
-        return system_config_path
+    warnings.warn("get_path deprecated, use Configuration.from_filename "
+                  "with an explicit filename", DeprecationWarning)
+    for p in configuration_read_search_order():
+        path = os.path.join(p, ENSTALLER4RC_FILENAME)
+        if isfile(path):
+            return path
     return None
 
 

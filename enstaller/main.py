@@ -28,8 +28,9 @@ from enstaller._version import is_released as IS_RELEASED
 from egginst.utils import bin_dir_name, rel_site_packages
 from enstaller import __version__
 from enstaller.errors import InvalidPythonPathConfiguration
-from enstaller.config import (Configuration, authenticate,
-    input_auth, print_config, subscription_message)
+from enstaller.config import (HOME_ENSTALLER4RC, SYS_PREFIX_ENSTALLER4RC,
+    Configuration, authenticate, get_path, input_auth, print_config,
+    subscription_message, write_default_config)
 from enstaller.proxy.api import setup_proxy
 from enstaller.utils import abs_expanduser, fill_url, exit_if_sudo_on_venv
 
@@ -476,6 +477,17 @@ def needs_to_downgrade_enstaller(enpkg, reqs):
     return False
 
 
+def get_config_filename(use_sys_config):
+    if use_sys_config:                           # --sys-config
+        config_filename = SYS_PREFIX_ENSTALLER4RC
+    else:
+        config_filename = get_path()
+        if config_filename is None:
+            config_filename = HOME_ENSTALLER4RC
+
+    return config_filename
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
@@ -552,10 +564,11 @@ def main(argv=None):
 
     args = p.parse_args(argv)
 
-    if args.sys_config:                           # --sys-config
-        config.get_path = lambda: config.system_config_path
+    config_filename = get_config_filename(args.sys_config)
+    if not os.path.isfile(config_filename):
+        write_default_config(config_filename)
 
-    config = Configuration._get_default_config(create_if_not_exists=True)
+    config = Configuration.from_file(config_filename)
 
     # Check for incompatible actions and options
     # Action options which take no package name pattern:
@@ -685,7 +698,7 @@ def main(argv=None):
 
         config.set_auth(username, password)
         try:
-            config._checked_change_auth()
+            config._checked_change_auth(config_filename)
         except AuthFailedError as e:
             msg = ("Could not authenticate. Please check your credentials "
                    "and try again.\nNo modification was written.")
