@@ -17,6 +17,9 @@ def main(argv=None):
     plat = enstaller.plat.custom_plat
 
     p = argparse.ArgumentParser()
+    p.add_argument("--url",
+                  help="url template (default: %(default)s).",
+                  default=URL_TEMPLATE)
     p.add_argument("--platform",
                   help="Platform to consider (default: %(default)s).",
                   default=plat)
@@ -35,7 +38,7 @@ def main(argv=None):
     else:
         auth = tuple(auth.split(":"))
 
-    url = URL_TEMPLATE % namespace.platform
+    url = namespace.url % plat
 
     print "Using user {}".format(auth[0])
     url += "index.json"
