@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import os.path
+import shutil
 import sys
 import tempfile
 import textwrap
@@ -15,37 +17,44 @@ from enstaller.main import main_noexc
 from enstaller.config import _encode_auth
 
 from enstaller.tests.common import (
-    mock_print, make_default_configuration_path,
-    fail_authenticate, mock_input_auth)
+    mock_print, fail_authenticate, mock_input_auth)
 
-from .common import without_default_configuration
+from .common import no_initial_configuration_context, without_any_configuration
 
 FAKE_USER = "nono"
 FAKE_PASSWORD = "le petit robot"
 FAKE_CREDS = _encode_auth(FAKE_USER, FAKE_PASSWORD)
 
 class TestAuth(unittest.TestCase):
-    @without_default_configuration
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+        self.config = os.path.join(self.d, ".enstaller4rc")
+
+    def tearDown(self):
+        shutil.rmtree(self.d)
+
     def test_auth_requested_without_config(self):
         """
         Ensure we ask for authentication if no .enstaller4rc is found.
         """
-        with mock_print() as m:
-            with self.assertRaises(SystemExit):
-                main_noexc([])
+        with no_initial_configuration_context(self.config):
+            with mock_print() as m:
+                with self.assertRaises(SystemExit):
+                    main_noexc([])
 
         self.assertEqual(m.value, "No authentication configured, required "
                                   "to continue.To login, type 'enpkg --userpass'.\n")
 
-    @without_default_configuration
+    @without_any_configuration
     def test_userpass_without_config(self):
         """
         Ensure we don't crash when empty information is input in --userpass
         prompt (no .enstaller4rc found).
         """
-        with mock.patch("__builtin__.raw_input", return_value="") as m:
-            with self.assertRaises(SystemExit):
-                main_noexc(["--userpass"])
+        with no_initial_configuration_context(self.config):
+            with mock.patch("__builtin__.raw_input", return_value="") as m:
+                with self.assertRaises(SystemExit):
+                    main_noexc(["--userpass"])
 
         self.assertEqual(m.call_count, 3)
 
@@ -57,11 +66,8 @@ class TestAuth(unittest.TestCase):
         r_output = ("Could not authenticate. Please check your credentials "
                     "and try again.\nNo modification was written.\n")
 
-        with tempfile.NamedTemporaryFile(delete=False) as fp:
-            filename = fp.name
-
-        with mock_print() as m:
-            with make_default_configuration_path(filename):
+        with no_initial_configuration_context(self.config):
+            with mock_print() as m:
                 with mock_input_auth("nono", "robot"):
                     with self.assertRaises(SystemExit):
                         main_noexc(["--userpass"])
@@ -78,12 +84,11 @@ class TestAuth(unittest.TestCase):
             You can change your authentication details with 'enpkg --userpass'
             """)
 
-        with tempfile.NamedTemporaryFile(delete=False) as fp:
+        with open(self.config, "w") as fp:
             fp.write("EPD_auth = '{0}'".format(FAKE_CREDS))
-            filename = fp.name
 
         with mock_print() as m:
-            with make_default_configuration_path(filename):
+            with no_initial_configuration_context(self.config):
                 with self.assertRaises(SystemExit):
                     main_noexc(["nono"])
 

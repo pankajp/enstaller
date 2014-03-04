@@ -9,10 +9,10 @@ else:
 
 from enstaller.main import main
 
-from .common import without_default_configuration
+from .common import without_any_configuration
 
 class TestEnstallerMainActions(unittest.TestCase):
-    @without_default_configuration
+    @without_any_configuration
     def test_print_version(self):
         # XXX: this is lousy test: we'd like to at least ensure we're printing
         # the correct version, but capturing the stdout is a bit tricky. Once
@@ -22,14 +22,14 @@ class TestEnstallerMainActions(unittest.TestCase):
         except SystemExit as e:
             self.assertEqual(e.code, 0)
 
-    @without_default_configuration
+    @without_any_configuration
     def test_help_runs_and_exits_correctly(self):
         try:
             main(["--help"])
         except SystemExit as e:
             self.assertEqual(e.code, 0)
 
-    @without_default_configuration
+    @without_any_configuration
     def test_print_env(self):
         try:
             main(["--env"])
