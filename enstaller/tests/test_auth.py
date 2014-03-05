@@ -12,7 +12,7 @@ from mock import patch
 
 import enstaller.config
 
-from enstaller.config import Configuration
+from enstaller.config import Configuration, write_default_config
 from enstaller.errors import AuthFailedError, InvalidConfiguration
 
 
@@ -36,6 +36,7 @@ class CheckedChangeAuthTestCase(unittest.TestCase):
     def test_simple(self, mock1):
         config = Configuration()
         config.set_auth('usr', 'password')
+        write_default_config(self.f)
         config._checked_change_auth(self.f)
 
         new_config = Configuration.from_file(self.f)
@@ -51,6 +52,7 @@ class CheckedChangeAuthTestCase(unittest.TestCase):
             else:
                 return {"is_authenticated": True}
 
+        write_default_config(self.f)
         with patch('enstaller.config.authenticate', mocked_authenticate):
             config = Configuration()
             config.set_auth("invalid_user", "invalid_password")
@@ -66,6 +68,8 @@ class CheckedChangeAuthTestCase(unittest.TestCase):
 
     @patch('enstaller.config.authenticate', return_value=old_auth_user)
     def test_remote_success(self, mock1):
+        write_default_config(self.f)
+
         config = Configuration()
         config.set_auth("usr", "password")
 
