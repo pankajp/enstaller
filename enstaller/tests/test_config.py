@@ -558,7 +558,7 @@ class TestConfigurationPrint(unittest.TestCase):
         config file: {{config_file}}
         settings:
             prefix = {{prefix}}
-            local = '{{prefix}}/LOCAL-REPO'
+            local = {{local}}
             noapp = False
             proxy = None
             IndexedRepos: (not used)
@@ -569,8 +569,11 @@ class TestConfigurationPrint(unittest.TestCase):
 
     def test_simple(self):
         config = Configuration()
-        r_output = self.OUTPUT_TEMPLATE.format(prefix=config.prefix,
-                                               config_file=get_path())
+        prefix = config.prefix
+        local = os.path.join(prefix, "LOCAL-REPO")
+        r_output = self.OUTPUT_TEMPLATE.format(prefix=prefix,
+                                               config_file=get_path(),
+                                               local=local)
 
         with mock_print() as m:
             print_config(config, None, config.prefix)
