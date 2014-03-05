@@ -73,7 +73,7 @@ class TestUtils(unittest.TestCase):
         for url, r_url in r_data:
             self.assertEqual(cleanup_url(url), r_url)
 
-    @unittest.skipIf(sys.platform=="win32")
+    @unittest.skipIf(sys.platform=="win32", "cleanup_url is utterly broken on windows.")
     def test_cleanup_url_dir(self):
         r_url = "file://{0}/".format(os.path.abspath(os.path.expanduser("~")))
 
